@@ -1,0 +1,13 @@
+syntax = "proto3";
+option go_package = "dbmodel";
+
+import "model.proto";
+import "gogoproto/gogo.proto";
+
+
+message SpanData {
+    jaeger.api_v2.Process Process = 1;
+    repeated jaeger.api_v2.KeyValue tags = 2 [(gogoproto.nullable) = false];
+    repeated jaeger.api_v2.Log logs = 3 [(gogoproto.nullable) = false];
+    repeated jaeger.api_v2.SpanRef references = 4 [(gogoproto.nullable) = false];
+}

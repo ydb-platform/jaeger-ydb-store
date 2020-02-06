@@ -1,0 +1,42 @@
+version: '3'
+services:
+  schema:
+    image: yandex-cloud/jaeger-ydb-watcher
+    volumes:
+      - ./ydb.key:/ydb.key
+      - ./ca.pem:/ca.pem
+    environment:
+      YDB_SA_ID: aje65tbjpm9c2l7kecnl
+      YDB_SA_KEY_ID: ajes5qdgf6osjamjecd7
+      YDB_SA_PRIVATE_KEY_FILE: /ydb.key
+      YDB_ADDRESS: lb.etn020jbq151nk3l676n.ydb.mdb.yandexcloud.net:2135
+      YDB_PATH: /ru-central1/b1gr01sh5qjihf7elkiv/etn020jbq151nk3l676n
+      YDB_SA_CA_FILE: /ca.pem
+    command: watcher
+  collector:
+    image: yandex-cloud/jaeger-ydb-collector
+    volumes:
+      - ./ydb.key:/ydb.key
+      - ./ca.pem:/ca.pem
+    environment:
+      YDB_SA_ID: aje65tbjpm9c2l7kecnl
+      YDB_SA_KEY_ID: ajes5qdgf6osjamjecd7
+      YDB_SA_PRIVATE_KEY_FILE: /ydb.key
+      YDB_ADDRESS: lb.etn020jbq151nk3l676n.ydb.mdb.yandexcloud.net:2135
+      YDB_PATH: /ru-central1/b1gr01sh5qjihf7elkiv/etn020jbq151nk3l676n
+      YDB_SA_CA_FILE: /ca.pem
+  query:
+    image: q/jaeger-ydb-query:dev
+    volumes:
+      - ./ydb.key:/ydb.key
+      - ./ca.pem:/ca.pem
+    ports:
+      - 16686:16686
+    environment:
+      YDB_SA_ID: aje65tbjpm9c2l7kecnl
+      YDB_SA_KEY_ID: ajes5qdgf6osjamjecd7
+      YDB_SA_PRIVATE_KEY_FILE: /ydb.key
+      YDB_ADDRESS: lb.etn020jbq151nk3l676n.ydb.mdb.yandexcloud.net:2135
+      YDB_PATH: /ru-central1/b1gr01sh5qjihf7elkiv/etn020jbq151nk3l676n
+      YDB_SA_CA_FILE: /ca.pem
+      PLUGIN_LOG_PATH: /tmp/plugin.log
