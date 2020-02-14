@@ -15,6 +15,9 @@ func init() {
 }
 
 func shouldIndexTag(kv model.KeyValue) bool {
+	if kv.VType == model.ValueType_BINARY {
+		return false
+	}
 	if _, exists := stopMap[kv.Key]; exists {
 		return false
 	}

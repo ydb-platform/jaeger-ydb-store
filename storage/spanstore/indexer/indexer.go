@@ -76,6 +76,9 @@ func (w *Indexer) spanProcessor() {
 
 func (w *Indexer) processTag(kv model.KeyValue, span *model.Span) {
 	if shouldIndexTag(kv) {
-		w.tagWriter.Add(index.NewTagIndex(span, kv), span.TraceID)
+		w.tagWriter.Add(index.NewTagIndex(span, kv, false), span.TraceID)
+		if span.OperationName != "" {
+			w.tagWriter.Add(index.NewTagIndex(span, kv, true), span.TraceID)
+		}
 	}
 }
