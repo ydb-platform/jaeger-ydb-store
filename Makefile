@@ -1,4 +1,4 @@
-DOCKER_NAMESPACE ?= registry.vertis.yandex.net
+DOCKER_NAMESPACE ?= cr.yandex/yc
 DOCKER_TAG ?= dev
 
 none:
