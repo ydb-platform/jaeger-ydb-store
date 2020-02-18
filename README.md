@@ -7,6 +7,12 @@ This is a storage backend using [Yandex.Database](https://cloud.yandex.ru/servic
 - collector/query: these are docker images with jaeger-collector/jaeger-query and plugin built-in into image
 - watcher (see cmd/schema/watcher): this is schema-watcher that creates new tables for spans/indexes and removes old ones
 
+## docker images
+
+- `cr.yandex/yc/jaeger-ydb-collector`
+- `cr.yandex/yc/jaeger-ydb-query`
+- `cr.yandex/yc/jaeger-ydb-watcher`
+
 ## how to run
 
 ```
@@ -18,6 +24,10 @@ docker-compose up -d
 ## environment variables
 
 - YDB_ADDRESS (string): db endpoint host:port to connect to
+- YDB_SA_ID (string): service account id for Yandex.Cloud authorization (doc on service accounts: https://cloud.yandex.com/docs/iam/concepts/users/service-accounts)
+- YDB_SA_KEY_ID (string): service account key id for Yandex.Cloud authorization
+- YDB_SA_PRIVATE_KEY_FILE (string): path to service account private key for Yandex.Cloud authorization
+- YDB_TOKEN (string): auth token for testing purposes
 - YDB_PATH (string): database path
 - YDB_FOLDER (string): folder to store data in)
 - YDB_CONNECT_TIMEOUT (duration, default: 10s): db connect timeout
