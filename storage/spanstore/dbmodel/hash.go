@@ -5,8 +5,8 @@ import (
 	"github.com/dgryski/go-farm"
 )
 
-func HashTagIndex(service, key, value string, bucket uint8) uint64 {
-	return HashBucketData(bucket, service, key, value)
+func HashTagIndex(service, operation, key, value string, bucket uint8) uint64 {
+	return HashBucketData(bucket, service, operation, key, value)
 }
 
 func HashBucketData(bucket uint8, lst ...string) uint64 {

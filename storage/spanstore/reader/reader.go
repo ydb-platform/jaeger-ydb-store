@@ -399,26 +399,15 @@ func (s *SpanReader) findTraceIDs(ctx context.Context, traceQuery *spanstore.Tra
 	if traceQuery.DurationMin != 0 || traceQuery.DurationMax != 0 {
 		return s.queryByDuration(ctx, traceQuery)
 	}
-
+	if len(traceQuery.Tags) > 0 {
+		return s.queryByTagsAndLogs(ctx, traceQuery)
+	}
 	if traceQuery.OperationName != "" {
 		traceIds, err := s.queryByServiceNameAndOperation(ctx, traceQuery)
 		if err != nil {
 			return nil, err
 		}
-		if len(traceQuery.Tags) > 0 {
-			tagTraceIds, err := s.queryByTagsAndLogs(ctx, traceQuery)
-			if err != nil {
-				return nil, err
-			}
-			return dbmodel.IntersectTraceIDs([]*dbmodel.UniqueTraceIDs{
-				traceIds,
-				tagTraceIds,
-			}), nil
-		}
 		return traceIds, nil
-	}
-	if len(traceQuery.Tags) > 0 {
-		return s.queryByTagsAndLogs(ctx, traceQuery)
 	}
 	return s.queryByService(ctx, traceQuery)
 }
@@ -438,7 +427,7 @@ func (s *SpanReader) queryByTagsAndLogs(ctx context.Context, tq *spanstore.Trace
 
 		result := newSharedResult(cancel)
 		runBucketOperation(ctx, dbmodel.NumIndexBuckets, func(ctx context.Context, bucket uint8) {
-			hash := dbmodel.HashTagIndex(tq.ServiceName, k, v, bucket)
+			hash := dbmodel.HashTagIndex(tq.ServiceName, tq.OperationName, k, v, bucket)
 			span, ctx := opentracing.StartSpanFromContext(ctx, "queryBucket", opentracing.Tags{"bucket": bucket, "hash": hash})
 			defer span.Finish()
 			values := []table.ParameterOption{
