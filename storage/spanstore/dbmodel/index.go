@@ -2,8 +2,8 @@ package dbmodel
 
 import (
 	"encoding/binary"
+	"errors"
 	"github.com/jaegertracing/jaeger/model"
-	"github.com/pkg/errors"
 	"github.com/yandex-cloud/ydb-go-sdk/table"
 )
 
@@ -13,7 +13,7 @@ const (
 
 var (
 	errScanTraceID = errors.New("failed to scan TraceID")
-	errListLength  = errors.New("Invalid length for TraceIDList")
+	errListLength  = errors.New("invalid length for TraceIDList")
 )
 
 // TraceID represents db-serializable trace id

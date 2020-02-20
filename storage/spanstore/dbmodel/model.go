@@ -1,9 +1,9 @@
 package dbmodel
 
 import (
+	"fmt"
 	"github.com/gogo/protobuf/proto"
 	"github.com/jaegertracing/jaeger/model"
-	"github.com/pkg/errors"
 	"time"
 )
 
@@ -29,7 +29,7 @@ func FromDomain(span *model.Span) (*Span, error) {
 	}
 	extra, err := proto.Marshal(&spanData)
 	if err != nil {
-		return nil, errors.Wrap(err, "marshal err")
+		return nil, fmt.Errorf("dbSpan.Extra marshal error: %w", err)
 	}
 	dbSpan := &Span{
 		TraceIDHigh:   span.TraceID.High,
@@ -49,8 +49,7 @@ func ToDomain(dbSpan *Span) (*model.Span, error) {
 	spanData := SpanData{}
 	err := proto.Unmarshal(dbSpan.Extra, &spanData)
 	if err != nil {
-		return nil, errors.Wrap(err, "dbSpan.Extra unmarshal error")
-
+		return nil, fmt.Errorf("dbSpan.Extra unmarshal error: %w", err)
 	}
 
 	span := &model.Span{

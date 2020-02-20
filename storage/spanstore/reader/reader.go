@@ -2,6 +2,8 @@ package reader
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"github.com/YandexClassifieds/jaeger-ydb-store/schema"
 	"github.com/YandexClassifieds/jaeger-ydb-store/storage/spanstore/dbmodel"
 	"github.com/YandexClassifieds/jaeger-ydb-store/storage/spanstore/queries"
@@ -10,7 +12,6 @@ import (
 	"github.com/opentracing/opentracing-go"
 	ottag "github.com/opentracing/opentracing-go/ext"
 	otlog "github.com/opentracing/opentracing-go/log"
-	"github.com/pkg/errors"
 	"github.com/yandex-cloud/ydb-go-sdk"
 	"github.com/yandex-cloud/ydb-go-sdk/table"
 	"go.uber.org/zap"
@@ -52,6 +53,10 @@ var (
 	ErrStartAndEndTimeNotSet = status.Error(codes.InvalidArgument, "Start and End Time must be set")
 
 	ErrTraceNotFound = status.Error(codes.NotFound, "trace not found")
+
+	ErrEmptyPartitionList = errors.New("partition list is empty")
+
+	ErrNoPartitions = errors.New("no partitions to query")
 
 	txc = table.TxControl(
 		table.BeginTx(table.WithSerializableReadWrite()),
@@ -165,7 +170,7 @@ func (s *SpanReader) FindTraces(ctx context.Context, query *spanstore.TraceQuery
 	}
 	parts = schema.IntersectPartList(parts, availableParts)
 	if len(parts) == 0 {
-		return nil, errors.New("no parts to query")
+		return nil, ErrNoPartitions
 	}
 
 	numThreads := 16
@@ -244,7 +249,7 @@ func (s *SpanReader) readTrace(ctx context.Context, traceID model.TraceID) (*mod
 
 	parts, err := s.getPartitionList(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "partitions list fetch failed")
+		return nil, fmt.Errorf("failed to fetch partitions list: %w", err)
 	}
 
 	trace, err := s.readTraceFromPartitions(ctx, parts, traceID)
@@ -282,7 +287,7 @@ func (s *SpanReader) queryPartitionList(ctx context.Context) ([]schema.Partition
 		return nil, err
 	}
 	if len(result) == 0 {
-		return nil, errors.New("no partitions found")
+		return nil, ErrEmptyPartitionList
 	}
 	return result, nil
 }
@@ -344,8 +349,8 @@ func (s *SpanReader) spansFromPartition(ctx context.Context, part schema.Partiti
 		var numSpans int
 		if res.NextSet() && res.NextRow() && res.NextItem() {
 			numSpans = int(res.Uint64())
-			if res.Err() != nil {
-				return errors.Wrap(res.Err(), "failed to read spancount Result")
+			if err := res.Err(); err != nil {
+				return fmt.Errorf("failed to read spancount result: %w", err)
 			}
 		}
 		if numSpans == 0 {
@@ -373,17 +378,17 @@ func (s *SpanReader) spansFromPartition(ctx context.Context, part schema.Partiti
 			for res.NextSet() {
 				for res.NextRow() {
 					if err = dbSpan.Scan(res); err != nil {
-						return errors.Wrap(err, "span.Scan failed")
+						return fmt.Errorf("span.Scan failed: %w", err)
 					}
 					if span, err = dbmodel.ToDomain(&dbSpan); err != nil {
-						return errors.Wrap(err, "span.ToDomain failed")
+						return err
 					}
 					result = append(result, span)
 				}
 			}
 
 			if err = res.Err(); err != nil {
-				return errors.Wrap(err, "Error reading traces from storage")
+				return fmt.Errorf("failed to read spans: %w", err)
 			}
 		}
 		return nil
@@ -513,7 +518,7 @@ func (s *SpanReader) queryParallel(ctx context.Context, parts []schema.Partition
 	}
 	parts = schema.IntersectPartList(parts, availableParts)
 	if len(parts) == 0 {
-		return nil, errors.New("no parts")
+		return nil, ErrNoPartitions
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
