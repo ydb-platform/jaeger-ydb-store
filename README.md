@@ -42,6 +42,11 @@ docker-compose up -d
 - YDB_INDEXER_MAX_TRACES (integer, default: 100): maximum trace_id count in a sinigle index record
 - YDB_INDEXER_MAX_TTL (duration, default: 5s): maximum amount of time for indexer to batch trace_idsd for index records
 
+## schema watcher configuration
+
+- WATCHER_AGE (duration, e.g. 24h, 2d, default: 24h): delete partition tables older than this value
+- WATCHER_INTERVAL (duration, default: 5m): check interval
+
 ## conference talks
 
 - https://youtu.be/nyt_e4ULrUo?t=660
