@@ -58,6 +58,11 @@ func main() {
 	watcherCmd := &cobra.Command{
 		Use: "watcher",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			maxAge := viper.GetDuration("watcher_age")
+			if maxAge == 0 {
+				return fmt.Errorf("cannot use watcher age '%s'", maxAge)
+			}
+
 			shutdown := make(chan os.Signal)
 			signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM)
 			dbPath := schema.DbPath{
@@ -73,7 +78,7 @@ func main() {
 			}
 
 			logger.Info("starting watcher")
-			w := watcher.NewWatcher(pool, dbPath, viper.GetDuration("watcher_age"), logger)
+			w := watcher.NewWatcher(pool, dbPath, maxAge, logger)
 			w.Run(viper.GetDuration("watcher_interval"))
 			<-shutdown
 			logger.Info("stopping watcher")
