@@ -44,7 +44,7 @@ docker-compose up -d
 
 ## schema watcher configuration
 
-- WATCHER_AGE (duration, e.g. 24h, 2d, default: 24h): delete partition tables older than this value
+- WATCHER_AGE (duration, default: 24h): delete partition tables older than this value
 - WATCHER_INTERVAL (duration, default: 5m): check interval
 
 ## conference talks
