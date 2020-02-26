@@ -13,13 +13,16 @@ RUN CGO_ENABLED=0 go build -mod=vendor -ldflags='-w -s' -o /ydb-plugin .
 RUN CGO_ENABLED=0 go build -mod=vendor -ldflags='-w -s' -o /ydb-schema ./cmd/schema
 
 FROM alpine:${alpine_version} AS watcher
+ENV YDB_CA_FILE="/ydb-ca.pem"
+RUN apk add --no-cache ca-certificates && \
+    wget "https://storage.yandexcloud.net/cloud-certs/CA.pem" -O /ydb-ca.pem
 COPY  --from=builder /ydb-schema /
 ENTRYPOINT ["/ydb-schema"]
 
 FROM alpine:${alpine_version} AS shared
 ENV SPAN_STORAGE_TYPE="grpc-plugin"
 ENV GRPC_STORAGE_PLUGIN_BINARY="/ydb-plugin"
-ENV YDB_SA_CA_FILE="/ydb-ca.pem"
+ENV YDB_CA_FILE="/ydb-ca.pem"
 RUN apk add --no-cache ca-certificates && \
     wget "https://storage.yandexcloud.net/cloud-certs/CA.pem" -O /ydb-ca.pem
 COPY --from=builder /ydb-plugin /
