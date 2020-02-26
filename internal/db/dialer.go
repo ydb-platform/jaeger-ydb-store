@@ -21,8 +21,8 @@ const (
 	keyYdbSaPrivateKeyFile = "ydb.sa.private-key-file"
 	keyYdbSaId             = "ydb.sa.id"
 	keyYdbSaKeyId          = "ydb.sa.key-id"
-	keyYdbSaEndpoint       = "ydb.sa.endpoint"
-	keyYdbSaCAFile         = "ydb.sa.ca-file"
+	keyYdbCAFile           = "ydb.ca-file"
+	keyIAMEndpoint         = "iam.endpoint"
 
 	defaultIAMEndpoint = "iam.api.cloud.yandex.net:443"
 )
@@ -30,12 +30,12 @@ const (
 func DialerFromViper(v *viper.Viper) (*ydb.Dialer, error) {
 	var authCredentials ydb.Credentials
 	var tlsConfig *tls.Config
-	v.SetDefault(keyYdbSaEndpoint, defaultIAMEndpoint)
+	v.SetDefault(keyIAMEndpoint, defaultIAMEndpoint)
 	if v.GetString(keyYdbToken) != "" {
 		authCredentials = ydb.AuthTokenCredentials{AuthToken: v.GetString(keyYdbToken)}
 	} else {
 		var certPool *x509.CertPool
-		if caFile := v.GetString(keyYdbSaCAFile); caFile != "" {
+		if caFile := v.GetString(keyYdbCAFile); caFile != "" {
 			certPool = mustReadRootCerts(caFile)
 		} else {
 			certPool = mustReadSystemRootCerts()
@@ -44,7 +44,7 @@ func DialerFromViper(v *viper.Viper) (*ydb.Dialer, error) {
 			RootCAs: certPool,
 		}
 		authCredentials = &iam.Client{
-			Endpoint: v.GetString(keyYdbSaEndpoint),
+			Endpoint: v.GetString(keyIAMEndpoint),
 			KeyID:    v.GetString(keyYdbSaKeyId),
 			Issuer:   v.GetString(keyYdbSaId),
 			Key:      mustReadPrivateKey(v.GetString(keyYdbSaPrivateKeyFile)),
