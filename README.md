@@ -27,7 +27,6 @@ docker-compose up -d
 - YDB_SA_ID (string): service account id for Yandex.Cloud authorization (doc on service accounts: https://cloud.yandex.com/docs/iam/concepts/users/service-accounts)
 - YDB_SA_KEY_ID (string): service account key id for Yandex.Cloud authorization
 - YDB_SA_PRIVATE_KEY_FILE (string): path to service account private key for Yandex.Cloud authorization
-- YDB_TOKEN (string): auth token for testing purposes
 - YDB_PATH (string): database path
 - YDB_FOLDER (string): folder to store data in)
 - YDB_CONNECT_TIMEOUT (duration, default: 10s): db connect timeout
@@ -41,6 +40,7 @@ docker-compose up -d
 - YDB_INDEXER_BUFFER_SIZE (integer, default: 1000): span buffer size for indexer
 - YDB_INDEXER_MAX_TRACES (integer, default: 100): maximum trace_id count in a sinigle index record
 - YDB_INDEXER_MAX_TTL (duration, default: 5s): maximum amount of time for indexer to batch trace_idsd for index records
+- YDB_TOKEN (string): auth token for internal purposes
 
 ## schema watcher configuration
 
