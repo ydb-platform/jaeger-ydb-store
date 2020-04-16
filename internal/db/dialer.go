@@ -6,11 +6,13 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"time"
+
 	"github.com/spf13/viper"
 	"github.com/yandex-cloud/ydb-go-sdk"
 	"github.com/yandex-cloud/ydb-go-sdk/auth/iam"
-	"io/ioutil"
-	"os"
 )
 
 const (
@@ -43,12 +45,16 @@ func DialerFromViper(v *viper.Viper) (*ydb.Dialer, error) {
 		tlsConfig = &tls.Config{
 			RootCAs: certPool,
 		}
-		authCredentials = &iam.Client{
-			Endpoint: v.GetString(keyIAMEndpoint),
-			KeyID:    v.GetString(keyYdbSaKeyId),
-			Issuer:   v.GetString(keyYdbSaId),
-			Key:      mustReadPrivateKey(v.GetString(keyYdbSaPrivateKeyFile)),
-			CertPool: mustReadSystemRootCerts(),
+		var err error
+		authCredentials, err = iam.NewClient(
+			iam.WithEndpoint(v.GetString(keyIAMEndpoint)),
+			iam.WithKeyID(v.GetString(keyYdbSaKeyId)),
+			iam.WithIssuer(v.GetString(keyYdbSaId)),
+			iam.WithPrivateKeyFile(v.GetString(keyYdbSaPrivateKeyFile)),
+			iam.WithSystemCertPool(),
+		)
+		if err != nil {
+			return nil, err
 		}
 	}
 	return &ydb.Dialer{
@@ -57,6 +63,11 @@ func DialerFromViper(v *viper.Viper) (*ydb.Dialer, error) {
 			Database:        v.GetString(keyYdbPath),
 			Credentials:     authCredentials,
 			BalancingMethod: ydb.BalancingP2C,
+			BalancingConfig: &ydb.P2CConfig{
+				PreferLocal:     true,
+				OpTimeThreshold: time.Second,
+			},
+			DiscoveryInterval: time.Minute,
 		},
 	}, nil
 }
@@ -88,14 +99,6 @@ func readPrivateKey(path string) (key *rsa.PrivateKey, err error) {
 		err = nil
 	}
 	return
-}
-
-func mustReadPrivateKey(path string) *rsa.PrivateKey {
-	key, err := readPrivateKey(path)
-	if err != nil {
-		panic(fmt.Errorf("read private key error: %v", err))
-	}
-	return key
 }
 
 func readRootCerts(path string) (*x509.CertPool, error) {

@@ -12,9 +12,9 @@ type PartitionedDefinition func(partitionCount uint64) []table.CreateTableOption
 var (
 	// Tables are global tables
 	Tables = map[string]Definition{
-		"partitions":      Partitions,
-		"service_names":   ServiceNames,
-		"operation_names": OperationNames,
+		"partitions":         Partitions,
+		"service_names":      ServiceNames,
+		"operation_names_v2": OperationNamesV2,
 	}
 
 	// PartitionTables tables split by partition
@@ -105,12 +105,13 @@ func ServiceNames() []table.CreateTableOption {
 	}
 }
 
-// OperationNames returns operation_names table schema
-func OperationNames() []table.CreateTableOption {
+// OperationNames returns operation_names_v2 table schema
+func OperationNamesV2() []table.CreateTableOption {
 	return []table.CreateTableOption{
 		table.WithColumn("service_name", ydb.Optional(ydb.TypeUTF8)),
+		table.WithColumn("span_kind", ydb.Optional(ydb.TypeUTF8)),
 		table.WithColumn("operation_name", ydb.Optional(ydb.TypeUTF8)),
-		table.WithPrimaryKeyColumn("service_name", "operation_name"),
+		table.WithPrimaryKeyColumn("service_name", "span_kind", "operation_name"),
 	}
 }
 

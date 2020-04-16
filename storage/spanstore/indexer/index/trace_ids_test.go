@@ -1,9 +1,10 @@
 package index
 
 import (
+	"testing"
+
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestTraceIDList_ToBytes(t *testing.T) {

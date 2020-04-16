@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/YandexClassifieds/jaeger-ydb-store/schema"
-	"github.com/YandexClassifieds/jaeger-ydb-store/storage/spanstore/dbmodel"
-	"github.com/YandexClassifieds/jaeger-ydb-store/storage/spanstore/queries"
+	"sync"
+	"time"
+
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/jaegertracing/jaeger/storage/spanstore"
 	"github.com/opentracing/opentracing-go"
@@ -17,8 +17,10 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"sync"
-	"time"
+
+	"github.com/YandexClassifieds/jaeger-ydb-store/schema"
+	"github.com/YandexClassifieds/jaeger-ydb-store/storage/spanstore/dbmodel"
+	"github.com/YandexClassifieds/jaeger-ydb-store/storage/spanstore/queries"
 )
 
 const (
@@ -65,6 +67,8 @@ var (
 )
 
 // SpanReader can query for and load traces from YDB.
+var _ spanstore.Reader = &SpanReader{}
+
 type SpanReader struct {
 	pool        *table.SessionPool
 	dbPath      schema.DbPath
@@ -120,26 +124,46 @@ func (s *SpanReader) GetServices(ctx context.Context) ([]string, error) {
 }
 
 // GetOperations returns all operations for a specific service traced by Jaeger
-func (s *SpanReader) GetOperations(ctx context.Context, service string) ([]string, error) {
+func (s *SpanReader) GetOperations(ctx context.Context, query spanstore.OperationQueryParameters) ([]spanstore.Operation, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.readTimeout)
 	defer cancel()
-	result := make([]string, 0)
+
+	var prepQuery string
+	var queryParameters *table.QueryParameters
+	if len(query.SpanKind) > 0 {
+		prepQuery = queries.BuildQuery("query-operations-with-kind", s.dbPath)
+		queryParameters = table.NewQueryParameters(
+			table.ValueParam("$service_name", ydb.UTF8Value(query.ServiceName)),
+			table.ValueParam("$span_kind", ydb.UTF8Value(query.SpanKind)),
+		)
+	} else {
+		prepQuery = queries.BuildQuery("query-operations", s.dbPath)
+		queryParameters = table.NewQueryParameters(
+			table.ValueParam("$service_name", ydb.UTF8Value(query.ServiceName)),
+		)
+	}
+
+	result := make([]spanstore.Operation, 0)
 	err := table.Retry(ctx, s.pool, table.OperationFunc(func(ctx context.Context, session *table.Session) error {
-		stmt, err := session.Prepare(ctx, queries.BuildQuery("query-operations", s.dbPath))
+		stmt, err := session.Prepare(ctx, prepQuery)
 		if err != nil {
 			return err
 		}
-		_, res, err := stmt.Execute(ctx, txc, table.NewQueryParameters(
-			table.ValueParam("$service_name", ydb.UTF8Value(service)),
-		))
+		_, res, err := stmt.Execute(ctx, txc, queryParameters)
 		if err != nil {
 			return err
 		}
 
 		res.NextSet()
 		for res.NextRow() {
-			res.NextItem()
-			result = append(result, res.OUTF8())
+			v := spanstore.Operation{
+				SpanKind: query.SpanKind,
+			}
+
+			res.SeekItem("operation_name")
+			v.Name = res.OUTF8()
+
+			result = append(result, v)
 		}
 		if res.Err() != nil {
 			return res.Err()

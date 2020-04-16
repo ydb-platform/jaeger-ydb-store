@@ -2,14 +2,16 @@ package writer
 
 import (
 	"context"
-	"github.com/YandexClassifieds/jaeger-ydb-store/storage/spanstore/batch"
-	"github.com/YandexClassifieds/jaeger-ydb-store/storage/spanstore/indexer"
+
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/uber/jaeger-lib/metrics"
 	"github.com/yandex-cloud/ydb-go-sdk"
 	"github.com/yandex-cloud/ydb-go-sdk/table"
 	"go.uber.org/zap"
+
+	"github.com/YandexClassifieds/jaeger-ydb-store/storage/spanstore/batch"
+	"github.com/YandexClassifieds/jaeger-ydb-store/storage/spanstore/indexer"
 )
 
 // SpanWriter handles all span/indexer writes to YDB
@@ -75,13 +77,16 @@ func (s *SpanWriter) WriteSpan(span *model.Span) error {
 
 	_ = s.indexer.Add(span)
 
-	return s.saveServiceNameAndOperationName(span.Process.ServiceName, span.OperationName)
+	return s.saveServiceNameAndOperationName(span)
 }
 
-func (s *SpanWriter) saveServiceNameAndOperationName(serviceName, operationName string) error {
+func (s *SpanWriter) saveServiceNameAndOperationName(span *model.Span) error {
 	ctx, cancel := context.WithTimeout(context.Background(), s.opts.WriteTimeout)
 	defer cancel()
 
+	serviceName := span.GetProcess().GetServiceName()
+	operationName := span.GetOperationName()
+	kind, _ := span.GetSpanKind()
 	if exists, _ := s.nameCache.ContainsOrAdd(serviceName, true); !exists {
 		data := ydb.ListValue(ydb.StructValue(
 			ydb.StructFieldValue("service_name", ydb.UTF8Value(serviceName)),
@@ -96,13 +101,14 @@ func (s *SpanWriter) saveServiceNameAndOperationName(serviceName, operationName 
 	if operationName == "" {
 		return nil
 	}
-	if exists, _ := s.nameCache.ContainsOrAdd(serviceName+"-"+operationName, true); !exists {
+	if exists, _ := s.nameCache.ContainsOrAdd(serviceName+"-"+operationName+"-"+kind, true); !exists {
 		data := ydb.ListValue(ydb.StructValue(
 			ydb.StructFieldValue("service_name", ydb.UTF8Value(serviceName)),
 			ydb.StructFieldValue("operation_name", ydb.UTF8Value(operationName)),
+			ydb.StructFieldValue("span_kind", ydb.UTF8Value(kind)),
 		))
 		err := table.Retry(ctx, s.pool, table.OperationFunc(func(ctx context.Context, session *table.Session) error {
-			return session.BulkUpsert(ctx, s.opts.DbPath.FullTable("operation_names"), data)
+			return session.BulkUpsert(ctx, s.opts.DbPath.FullTable("operation_names_v2"), data)
 		}))
 		if err != nil {
 			return err

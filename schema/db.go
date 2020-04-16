@@ -1,6 +1,8 @@
 package schema
 
-import "strings"
+import (
+	"path"
+)
 
 type DbPath struct {
 	Path   string
@@ -8,36 +10,14 @@ type DbPath struct {
 }
 
 func (p DbPath) String() string {
-	w := new(strings.Builder)
-	w.Grow(len(p.Path) + len(p.Folder) + 1)
-	w.WriteString(p.Path)
-	if p.Folder != "" {
-		w.WriteString("/")
-		w.WriteString(p.Folder)
-	}
-	return w.String()
+	return path.Join(p.Path, p.Folder)
 }
 
 // FullTable returns full table name
 func (p DbPath) FullTable(name string) string {
-	w := new(strings.Builder)
-	w.Grow(len(p.Path) + len(p.Folder) + len(name) + 2)
-	w.WriteString(p.Path)
-	if p.Folder != "" {
-		w.WriteString("/")
-		w.WriteString(p.Folder)
-	}
-	w.WriteString("/")
-	w.WriteString(name)
-	return w.String()
+	return path.Join(p.Path, p.Folder, name)
 }
 
 func (p DbPath) Table(name string) string {
-	w := new(strings.Builder)
-	if p.Folder != "" {
-		w.WriteString(p.Folder)
-		w.WriteString("/")
-	}
-	w.WriteString(name)
-	return w.String()
+	return path.Join(p.Folder, name)
 }

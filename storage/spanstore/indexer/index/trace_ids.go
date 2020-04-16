@@ -2,6 +2,7 @@ package index
 
 import (
 	"errors"
+
 	"github.com/jaegertracing/jaeger/model"
 )
 
@@ -27,10 +28,11 @@ func TraceIDListFromBytes(b []byte) (TraceIDList, error) {
 	l := make(TraceIDList, n)
 	id := model.TraceID{}
 	for i := 0; i < n; i++ {
-		if err := id.Unmarshal(b[i*16:]); err != nil {
+		if err := id.Unmarshal(b[:16]); err != nil {
 			return nil, err
 		}
 		l[i] = id
+		b = b[16:]
 	}
 	return l, nil
 }
