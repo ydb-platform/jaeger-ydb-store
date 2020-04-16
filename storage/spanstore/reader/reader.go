@@ -144,38 +144,32 @@ func (s *SpanReader) GetOperations(ctx context.Context, query spanstore.Operatio
 	}
 
 	result := make([]spanstore.Operation, 0)
-	err := table.Retry(
-		ctx,
-		s.pool,
-		table.OperationFunc(
-			func(ctx context.Context, session *table.Session) error {
-				stmt, err := session.Prepare(ctx, prepQuery)
-				if err != nil {
-					return err
-				}
-				_, res, err := stmt.Execute(ctx, txc, queryParameters)
-				if err != nil {
-					return err
-				}
+	err := table.Retry(ctx, s.pool, table.OperationFunc(func(ctx context.Context, session *table.Session) error {
+		stmt, err := session.Prepare(ctx, prepQuery)
+		if err != nil {
+			return err
+		}
+		_, res, err := stmt.Execute(ctx, txc, queryParameters)
+		if err != nil {
+			return err
+		}
 
-				res.NextSet()
-				for res.NextRow() {
-					v := spanstore.Operation{
-						SpanKind: query.SpanKind,
-					}
+		res.NextSet()
+		for res.NextRow() {
+			v := spanstore.Operation{
+				SpanKind: query.SpanKind,
+			}
 
-					res.SeekItem("operation_name")
-					v.Name = res.OUTF8()
+			res.SeekItem("operation_name")
+			v.Name = res.OUTF8()
 
-					result = append(result, v)
-				}
-				if res.Err() != nil {
-					return res.Err()
-				}
-				return nil
-			},
-		),
-	)
+			result = append(result, v)
+		}
+		if res.Err() != nil {
+			return res.Err()
+		}
+		return nil
+	}))
 	if err != nil {
 		return nil, err
 	}
