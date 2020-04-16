@@ -2,18 +2,20 @@ package reader
 
 import (
 	"context"
-	"github.com/YandexClassifieds/jaeger-ydb-store/internal/testutil"
-	"github.com/YandexClassifieds/jaeger-ydb-store/schema"
-	ydbWriter "github.com/YandexClassifieds/jaeger-ydb-store/storage/spanstore/writer"
-	"github.com/jaegertracing/jaeger/model"
-	"github.com/jaegertracing/jaeger/storage/spanstore"
-	"github.com/stretchr/testify/assert"
-	"github.com/uber/jaeger-lib/metrics"
 	"math/rand"
 	"os"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/jaegertracing/jaeger/model"
+	"github.com/jaegertracing/jaeger/storage/spanstore"
+	"github.com/stretchr/testify/assert"
+	"github.com/uber/jaeger-lib/metrics"
+
+	"github.com/YandexClassifieds/jaeger-ydb-store/internal/testutil"
+	"github.com/YandexClassifieds/jaeger-ydb-store/schema"
+	ydbWriter "github.com/YandexClassifieds/jaeger-ydb-store/storage/spanstore/writer"
 )
 
 func TestSpanReader_GetTrace(t *testing.T) {
@@ -115,7 +117,7 @@ func TestSpanReader_GetOperations(t *testing.T) {
 	addTestData(t)
 	s := setUpReader(t)
 	ctx, _ := context.WithTimeout(context.Background(), time.Second*5)
-	ops, err := s.GetOperations(ctx, "svc1")
+	ops, err := s.GetOperations(ctx, spanstore.OperationQueryParameters{ServiceName: "svc1"})
 	assert.NoError(t, err)
 	if err != nil {
 		return
