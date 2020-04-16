@@ -123,8 +123,14 @@ func TestSpanReader_GetOperations(t *testing.T) {
 		return
 	}
 	assert.Len(t, ops, 2)
-	assert.Contains(t, ops, "this-stuff")
-	assert.Contains(t, ops, "that-stuff")
+
+	opNames := make(map[string]bool)
+	for _, op := range ops {
+		opNames[op.Name] = true
+	}
+	assert.Len(t, opNames, 2)
+	assert.Contains(t, opNames, "this-stuff")
+	assert.Contains(t, opNames, "that-stuff")
 }
 
 var once = new(sync.Once)
