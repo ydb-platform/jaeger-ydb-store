@@ -21,6 +21,7 @@ const (
 	keyYdbFolder           = "ydb.folder"
 	keyYdbToken            = "ydb.token"
 	keyYdbSaPrivateKeyFile = "ydb.sa.private-key-file"
+	keyYdbSaMetaAuth       = "ydb.sa.meta-auth"
 	keyYdbSaId             = "ydb.sa.id"
 	keyYdbSaKeyId          = "ydb.sa.key-id"
 	keyYdbCAFile           = "ydb.ca-file"
@@ -46,13 +47,17 @@ func DialerFromViper(v *viper.Viper) (*ydb.Dialer, error) {
 			RootCAs: certPool,
 		}
 		var err error
-		authCredentials, err = iam.NewClient(
-			iam.WithEndpoint(v.GetString(keyIAMEndpoint)),
-			iam.WithKeyID(v.GetString(keyYdbSaKeyId)),
-			iam.WithIssuer(v.GetString(keyYdbSaId)),
-			iam.WithPrivateKeyFile(v.GetString(keyYdbSaPrivateKeyFile)),
-			iam.WithSystemCertPool(),
-		)
+		if v.GetBool(keyYdbSaMetaAuth) {
+			authCredentials, err = iam.InstanceServiceAccount()
+		} else {
+			authCredentials, err = iam.NewClient(
+				iam.WithEndpoint(v.GetString(keyIAMEndpoint)),
+				iam.WithKeyID(v.GetString(keyYdbSaKeyId)),
+				iam.WithIssuer(v.GetString(keyYdbSaId)),
+				iam.WithPrivateKeyFile(v.GetString(keyYdbSaPrivateKeyFile)),
+				iam.WithSystemCertPool(),
+			)
+		}
 		if err != nil {
 			return nil, err
 		}
