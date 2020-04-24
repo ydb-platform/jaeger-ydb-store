@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
@@ -8,9 +9,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/spf13/viper"
+	ycsdk "github.com/yandex-cloud/go-sdk"
 	"github.com/yandex-cloud/ydb-go-sdk"
 	"github.com/yandex-cloud/ydb-go-sdk/auth/iam"
 )
@@ -23,6 +26,7 @@ const (
 	keyYdbSaPrivateKeyFile = "ydb.sa.private-key-file"
 	keyYdbSaId             = "ydb.sa.id"
 	keyYdbSaKeyId          = "ydb.sa.key-id"
+	keyYdbMetadataAuth     = "ydb.sa.metadata-auth"
 	keyYdbCAFile           = "ydb.ca-file"
 	keyIAMEndpoint         = "iam.endpoint"
 
@@ -46,15 +50,30 @@ func DialerFromViper(v *viper.Viper) (*ydb.Dialer, error) {
 			RootCAs: certPool,
 		}
 		var err error
-		authCredentials, err = iam.NewClient(
-			iam.WithEndpoint(v.GetString(keyIAMEndpoint)),
-			iam.WithKeyID(v.GetString(keyYdbSaKeyId)),
-			iam.WithIssuer(v.GetString(keyYdbSaId)),
-			iam.WithPrivateKeyFile(v.GetString(keyYdbSaPrivateKeyFile)),
-			iam.WithSystemCertPool(),
-		)
-		if err != nil {
-			return nil, err
+		if v.GetBool(keyYdbMetadataAuth) {
+			sdk, err := ycsdk.Build(context.Background(), ycsdk.Config{
+				Credentials: ycsdk.InstanceServiceAccount(),
+				TLSConfig:   tlsConfig,
+			})
+			if err != nil {
+				return nil, err
+			}
+			authCredentials = &cachedSDKCredentials{
+				mux:           &sync.RWMutex{},
+				renewOverhead: 5 * time.Second,
+				sdk:           sdk,
+			}
+		} else {
+			authCredentials, err = iam.NewClient(
+				iam.WithEndpoint(v.GetString(keyIAMEndpoint)),
+				iam.WithKeyID(v.GetString(keyYdbSaKeyId)),
+				iam.WithIssuer(v.GetString(keyYdbSaId)),
+				iam.WithPrivateKeyFile(v.GetString(keyYdbSaPrivateKeyFile)),
+				iam.WithSystemCertPool(),
+			)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 	return &ydb.Dialer{
