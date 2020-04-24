@@ -24,6 +24,7 @@ docker-compose up -d
 ## environment variables
 
 - YDB_ADDRESS (string): db endpoint host:port to connect to
+- YDB_SA_META_AUTH (bool): use metadata to authorize requests ([documentation](https://cloud.yandex.com/docs/compute/operations/vm-connect/auth-inside-vm#auth-inside-vm))
 - YDB_SA_ID (string): service account id for Yandex.Cloud authorization (doc on service accounts: https://cloud.yandex.com/docs/iam/concepts/users/service-accounts)
 - YDB_SA_KEY_ID (string): service account key id for Yandex.Cloud authorization
 - YDB_SA_PRIVATE_KEY_FILE (string): path to service account private key for Yandex.Cloud authorization

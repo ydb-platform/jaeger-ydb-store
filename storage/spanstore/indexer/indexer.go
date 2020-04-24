@@ -2,11 +2,13 @@ package indexer
 
 import (
 	"errors"
-	"github.com/YandexClassifieds/jaeger-ydb-store/storage/spanstore/indexer/index"
+
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/uber/jaeger-lib/metrics"
 	"github.com/yandex-cloud/ydb-go-sdk/table"
 	"go.uber.org/zap"
+
+	"github.com/YandexClassifieds/jaeger-ydb-store/storage/spanstore/indexer/index"
 )
 
 const (
@@ -62,8 +64,13 @@ func (w *Indexer) Add(span *model.Span) error {
 
 func (w *Indexer) spanProcessor() {
 	for span := range w.inputItems {
-		for _, tag := range span.Tags {
+		for _, tag := range span.GetTags() {
 			w.processTag(tag, span)
+		}
+		if spanProcess := span.GetProcess(); spanProcess != nil {
+			for _, tag := range spanProcess.GetTags() {
+				w.processTag(tag, span)
+			}
 		}
 		w.svcWriter.Add(index.NewServiceNameIndex(span), span.TraceID)
 		w.opWriter.Add(index.NewServiceOperationIndex(span), span.TraceID)
