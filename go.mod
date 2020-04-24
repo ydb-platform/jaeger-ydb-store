@@ -17,7 +17,7 @@ require (
 	github.com/stretchr/testify v1.5.0
 	github.com/uber/jaeger-client-go v2.22.1+incompatible
 	github.com/uber/jaeger-lib v2.2.0+incompatible
-	github.com/yandex-cloud/ydb-go-sdk v0.0.0-20200424165254-2f3167546a5e
+	github.com/yandex-cloud/ydb-go-sdk v0.0.0-20200424185505-e7fa5b87c7e8
 	go.uber.org/zap v1.13.0
 	golang.org/x/net v0.0.0-20200301022130-244492dfa37a // indirect
 	golang.org/x/sys v0.0.0-20200316230553-a7d97aace0b0 // indirect
