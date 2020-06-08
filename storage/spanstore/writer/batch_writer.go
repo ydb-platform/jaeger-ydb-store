@@ -2,15 +2,17 @@ package writer
 
 import (
 	"context"
-	"github.com/YandexClassifieds/jaeger-ydb-store/schema"
-	"github.com/YandexClassifieds/jaeger-ydb-store/storage/spanstore/dbmodel"
-	wmetrics "github.com/YandexClassifieds/jaeger-ydb-store/storage/spanstore/writer/metrics"
+	"time"
+
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/uber/jaeger-lib/metrics"
 	"github.com/yandex-cloud/ydb-go-sdk"
 	"github.com/yandex-cloud/ydb-go-sdk/table"
 	"go.uber.org/zap"
-	"time"
+
+	"github.com/yandex-cloud/jaeger-ydb-store/schema"
+	"github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/dbmodel"
+	wmetrics "github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/writer/metrics"
 )
 
 const (

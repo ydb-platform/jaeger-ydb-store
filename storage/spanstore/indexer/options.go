@@ -1,9 +1,10 @@
 package indexer
 
 import (
-	"github.com/YandexClassifieds/jaeger-ydb-store/schema"
-	"github.com/YandexClassifieds/jaeger-ydb-store/storage/spanstore/batch"
 	"time"
+
+	"github.com/yandex-cloud/jaeger-ydb-store/schema"
+	"github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/batch"
 )
 
 type Options struct {

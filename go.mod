@@ -1,4 +1,4 @@
-module github.com/YandexClassifieds/jaeger-ydb-store
+module github.com/yandex-cloud/jaeger-ydb-store
 
 go 1.13
 

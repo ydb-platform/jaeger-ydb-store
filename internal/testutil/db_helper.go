@@ -3,14 +3,16 @@ package testutil
 import (
 	"context"
 	"fmt"
-	"github.com/YandexClassifieds/jaeger-ydb-store/schema"
-	"github.com/yandex-cloud/ydb-go-sdk"
-	"github.com/yandex-cloud/ydb-go-sdk/table"
 	"math"
 	"os"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/yandex-cloud/ydb-go-sdk"
+	"github.com/yandex-cloud/ydb-go-sdk/table"
+
+	"github.com/yandex-cloud/jaeger-ydb-store/schema"
 )
 
 var (

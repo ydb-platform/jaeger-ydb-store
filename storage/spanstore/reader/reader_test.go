@@ -13,15 +13,16 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/uber/jaeger-lib/metrics"
 
-	"github.com/YandexClassifieds/jaeger-ydb-store/internal/testutil"
-	"github.com/YandexClassifieds/jaeger-ydb-store/schema"
-	ydbWriter "github.com/YandexClassifieds/jaeger-ydb-store/storage/spanstore/writer"
+	"github.com/yandex-cloud/jaeger-ydb-store/internal/testutil"
+	"github.com/yandex-cloud/jaeger-ydb-store/schema"
+	ydbWriter "github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/writer"
 )
 
 func TestSpanReader_GetTrace(t *testing.T) {
 	addTestData(t)
 	s := setUpReader(t)
-	ctx, _ := context.WithTimeout(context.Background(), time.Second*5)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
 	trace, err := s.GetTrace(ctx, model.NewTraceID(1, 42))
 	if !assert.NoError(t, err) {
 		return
@@ -35,7 +36,8 @@ func TestSpanReader_GetTrace(t *testing.T) {
 func TestSpanReader_FindTraces(t *testing.T) {
 	addTestData(t)
 	s := setUpReader(t)
-	ctx, _ := context.WithTimeout(context.Background(), time.Second*5)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
 	_, err := s.FindTraces(ctx, &spanstore.TraceQueryParameters{
 		ServiceName:  "svc1",
 		StartTimeMin: time.Now(),
@@ -47,7 +49,9 @@ func TestSpanReader_FindTraces(t *testing.T) {
 func TestSpanReader_FindTraceIDs(t *testing.T) {
 	addTestData(t)
 	s := setUpReader(t)
-	ctx, _ := context.WithTimeout(context.Background(), time.Second*5)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
 	t.Run("duration", func(t *testing.T) {
 		traces, err := s.FindTraces(ctx, &spanstore.TraceQueryParameters{
 			ServiceName:  "svc2",
@@ -103,7 +107,8 @@ func TestSpanReader_FindTraceIDs(t *testing.T) {
 func TestSpanReader_GetServices(t *testing.T) {
 	addTestData(t)
 	s := setUpReader(t)
-	ctx, _ := context.WithTimeout(context.Background(), time.Second*5)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
 	services, err := s.GetServices(ctx)
 	assert.NoError(t, err)
 	if err != nil {
@@ -116,7 +121,8 @@ func TestSpanReader_GetServices(t *testing.T) {
 func TestSpanReader_GetOperations(t *testing.T) {
 	addTestData(t)
 	s := setUpReader(t)
-	ctx, _ := context.WithTimeout(context.Background(), time.Second*5)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
 	ops, err := s.GetOperations(ctx, spanstore.OperationQueryParameters{ServiceName: "svc1"})
 	assert.NoError(t, err)
 	if err != nil {

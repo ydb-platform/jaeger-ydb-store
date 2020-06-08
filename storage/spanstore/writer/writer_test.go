@@ -2,17 +2,19 @@ package writer
 
 import (
 	"context"
-	"github.com/YandexClassifieds/jaeger-ydb-store/internal/testutil"
-	"github.com/YandexClassifieds/jaeger-ydb-store/schema"
-	"github.com/YandexClassifieds/jaeger-ydb-store/storage/spanstore/reader"
+	"os"
+	"testing"
+	"time"
+
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/uber/jaeger-lib/metrics"
 	"github.com/yandex-cloud/ydb-go-sdk/table"
 	_ "github.com/yandex-cloud/ydb-go-sdk/ydbsql"
-	"os"
-	"testing"
-	"time"
+
+	"github.com/yandex-cloud/jaeger-ydb-store/internal/testutil"
+	"github.com/yandex-cloud/jaeger-ydb-store/schema"
+	"github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/reader"
 )
 
 func TestSpanWriter_WriteSpan(t *testing.T) {

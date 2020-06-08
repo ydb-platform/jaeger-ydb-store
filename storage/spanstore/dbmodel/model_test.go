@@ -1,11 +1,12 @@
 package dbmodel
 
 import (
-	"github.com/YandexClassifieds/jaeger-ydb-store/internal/testutil"
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/yandex-cloud/jaeger-ydb-store/internal/testutil"
 )
 
 func TestEncDec(t *testing.T) {

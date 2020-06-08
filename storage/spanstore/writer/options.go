@@ -1,8 +1,9 @@
 package writer
 
 import (
-	"github.com/YandexClassifieds/jaeger-ydb-store/schema"
 	"time"
+
+	"github.com/yandex-cloud/jaeger-ydb-store/schema"
 )
 
 type BatchWriterOptions struct {

@@ -2,14 +2,8 @@ package plugin
 
 import (
 	"context"
-	"github.com/YandexClassifieds/jaeger-ydb-store/internal/db"
 	"time"
 
-	"github.com/YandexClassifieds/jaeger-ydb-store/schema"
-	"github.com/YandexClassifieds/jaeger-ydb-store/storage/config"
-	ydbDepStore "github.com/YandexClassifieds/jaeger-ydb-store/storage/dependencystore"
-	"github.com/YandexClassifieds/jaeger-ydb-store/storage/spanstore/reader"
-	"github.com/YandexClassifieds/jaeger-ydb-store/storage/spanstore/writer"
 	"github.com/jaegertracing/jaeger/storage/dependencystore"
 	"github.com/jaegertracing/jaeger/storage/spanstore"
 	"github.com/prometheus/client_golang/prometheus"
@@ -18,23 +12,30 @@ import (
 	jgrProm "github.com/uber/jaeger-lib/metrics/prometheus"
 	"github.com/yandex-cloud/ydb-go-sdk/table"
 	"go.uber.org/zap"
+
+	"github.com/yandex-cloud/jaeger-ydb-store/internal/db"
+	"github.com/yandex-cloud/jaeger-ydb-store/schema"
+	"github.com/yandex-cloud/jaeger-ydb-store/storage/config"
+	ydbDepStore "github.com/yandex-cloud/jaeger-ydb-store/storage/dependencystore"
+	"github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/reader"
+	"github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/writer"
 )
 
 const (
-	keyYdbAddress          = "ydb.address"
-	keyYdbPath             = "ydb.path"
-	keyYdbFolder           = "ydb.folder"
-	keyYdbConnectTimeout   = "ydb.connect-timeout"
-	keyYdbWriteTimeout     = "ydb.write-timeout"
-	keyYdbReadTimeout      = "ydb.read-timeout"
-	keyYdbPoolSize         = "ydb.pool-size"
-	keyYdbQueryCacheSize   = "ydb.query-cache-size"
-	keyWriterBufferSize    = "ydb.writer.buffer-size"
-	keyWriterBatchSize     = "ydb.writer.batch-size"
-	keyWriterBatchWorkers  = "ydb.writer.batch-workers"
-	keyIndexerBufferSize   = "ydb.indexer.buffer-size"
-	keyIndexerMaxTraces    = "ydb.indexer.max-traces"
-	keyIndexerMaxTTL       = "ydb.indexer.max-ttl"
+	keyYdbAddress         = "ydb.address"
+	keyYdbPath            = "ydb.path"
+	keyYdbFolder          = "ydb.folder"
+	keyYdbConnectTimeout  = "ydb.connect-timeout"
+	keyYdbWriteTimeout    = "ydb.write-timeout"
+	keyYdbReadTimeout     = "ydb.read-timeout"
+	keyYdbPoolSize        = "ydb.pool-size"
+	keyYdbQueryCacheSize  = "ydb.query-cache-size"
+	keyWriterBufferSize   = "ydb.writer.buffer-size"
+	keyWriterBatchSize    = "ydb.writer.batch-size"
+	keyWriterBatchWorkers = "ydb.writer.batch-workers"
+	keyIndexerBufferSize  = "ydb.indexer.buffer-size"
+	keyIndexerMaxTraces   = "ydb.indexer.max-traces"
+	keyIndexerMaxTTL      = "ydb.indexer.max-ttl"
 )
 
 type YdbStorage struct {

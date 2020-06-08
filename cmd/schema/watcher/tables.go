@@ -1,8 +1,9 @@
 package watcher
 
 import (
-	"github.com/YandexClassifieds/jaeger-ydb-store/schema"
 	"github.com/spf13/viper"
+
+	"github.com/yandex-cloud/jaeger-ydb-store/schema"
 )
 
 type partDefinition struct {

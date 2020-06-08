@@ -2,8 +2,9 @@ package queries
 
 import (
 	"fmt"
-	"github.com/YandexClassifieds/jaeger-ydb-store/schema"
 	"strings"
+
+	"github.com/yandex-cloud/jaeger-ydb-store/schema"
 )
 
 const (
@@ -67,7 +68,7 @@ LIMIT $limit`
 	queryServiceNames = `SELECT service_name FROM ` + "`%s`"
 	queryOperations   = `DECLARE $service_name AS utf8;
 SELECT operation_name FROM ` + "`%s`" + ` WHERE service_name = $service_name`
-	queryOperationsWithKind   = `DECLARE $service_name AS utf8;
+	queryOperationsWithKind = `DECLARE $service_name AS utf8;
 DECLARE $span_kind AS utf8;
 SELECT operation_name FROM ` + "`%s`" + ` WHERE service_name = $service_name
 AND span_kind = $span_kind`
@@ -75,8 +76,8 @@ AND span_kind = $span_kind`
 
 var (
 	m = map[string]queryInfo{
-		"query-services":   {"service_names", queryServiceNames},
-		"query-operations": {"operation_names_v2", queryOperations},
+		"query-services":             {"service_names", queryServiceNames},
+		"query-operations":           {"operation_names_v2", queryOperations},
 		"query-operations-with-kind": {"operation_names_v2", queryOperationsWithKind},
 	}
 

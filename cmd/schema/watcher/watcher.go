@@ -2,12 +2,14 @@ package watcher
 
 import (
 	"context"
-	"github.com/YandexClassifieds/jaeger-ydb-store/internal/db"
-	"github.com/YandexClassifieds/jaeger-ydb-store/schema"
+	"time"
+
 	"github.com/yandex-cloud/ydb-go-sdk"
 	"github.com/yandex-cloud/ydb-go-sdk/table"
 	"go.uber.org/zap"
-	"time"
+
+	"github.com/yandex-cloud/jaeger-ydb-store/internal/db"
+	"github.com/yandex-cloud/jaeger-ydb-store/schema"
 )
 
 const (

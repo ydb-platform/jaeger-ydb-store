@@ -2,18 +2,20 @@ package indexer
 
 import (
 	"context"
-	"github.com/YandexClassifieds/jaeger-ydb-store/schema"
-	"github.com/YandexClassifieds/jaeger-ydb-store/storage/spanstore/batch"
-	"github.com/YandexClassifieds/jaeger-ydb-store/storage/spanstore/dbmodel"
-	"github.com/YandexClassifieds/jaeger-ydb-store/storage/spanstore/indexer/index"
-	wmetrics "github.com/YandexClassifieds/jaeger-ydb-store/storage/spanstore/writer/metrics"
+	"go.uber.org/zap"
+	"math/rand"
+	"time"
+
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/uber/jaeger-lib/metrics"
 	"github.com/yandex-cloud/ydb-go-sdk"
 	"github.com/yandex-cloud/ydb-go-sdk/table"
-	"go.uber.org/zap"
-	"math/rand"
-	"time"
+
+	"github.com/yandex-cloud/jaeger-ydb-store/schema"
+	"github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/batch"
+	"github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/dbmodel"
+	"github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/indexer/index"
+	wmetrics "github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/writer/metrics"
 )
 
 type indexWriter struct {

@@ -1,9 +1,11 @@
 package writer
 
 import (
-	wmetrics "github.com/YandexClassifieds/jaeger-ydb-store/storage/spanstore/writer/metrics"
-	"github.com/uber/jaeger-lib/metrics"
 	"sync"
+
+	"github.com/uber/jaeger-lib/metrics"
+
+	wmetrics "github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/writer/metrics"
 )
 
 type batchWriterMetrics struct {

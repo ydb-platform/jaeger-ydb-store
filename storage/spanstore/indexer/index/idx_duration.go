@@ -3,11 +3,13 @@ package index
 import (
 	"bytes"
 	"encoding/binary"
-	"github.com/YandexClassifieds/jaeger-ydb-store/storage/spanstore/dbmodel"
+	"time"
+
 	"github.com/dgryski/go-farm"
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/yandex-cloud/ydb-go-sdk"
-	"time"
+
+	"github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/dbmodel"
 )
 
 func DurationIndexValue(d time.Duration) int64 {

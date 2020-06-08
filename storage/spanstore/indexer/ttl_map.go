@@ -1,10 +1,12 @@
 package indexer
 
 import (
-	"github.com/YandexClassifieds/jaeger-ydb-store/storage/spanstore/indexer/index"
-	"github.com/jaegertracing/jaeger/model"
 	"sync"
 	"time"
+
+	"github.com/jaegertracing/jaeger/model"
+
+	"github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/indexer/index"
 )
 
 type indexTTLMap struct {

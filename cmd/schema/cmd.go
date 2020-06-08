@@ -3,21 +3,22 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/YandexClassifieds/jaeger-ydb-store/cmd/schema/watcher"
-	"github.com/YandexClassifieds/jaeger-ydb-store/internal/db"
-	"github.com/YandexClassifieds/jaeger-ydb-store/schema"
+	"log"
+	"os"
+	"os/signal"
+	"strings"
+	"syscall"
+	"time"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/yandex-cloud/ydb-go-sdk/scheme"
 	"github.com/yandex-cloud/ydb-go-sdk/table"
 	"go.uber.org/zap"
-	"os"
-	"os/signal"
-	"strings"
-	"syscall"
 
-	"log"
-	"time"
+	"github.com/yandex-cloud/jaeger-ydb-store/cmd/schema/watcher"
+	"github.com/yandex-cloud/jaeger-ydb-store/internal/db"
+	"github.com/yandex-cloud/jaeger-ydb-store/schema"
 )
 
 const (
@@ -88,7 +89,8 @@ func main() {
 	dropCmd := &cobra.Command{
 		Use: "drop-tables",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx, _ := context.WithTimeout(context.Background(), time.Second*10)
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+			defer cancel()
 			dbPath := schema.DbPath{
 				Path:   viper.GetString("ydb_path"),
 				Folder: viper.GetString("ydb_folder"),

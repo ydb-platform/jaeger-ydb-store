@@ -1,9 +1,10 @@
 package index
 
 import (
-	"github.com/YandexClassifieds/jaeger-ydb-store/storage/spanstore/dbmodel"
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/yandex-cloud/ydb-go-sdk"
+
+	"github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/dbmodel"
 )
 
 type serviceNameIndex struct {

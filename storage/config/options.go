@@ -1,8 +1,9 @@
 package config
 
 import (
-	"github.com/YandexClassifieds/jaeger-ydb-store/schema"
 	"time"
+
+	"github.com/yandex-cloud/jaeger-ydb-store/schema"
 )
 
 type Options struct {
@@ -14,8 +15,8 @@ type Options struct {
 	IndexerMaxTraces  int
 	IndexerMaxTTL     time.Duration
 
-	DbAddress        string
-	DbPath           schema.DbPath
+	DbAddress string
+	DbPath    schema.DbPath
 
 	PoolSize       int
 	QueryCacheSize int

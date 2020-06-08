@@ -1,18 +1,20 @@
 package main
 
 import (
-	"github.com/YandexClassifieds/jaeger-ydb-store/plugin"
+	"io"
+	"net/http"
+	"net/http/pprof"
+	"os"
+	"strings"
+
 	"github.com/hashicorp/go-hclog"
 	jaegerGrpc "github.com/jaegertracing/jaeger/plugin/storage/grpc"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/viper"
 	jaegerCfg "github.com/uber/jaeger-client-go/config"
-	"io"
-	"net/http"
-	"net/http/pprof"
-	"os"
-	"strings"
+
+	"github.com/yandex-cloud/jaeger-ydb-store/plugin"
 )
 
 var (

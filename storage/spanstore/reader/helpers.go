@@ -2,10 +2,11 @@ package reader
 
 import (
 	"context"
-	"github.com/YandexClassifieds/jaeger-ydb-store/schema"
-	"github.com/YandexClassifieds/jaeger-ydb-store/storage/spanstore/dbmodel"
 	"sort"
 	"sync"
+
+	"github.com/yandex-cloud/jaeger-ydb-store/schema"
+	"github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/dbmodel"
 )
 
 type bucketOperation func(ctx context.Context, bucket uint8)
