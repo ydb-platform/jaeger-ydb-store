@@ -15,15 +15,11 @@ type tagIndex struct {
 	value       string
 }
 
-func NewTagIndex(span *model.Span, kv model.KeyValue, withOperation bool) Indexable {
-	opname := ""
-	if withOperation {
-		opname = span.OperationName
-	}
+func NewTagIndex(span *model.Span, kv model.KeyValue) Indexable {
 	return tagIndex{
 		baseIndex:   newBaseIndex(span),
-		serviceName: span.Process.ServiceName,
-		opName:      opname,
+		serviceName: span.GetProcess().GetServiceName(),
+		opName:      span.GetOperationName(),
 		key:         kv.Key,
 		value:       kv.AsString(),
 	}
@@ -35,7 +31,8 @@ func (t tagIndex) Hash() uint64 {
 
 func (t tagIndex) StructFields(bucket uint8) []ydb.StructValueOption {
 	return []ydb.StructValueOption{
-		ydb.StructFieldValue("idx_hash", ydb.Uint64Value(dbmodel.HashTagIndex(t.serviceName, t.opName, t.key, t.value, bucket))),
+		ydb.StructFieldValue("idx_hash", ydb.Uint64Value(dbmodel.HashTagIndex(t.serviceName, t.key, t.value, bucket))),
 		ydb.StructFieldValue("rev_start_time", ydb.Int64Value(-t.startTime.UnixNano())),
+		ydb.StructFieldValue("op_hash", ydb.Uint64Value(dbmodel.HashData(t.opName))),
 	}
 }

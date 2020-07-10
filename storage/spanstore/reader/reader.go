@@ -456,7 +456,7 @@ func (s *SpanReader) queryByTagsAndLogs(ctx context.Context, tq *spanstore.Trace
 
 		result := newSharedResult(cancel)
 		runBucketOperation(ctx, dbmodel.NumIndexBuckets, func(ctx context.Context, bucket uint8) {
-			hash := dbmodel.HashTagIndex(tq.ServiceName, tq.OperationName, k, v, bucket)
+			hash := dbmodel.HashTagIndex(tq.ServiceName, k, v, bucket)
 			span, ctx := opentracing.StartSpanFromContext(ctx, "queryBucket", opentracing.Tags{"bucket": bucket, "hash": hash})
 			defer span.Finish()
 			values := []table.ParameterOption{
@@ -464,7 +464,12 @@ func (s *SpanReader) queryByTagsAndLogs(ctx context.Context, tq *spanstore.Trace
 				table.ValueParam("$time_min", ydb.Int64Value(tq.StartTimeMin.UnixNano())),
 				table.ValueParam("$time_max", ydb.Int64Value(tq.StartTimeMax.UnixNano())),
 			}
-			ids, err := s.queryParallel(ctx, parts, "queryByTag", tq, values...)
+			queryName := "queryByTag"
+			if tq.OperationName != "" {
+				values = append(values, table.ValueParam("$op_hash", ydb.Uint64Value(dbmodel.HashData(tq.OperationName))))
+				queryName = "queryByTagAndOperation"
+			}
+			ids, err := s.queryParallel(ctx, parts, queryName, tq, values...)
 			result.AddRows(ids, err)
 		})
 		if ids, err := result.ProcessRows(); err == nil {

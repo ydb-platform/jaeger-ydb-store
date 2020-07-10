@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	tblTagIndex              = "idx_tag"
+	tblTagIndex              = "idx_tag_v2"
 	tblDurationIndex         = "idx_duration"
 	tblServiceNameIndex      = "idx_service_name"
 	tblServiceOperationIndex = "idx_service_op"
@@ -83,9 +83,6 @@ func (w *Indexer) spanProcessor() {
 
 func (w *Indexer) processTag(kv model.KeyValue, span *model.Span) {
 	if shouldIndexTag(kv) {
-		w.tagWriter.Add(index.NewTagIndex(span, kv, false), span.TraceID)
-		if span.OperationName != "" {
-			w.tagWriter.Add(index.NewTagIndex(span, kv, true), span.TraceID)
-		}
+		w.tagWriter.Add(index.NewTagIndex(span, kv), span.TraceID)
 	}
 }

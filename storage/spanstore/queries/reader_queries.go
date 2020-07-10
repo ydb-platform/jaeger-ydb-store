@@ -33,6 +33,17 @@ FROM ` + "`%s`" + `
 WHERE idx_hash = $hash AND rev_start_time <= 0-$time_min AND rev_start_time >= 0-$time_max
 LIMIT $limit`
 
+	queryByTagAndOperation = `DECLARE $hash AS uint64;
+DECLARE $op_hash as uint64;
+DECLARE $time_min AS int64;
+DECLARE $time_max AS int64;
+DECLARE $limit AS uint64;
+SELECT trace_ids, rev_start_time
+FROM ` + "`%s`" + `
+WHERE idx_hash = $hash AND rev_start_time <= 0-$time_min AND rev_start_time >= 0-$time_max
+AND op_hash = $op_hash
+LIMIT $limit`
+
 	queryByServiceAndOperationName = `DECLARE $idx_hash AS uint64;
 DECLARE $time_min AS int64;
 DECLARE $time_max AS int64;
@@ -84,7 +95,8 @@ var (
 	pm = map[string]queryInfo{
 		"queryByTraceID":                 {"traces", queryByTraceID},
 		"querySpanCount":                 {"traces", querySpanCount},
-		"queryByTag":                     {"idx_tag", queryByTag},
+		"queryByTag":                     {"idx_tag_v2", queryByTag},
+		"queryByTagAndOperation":         {"idx_tag_v2", queryByTagAndOperation},
 		"queryByDuration":                {"idx_duration", queryByDuration},
 		"queryByServiceAndOperationName": {"idx_service_op", queryByServiceAndOperationName},
 		"queryByServiceName":             {"idx_service_name", queryByServiceName},

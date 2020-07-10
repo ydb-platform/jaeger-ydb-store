@@ -24,6 +24,7 @@ var (
 		"idx_service_op":   ServiceOperationIndex,
 		"idx_duration":     DurationIndex,
 		"idx_tag":          TagIndex,
+		"idx_tag_v2":       TagIndexV2,
 	}
 )
 
@@ -93,6 +94,19 @@ func TagIndex(numPartitions uint64) []table.CreateTableOption {
 		table.WithColumn("uniq", ydb.Optional(ydb.TypeUint32)),
 		table.WithColumn("trace_ids", ydb.Optional(ydb.TypeString)),
 		table.WithPrimaryKeyColumn("idx_hash", "rev_start_time", "uniq"),
+		table.WithProfile(table.WithPartitioningPolicy(table.WithPartitioningPolicyUniformPartitions(numPartitions))),
+	}
+}
+
+// TagIndex returns tag_index_v2 table schema
+func TagIndexV2(numPartitions uint64) []table.CreateTableOption {
+	return []table.CreateTableOption{
+		table.WithColumn("idx_hash", ydb.Optional(ydb.TypeUint64)),
+		table.WithColumn("rev_start_time", ydb.Optional(ydb.TypeInt64)),
+		table.WithColumn("op_hash", ydb.Optional(ydb.TypeUint64)),
+		table.WithColumn("uniq", ydb.Optional(ydb.TypeUint32)),
+		table.WithColumn("trace_ids", ydb.Optional(ydb.TypeString)),
+		table.WithPrimaryKeyColumn("idx_hash", "rev_start_time", "op_hash", "uniq"),
 		table.WithProfile(table.WithPartitioningPolicy(table.WithPartitioningPolicyUniformPartitions(numPartitions))),
 	}
 }
