@@ -23,5 +23,6 @@ type Options struct {
 	ConnectTimeout time.Duration
 	WriteTimeout   time.Duration
 
-	ReadTimeout time.Duration
+	ReadTimeout       time.Duration
+	ReadQueryParallel int
 }

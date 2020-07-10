@@ -22,20 +22,21 @@ import (
 )
 
 const (
-	keyYdbAddress         = "ydb.address"
-	keyYdbPath            = "ydb.path"
-	keyYdbFolder          = "ydb.folder"
-	keyYdbConnectTimeout  = "ydb.connect-timeout"
-	keyYdbWriteTimeout    = "ydb.write-timeout"
-	keyYdbReadTimeout     = "ydb.read-timeout"
-	keyYdbPoolSize        = "ydb.pool-size"
-	keyYdbQueryCacheSize  = "ydb.query-cache-size"
-	keyWriterBufferSize   = "ydb.writer.buffer-size"
-	keyWriterBatchSize    = "ydb.writer.batch-size"
-	keyWriterBatchWorkers = "ydb.writer.batch-workers"
-	keyIndexerBufferSize  = "ydb.indexer.buffer-size"
-	keyIndexerMaxTraces   = "ydb.indexer.max-traces"
-	keyIndexerMaxTTL      = "ydb.indexer.max-ttl"
+	keyYdbAddress           = "ydb.address"
+	keyYdbPath              = "ydb.path"
+	keyYdbFolder            = "ydb.folder"
+	keyYdbConnectTimeout    = "ydb.connect-timeout"
+	keyYdbWriteTimeout      = "ydb.write-timeout"
+	keyYdbReadTimeout       = "ydb.read-timeout"
+	keyYdbReadQueryParallel = "ydb.read-query-parallel"
+	keyYdbPoolSize          = "ydb.pool-size"
+	keyYdbQueryCacheSize    = "ydb.query-cache-size"
+	keyWriterBufferSize     = "ydb.writer.buffer-size"
+	keyWriterBatchSize      = "ydb.writer.batch-size"
+	keyWriterBatchWorkers   = "ydb.writer.batch-workers"
+	keyIndexerBufferSize    = "ydb.indexer.buffer-size"
+	keyIndexerMaxTraces     = "ydb.indexer.max-traces"
+	keyIndexerMaxTTL        = "ydb.indexer.max-ttl"
 )
 
 type YdbStorage struct {
@@ -70,6 +71,7 @@ func (p *YdbStorage) InitFromViper(v *viper.Viper) {
 	v.SetDefault(keyYdbQueryCacheSize, 50)
 	v.SetDefault(keyYdbWriteTimeout, time.Second)
 	v.SetDefault(keyYdbReadTimeout, time.Second*10)
+	v.SetDefault(keyYdbReadQueryParallel, 16)
 	p.opts = config.Options{
 		DbAddress:         v.GetString(keyYdbAddress),
 		DbPath:            schema.DbPath{Path: v.GetString(keyYdbPath), Folder: v.GetString(keyYdbFolder)},
@@ -84,6 +86,7 @@ func (p *YdbStorage) InitFromViper(v *viper.Viper) {
 		IndexerMaxTTL:     v.GetDuration(keyIndexerMaxTTL),
 		WriteTimeout:      v.GetDuration(keyYdbWriteTimeout),
 		ReadTimeout:       v.GetDuration(keyYdbReadTimeout),
+		ReadQueryParallel: v.GetInt(keyYdbReadQueryParallel),
 	}
 	var err error
 	cfg := zap.NewProductionConfig()
@@ -158,8 +161,9 @@ func (p *YdbStorage) initWriter() {
 
 func (p *YdbStorage) initReader() {
 	opts := reader.SpanReaderOptions{
-		DbPath:      p.opts.DbPath,
-		ReadTimeout: p.opts.ReadTimeout,
+		DbPath:        p.opts.DbPath,
+		ReadTimeout:   p.opts.ReadTimeout,
+		QueryParallel: p.opts.ReadQueryParallel,
 	}
 	p.reader = reader.NewSpanReader(p.ydbPool, opts, p.logger)
 }

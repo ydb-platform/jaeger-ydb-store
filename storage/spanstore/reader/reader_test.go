@@ -222,8 +222,9 @@ func setUpReader(t *testing.T) *SpanReader {
 	return NewSpanReader(
 		testutil.YdbSessionPool(t),
 		SpanReaderOptions{
-			DbPath:      schema.DbPath{Path: os.Getenv("YDB_PATH"), Folder: os.Getenv("YDB_FOLDER")},
-			ReadTimeout: time.Second * 10,
+			DbPath:        schema.DbPath{Path: os.Getenv("YDB_PATH"), Folder: os.Getenv("YDB_FOLDER")},
+			ReadTimeout:   time.Second * 10,
+			QueryParallel: 10,
 		},
 		testutil.Zap(),
 	)

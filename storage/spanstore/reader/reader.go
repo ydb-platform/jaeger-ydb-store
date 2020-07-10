@@ -70,36 +70,35 @@ var (
 var _ spanstore.Reader = &SpanReader{}
 
 type SpanReader struct {
-	pool        *table.SessionPool
-	dbPath      schema.DbPath
-	logger      *zap.Logger
-	readTimeout time.Duration
-	cache       *ttlCache
+	pool   *table.SessionPool
+	opts   SpanReaderOptions
+	logger *zap.Logger
+	cache  *ttlCache
 }
 
 type SpanReaderOptions struct {
-	DbPath      schema.DbPath
-	ReadTimeout time.Duration
+	DbPath        schema.DbPath
+	ReadTimeout   time.Duration
+	QueryParallel int
 }
 
 // NewSpanReader returns a new SpanReader.
 func NewSpanReader(pool *table.SessionPool, opts SpanReaderOptions, logger *zap.Logger) *SpanReader {
 	return &SpanReader{
-		pool:        pool,
-		dbPath:      opts.DbPath,
-		readTimeout: opts.ReadTimeout,
-		logger:      logger,
-		cache:       newTtlCache(),
+		pool:   pool,
+		opts:   opts,
+		logger: logger,
+		cache:  newTtlCache(),
 	}
 }
 
 // GetServices returns all services traced by Jaeger
 func (s *SpanReader) GetServices(ctx context.Context) ([]string, error) {
-	ctx, cancel := context.WithTimeout(ctx, s.readTimeout)
+	ctx, cancel := context.WithTimeout(ctx, s.opts.ReadTimeout)
 	defer cancel()
 	result := make([]string, 0)
 	err := table.Retry(ctx, s.pool, table.OperationFunc(func(ctx context.Context, session *table.Session) error {
-		stmt, err := session.Prepare(ctx, queries.BuildQuery("query-services", s.dbPath))
+		stmt, err := session.Prepare(ctx, queries.BuildQuery("query-services", s.opts.DbPath))
 		if err != nil {
 			return err
 		}
@@ -125,19 +124,19 @@ func (s *SpanReader) GetServices(ctx context.Context) ([]string, error) {
 
 // GetOperations returns all operations for a specific service traced by Jaeger
 func (s *SpanReader) GetOperations(ctx context.Context, query spanstore.OperationQueryParameters) ([]spanstore.Operation, error) {
-	ctx, cancel := context.WithTimeout(ctx, s.readTimeout)
+	ctx, cancel := context.WithTimeout(ctx, s.opts.ReadTimeout)
 	defer cancel()
 
 	var prepQuery string
 	var queryParameters *table.QueryParameters
 	if len(query.SpanKind) > 0 {
-		prepQuery = queries.BuildQuery("query-operations-with-kind", s.dbPath)
+		prepQuery = queries.BuildQuery("query-operations-with-kind", s.opts.DbPath)
 		queryParameters = table.NewQueryParameters(
 			table.ValueParam("$service_name", ydb.UTF8Value(query.ServiceName)),
 			table.ValueParam("$span_kind", ydb.UTF8Value(query.SpanKind)),
 		)
 	} else {
-		prepQuery = queries.BuildQuery("query-operations", s.dbPath)
+		prepQuery = queries.BuildQuery("query-operations", s.opts.DbPath)
 		queryParameters = table.NewQueryParameters(
 			table.ValueParam("$service_name", ydb.UTF8Value(query.ServiceName)),
 		)
@@ -197,14 +196,13 @@ func (s *SpanReader) FindTraces(ctx context.Context, query *spanstore.TraceQuery
 		return nil, ErrNoPartitions
 	}
 
-	numThreads := 16
 	queryC := make(chan model.TraceID)
 	mx := new(sync.Mutex)
 	wg := new(sync.WaitGroup)
-	wg.Add(numThreads)
+	wg.Add(s.opts.QueryParallel)
 	childSpan, ctx := opentracing.StartSpanFromContext(ctx, "readTraces")
 	defer childSpan.Finish()
-	for i := 0; i < numThreads; i++ {
+	for i := 0; i < s.opts.QueryParallel; i++ {
 		go func() {
 			defer wg.Done()
 			for traceID := range queryC {
@@ -231,7 +229,7 @@ func (s *SpanReader) FindTraces(ctx context.Context, query *spanstore.TraceQuery
 func (s *SpanReader) FindTraceIDs(ctx context.Context, query *spanstore.TraceQueryParameters) ([]model.TraceID, error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "FindTraceIDs")
 	defer span.Finish()
-	ctx, cancel := context.WithTimeout(ctx, s.readTimeout)
+	ctx, cancel := context.WithTimeout(ctx, s.opts.ReadTimeout)
 	defer cancel()
 
 	if err := validateQuery(query); err != nil {
@@ -258,7 +256,7 @@ func (s *SpanReader) FindTraceIDs(ctx context.Context, query *spanstore.TraceQue
 
 // GetTrace takes a traceID and returns a Trace associated with that traceID
 func (s *SpanReader) GetTrace(ctx context.Context, traceID model.TraceID) (*model.Trace, error) {
-	ctx, cancel := context.WithTimeout(ctx, s.readTimeout)
+	ctx, cancel := context.WithTimeout(ctx, s.opts.ReadTimeout)
 	defer cancel()
 	span, ctx := opentracing.StartSpanFromContext(ctx, "GetTrace")
 	defer span.Finish()
@@ -286,7 +284,7 @@ func (s *SpanReader) queryPartitionList(ctx context.Context) ([]schema.Partition
 	defer span.Finish()
 	var result []schema.PartitionKey
 	err := table.Retry(ctx, s.pool, table.OperationFunc(func(ctx context.Context, session *table.Session) error {
-		stmt, err := session.Prepare(ctx, schema.BuildQuery(s.dbPath, schema.QueryActiveParts))
+		stmt, err := session.Prepare(ctx, schema.BuildQuery(s.opts.DbPath, schema.QueryActiveParts))
 		if err != nil {
 			return err
 		}
@@ -358,7 +356,7 @@ func (s *SpanReader) spansFromPartition(ctx context.Context, part schema.Partiti
 	span, ctx := opentracing.StartSpanFromContext(ctx, "spansFromPartition")
 	defer span.Finish()
 	err := table.Retry(ctx, s.pool, table.OperationFunc(func(ctx context.Context, session *table.Session) error {
-		stmt, err := session.Prepare(ctx, queries.BuildPartitionQuery("querySpanCount", s.dbPath, part))
+		stmt, err := session.Prepare(ctx, queries.BuildPartitionQuery("querySpanCount", s.opts.DbPath, part))
 		if err != nil {
 			return err
 		}
@@ -386,7 +384,7 @@ func (s *SpanReader) spansFromPartition(ctx context.Context, part schema.Partiti
 		var span *model.Span
 		for i := 0; i < numSpans/1000+1; i++ {
 			offset := i * resultLimit
-			stmt, err := session.Prepare(ctx, queries.BuildPartitionQuery("queryByTraceID", s.dbPath, part))
+			stmt, err := session.Prepare(ctx, queries.BuildPartitionQuery("queryByTraceID", s.opts.DbPath, part))
 			if err != nil {
 				return err
 			}
@@ -564,7 +562,7 @@ func (s *SpanReader) queryInPartition(ctx context.Context, queryName string, par
 	defer span.Finish()
 
 	limit := tq.NumTraces * limitMultiple
-	query := queries.BuildPartitionQuery(queryName, s.dbPath, part)
+	query := queries.BuildPartitionQuery(queryName, s.opts.DbPath, part)
 	timeStart, timeEnd := part.TimeSpan()
 	if tq.StartTimeMin.Sub(timeStart) > 0 {
 		timeStart = tq.StartTimeMin
