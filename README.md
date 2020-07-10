@@ -41,6 +41,7 @@ docker-compose up -d
 - YDB_INDEXER_BUFFER_SIZE (integer, default: 1000): span buffer size for indexer
 - YDB_INDEXER_MAX_TRACES (integer, default: 100): maximum trace_id count in a sinigle index record
 - YDB_INDEXER_MAX_TTL (duration, default: 5s): maximum amount of time for indexer to batch trace_idsd for index records
+- YDB_SCHEMA_NUM_PARTITIONS (integer, default: 1 0): number of partitioned tables per day. Changing it requires recreating full data set
 - YDB_TOKEN (string): auth token for internal purposes
 
 ## schema watcher configuration

@@ -4,16 +4,28 @@ import (
 	"github.com/yandex-cloud/ydb-go-sdk"
 	"github.com/yandex-cloud/ydb-go-sdk/table"
 	"math"
+	"os"
 	"strconv"
 	"strings"
 	"time"
 )
 
 const (
-	numPartitions       = 10
-	partitionStep       = time.Hour * 24 / 10
 	partitionDateFormat = "20060102"
 )
+
+var (
+	numPartitions = 10
+	partitionStep = time.Hour * 24 / 10
+)
+
+func init() {
+	// TODO: should probably rewrite partition helper funcs as some sort of schema builder object
+	if v, err := strconv.Atoi(os.Getenv("YDB_SCHEMA_NUM_PARTITIONS")); err == nil {
+		numPartitions = v
+		partitionStep = time.Hour * 24 / time.Duration(numPartitions)
+	}
+}
 
 type PartitionKey struct {
 	date     string
@@ -80,7 +92,7 @@ func PartitionFromTime(t time.Time) PartitionKey {
 	hours := t.UTC().Sub(t.Truncate(time.Hour * 24)).Hours()
 	return PartitionKey{
 		date:     t.UTC().Format(partitionDateFormat),
-		num:      int(hours * numPartitions / 24),
+		num:      int(hours * float64(numPartitions) / 24),
 		IsActive: true,
 	}
 }
