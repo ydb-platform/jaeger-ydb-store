@@ -31,6 +31,7 @@ func init() {
 	viper.SetDefault("watcher_age", time.Hour*24)
 	viper.SetDefault("parts_traces", 32)
 	viper.SetDefault("parts_idx_tag", 32)
+	viper.SetDefault("parts_idx_tag_v2", 32)
 	viper.SetDefault("parts_idx_duration", 32)
 	viper.SetDefault("parts_idx_service_name", 32)
 	viper.SetDefault("parts_idx_service_op", 32)
