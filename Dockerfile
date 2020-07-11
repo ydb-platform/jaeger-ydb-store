@@ -1,5 +1,5 @@
-ARG jaeger_version=1.17.1
-ARG golang_version=1.13.6
+ARG jaeger_version=1.18.1
+ARG golang_version=1.14.4
 ARG alpine_version=3.10
 
 FROM jaegertracing/jaeger-collector:${jaeger_version} as base-collector
