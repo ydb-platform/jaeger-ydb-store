@@ -59,7 +59,9 @@ func (w *indexWriter) flush(idx index.Indexable, traceIds []model.TraceID) {
 		idx:      idx,
 		traceIds: traceIds,
 	})
-	if err != nil {
+	switch {
+	case err == batch.ErrOverflow:
+	case err != nil:
 		w.logger.Error("indexer batch error", zap.String("table", w.tableName), zap.Error(err))
 	}
 }
