@@ -46,8 +46,10 @@ type YdbStorage struct {
 	ydbPool         *table.SessionPool
 	opts            config.Options
 
-	writer *writer.SpanWriter
-	reader *reader.SpanReader
+	writer        *writer.SpanWriter
+	reader        *reader.SpanReader
+	archiveWriter *writer.SpanWriter
+	archiveReader *reader.SpanReader
 }
 
 func NewYdbStorage() *YdbStorage {
@@ -99,8 +101,8 @@ func (p *YdbStorage) InitFromViper(v *viper.Viper) {
 		panic(err)
 	}
 	p.initDB(v)
-	p.initWriter()
-	p.initReader()
+	p.initWriters()
+	p.initReaders()
 }
 
 func (p *YdbStorage) Registry() *prometheus.Registry {
@@ -113,6 +115,14 @@ func (p *YdbStorage) SpanReader() spanstore.Reader {
 
 func (p *YdbStorage) SpanWriter() spanstore.Writer {
 	return p.writer
+}
+
+func (p *YdbStorage) ArchiveSpanReader() spanstore.Reader {
+	return p.archiveReader
+}
+
+func (p *YdbStorage) ArchiveSpanWriter() spanstore.Writer {
+	return p.archiveWriter
 }
 
 func (*YdbStorage) DependencyReader() dependencystore.Reader {
@@ -144,7 +154,7 @@ func (p *YdbStorage) initDB(v *viper.Viper) {
 	}
 }
 
-func (p *YdbStorage) initWriter() {
+func (p *YdbStorage) initWriters() {
 	opts := writer.SpanWriterOptions{
 		BufferSize:        p.opts.BufferSize,
 		BatchSize:         p.opts.BatchSize,
@@ -157,13 +167,19 @@ func (p *YdbStorage) initWriter() {
 	}
 	ns := p.metricsFactory.Namespace(metrics.NSOptions{Name: "writer"})
 	p.writer = writer.NewSpanWriter(p.ydbPool, ns, p.logger, opts)
+
+	opts.ArchiveWriter = true
+	p.archiveWriter = writer.NewSpanWriter(p.ydbPool, ns, p.logger, opts)
 }
 
-func (p *YdbStorage) initReader() {
+func (p *YdbStorage) initReaders() {
 	opts := reader.SpanReaderOptions{
 		DbPath:        p.opts.DbPath,
 		ReadTimeout:   p.opts.ReadTimeout,
 		QueryParallel: p.opts.ReadQueryParallel,
 	}
 	p.reader = reader.NewSpanReader(p.ydbPool, opts, p.logger)
+
+	opts.ArchiveReader = true
+	p.archiveReader = reader.NewSpanReader(p.ydbPool, opts, p.logger)
 }

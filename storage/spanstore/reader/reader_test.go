@@ -209,7 +209,7 @@ func addTestDataOnce(t *testing.T) {
 		},
 	}
 	for _, span := range spans {
-		err = writer.WriteSpan(span)
+		err = writer.WriteSpan(context.Background(), span)
 		if !assert.NoError(t, err) {
 			return
 		}

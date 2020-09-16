@@ -20,4 +20,5 @@ type SpanWriterOptions struct {
 	IndexerTTL        time.Duration
 	DbPath            schema.DbPath
 	WriteTimeout      time.Duration
+	ArchiveWriter     bool
 }

@@ -90,6 +90,8 @@ var (
 		"query-services":             {"service_names", queryServiceNames},
 		"query-operations":           {"operation_names_v2", queryOperations},
 		"query-operations-with-kind": {"operation_names_v2", queryOperationsWithKind},
+		"queryByTraceID":             {"archive", queryByTraceID},
+		"querySpanCount":             {"archive", querySpanCount},
 	}
 
 	pm = map[string]queryInfo{
