@@ -9,7 +9,7 @@ require (
 	github.com/golang/protobuf v1.3.5
 	github.com/hashicorp/go-hclog v0.14.0
 	github.com/hashicorp/golang-lru v0.5.3
-	github.com/jaegertracing/jaeger v1.17.1
+	github.com/jaegertracing/jaeger v1.19.3-0.20200929134621-5cd7e0abf70d
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/prometheus/client_golang v1.5.1
 	github.com/spf13/cobra v0.0.5
@@ -22,5 +22,3 @@ require (
 	google.golang.org/genproto v0.0.0-20200316142031-303a05041dad // indirect
 	google.golang.org/grpc v1.29.1
 )
-
-replace github.com/jaegertracing/jaeger v1.17.1 => github.com/m8rge/jaeger v1.18.2-0.20200915104136-ea7779b853b9
