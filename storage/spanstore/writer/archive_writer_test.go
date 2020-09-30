@@ -17,7 +17,7 @@ import (
 	"github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/reader"
 )
 
-func TestSpanWriter_WriteSpan(t *testing.T) {
+func TestArchiveSpanWriter_WriteSpan(t *testing.T) {
 	var err error
 	pool := testutil.YdbSessionPool(t)
 	opts := SpanWriterOptions{
@@ -29,6 +29,7 @@ func TestSpanWriter_WriteSpan(t *testing.T) {
 		IndexerTTL:        time.Second,
 		DbPath:            schema.DbPath{Path: os.Getenv("YDB_PATH"), Folder: os.Getenv("YDB_FOLDER")},
 		WriteTimeout:      time.Second,
+		ArchiveWriter:     true,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
@@ -62,7 +63,7 @@ func TestSpanWriter_WriteSpan(t *testing.T) {
 
 	ctx, cancel = context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
-	r := setUpReader(t)
+	r := setUpArchiveReader(t)
 	trace, err := r.GetTrace(ctx, testTraceId)
 	if !assert.NoError(t, err) {
 		return
@@ -73,13 +74,14 @@ func TestSpanWriter_WriteSpan(t *testing.T) {
 	assert.NotEmpty(t, span)
 }
 
-func setUpReader(t *testing.T) *reader.SpanReader {
+func setUpArchiveReader(t *testing.T) *reader.SpanReader {
 	return reader.NewSpanReader(
 		testutil.YdbSessionPool(t),
 		reader.SpanReaderOptions{
 			DbPath:        schema.DbPath{Path: os.Getenv("YDB_PATH"), Folder: os.Getenv("YDB_FOLDER")},
 			ReadTimeout:   time.Second * 10,
 			QueryParallel: 10,
+			ArchiveReader: true,
 		},
 		testutil.Zap(),
 	)

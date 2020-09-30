@@ -80,6 +80,7 @@ type SpanReaderOptions struct {
 	DbPath        schema.DbPath
 	ReadTimeout   time.Duration
 	QueryParallel int
+	ArchiveReader bool
 }
 
 // NewSpanReader returns a new SpanReader.
@@ -258,7 +259,11 @@ func (s *SpanReader) FindTraceIDs(ctx context.Context, query *spanstore.TraceQue
 func (s *SpanReader) GetTrace(ctx context.Context, traceID model.TraceID) (*model.Trace, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.opts.ReadTimeout)
 	defer cancel()
-	span, ctx := opentracing.StartSpanFromContext(ctx, "GetTrace")
+	operationName := "GetTrace"
+	if s.opts.ArchiveReader {
+		operationName = "GetArchiveTrace"
+	}
+	span, ctx := opentracing.StartSpanFromContext(ctx, operationName)
 	defer span.Finish()
 	span.LogFields(otlog.String("event", "searching"), otlog.Object("trace_id", traceID))
 	return s.readTrace(ctx, traceID)
@@ -268,6 +273,12 @@ func (s *SpanReader) readTrace(ctx context.Context, traceID model.TraceID) (*mod
 	span, ctx := startSpanForQuery(ctx, "readTrace")
 	defer span.Finish()
 	span.LogFields(otlog.String("event", "searching"), otlog.Object("trace_id", traceID))
+
+	if s.opts.ArchiveReader {
+		trace, err := s.readArchiveTrace(ctx, traceID)
+		logErrorToSpan(span, err)
+		return trace, err
+	}
 
 	parts, err := s.getPartitionList(ctx)
 	if err != nil {
@@ -331,7 +342,7 @@ func (s *SpanReader) readTraceFromPartitions(ctx context.Context, parts []schema
 	result := &model.Trace{}
 	var resultErr error
 	runPartitionOperation(ctx, parts, func(ctx context.Context, key schema.PartitionKey) {
-		spans, err := s.spansFromPartition(ctx, key, traceID)
+		spans, err := s.spansFromPartition(ctx, traceID, key)
 		mx.Lock()
 		defer mx.Unlock()
 		if err != nil {
@@ -351,12 +362,32 @@ func (s *SpanReader) readTraceFromPartitions(ctx context.Context, parts []schema
 	return result, nil
 }
 
-func (s *SpanReader) spansFromPartition(ctx context.Context, part schema.PartitionKey, traceID model.TraceID) ([]*model.Span, error) {
+func (s *SpanReader) readArchiveTrace(ctx context.Context, traceID model.TraceID) (*model.Trace, error) {
+	spans, err := s.spansFromPartition(ctx, traceID, schema.PartitionKey{})
+	if err != nil {
+		return nil, err
+	}
+	if len(spans) == 0 {
+		return nil, ErrTraceNotFound
+	}
+
+	return &model.Trace{
+		Spans: spans,
+	}, nil
+}
+
+func (s *SpanReader) spansFromPartition(ctx context.Context, traceID model.TraceID, part schema.PartitionKey) ([]*model.Span, error) {
 	var result []*model.Span
 	span, ctx := opentracing.StartSpanFromContext(ctx, "spansFromPartition")
 	defer span.Finish()
 	err := table.Retry(ctx, s.pool, table.OperationFunc(func(ctx context.Context, session *table.Session) error {
-		stmt, err := session.Prepare(ctx, queries.BuildPartitionQuery("querySpanCount", s.opts.DbPath, part))
+		query := ""
+		if s.opts.ArchiveReader {
+			query = queries.BuildQuery("querySpanCount", s.opts.DbPath)
+		} else {
+			query = queries.BuildPartitionQuery("querySpanCount", s.opts.DbPath, part)
+		}
+		stmt, err := session.Prepare(ctx, query)
 		if err != nil {
 			return err
 		}
@@ -384,7 +415,13 @@ func (s *SpanReader) spansFromPartition(ctx context.Context, part schema.Partiti
 		var span *model.Span
 		for i := 0; i < numSpans/1000+1; i++ {
 			offset := i * resultLimit
-			stmt, err := session.Prepare(ctx, queries.BuildPartitionQuery("queryByTraceID", s.opts.DbPath, part))
+			query := ""
+			if s.opts.ArchiveReader {
+				query = queries.BuildQuery("queryByTraceID", s.opts.DbPath)
+			} else {
+				query = queries.BuildPartitionQuery("queryByTraceID", s.opts.DbPath, part)
+			}
+			stmt, err := session.Prepare(ctx, query)
 			if err != nil {
 				return err
 			}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/jaegertracing/jaeger/plugin/storage/grpc/shared"
 	"io"
 	"net/http"
 	"net/http/pprof"
@@ -40,7 +41,10 @@ func main() {
 	defer closer.Close()
 
 	logger.Warn("starting plugin")
-	jaegerGrpc.Serve(ydbPlugin)
+	jaegerGrpc.Serve(&shared.PluginServices{
+		Store:        ydbPlugin,
+		ArchiveStore: ydbPlugin,
+	})
 	logger.Warn("stopped")
 }
 

@@ -37,7 +37,12 @@ func NewSpanWriter(pool *table.SessionPool, metricsFactory metrics.Factory, logg
 		WriteTimeout: opts.WriteTimeout,
 		DbPath:       opts.DbPath,
 	}
-	batchWriter := NewBatchWriter(pool, metricsFactory, logger, writerOpts)
+	var batchWriter batch.Writer
+	if opts.ArchiveWriter {
+		batchWriter = NewArchiveWriter(pool, metricsFactory, logger, writerOpts)
+	} else {
+		batchWriter = NewBatchWriter(pool, metricsFactory, logger, writerOpts)
+	}
 	bq := batch.NewQueue(batchOpts, metricsFactory.Namespace(metrics.NSOptions{Name: "spans"}), batchWriter)
 	bq.Init()
 	idx := indexer.StartIndexer(pool, metricsFactory, logger, indexer.Options{
@@ -60,7 +65,7 @@ func NewSpanWriter(pool *table.SessionPool, metricsFactory metrics.Factory, logg
 }
 
 // WriteSpan saves the span into YDB
-func (s *SpanWriter) WriteSpan(span *model.Span) error {
+func (s *SpanWriter) WriteSpan(ctx context.Context, span *model.Span) error {
 	if span.StartTime.Unix() == 0 || span.StartTime.IsZero() {
 		s.invalidateMetrics.Inc(span.Process.ServiceName, span.OperationName)
 		return nil
@@ -75,7 +80,9 @@ func (s *SpanWriter) WriteSpan(span *model.Span) error {
 		}
 	}
 
-	_ = s.indexer.Add(span)
+	if !s.opts.ArchiveWriter {
+		_ = s.indexer.Add(span)
+	}
 
 	return s.saveServiceNameAndOperationName(span)
 }

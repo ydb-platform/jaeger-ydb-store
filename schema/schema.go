@@ -15,6 +15,7 @@ var (
 		"partitions":         Partitions,
 		"service_names":      ServiceNames,
 		"operation_names_v2": OperationNamesV2,
+		"archive":            ArchiveTraces,
 	}
 
 	// PartitionTables tables split by partition
@@ -29,6 +30,19 @@ var (
 
 // Traces returns traces table schema
 func Traces(numPartitions uint64) []table.CreateTableOption {
+	res := ArchiveTraces()
+	res = append(res,
+		table.WithProfile(
+			table.WithPartitioningPolicy(
+				table.WithPartitioningPolicyUniformPartitions(numPartitions),
+			),
+		))
+
+	return res
+}
+
+// ArchiveTraces returns archive_traces table schema
+func ArchiveTraces() []table.CreateTableOption {
 	res := []table.CreateTableOption{
 		table.WithColumn("trace_id_low", ydb.Optional(ydb.TypeUint64)),
 		table.WithColumn("trace_id_high", ydb.Optional(ydb.TypeUint64)),
@@ -39,11 +53,6 @@ func Traces(numPartitions uint64) []table.CreateTableOption {
 		table.WithColumn("duration", ydb.Optional(ydb.TypeInt64)),
 		table.WithColumn("extra", ydb.Optional(ydb.TypeString)),
 		table.WithPrimaryKeyColumn("trace_id_low", "trace_id_high", "span_id"),
-		table.WithProfile(
-			table.WithPartitioningPolicy(
-				table.WithPartitioningPolicyUniformPartitions(numPartitions),
-			),
-		),
 	}
 	return res
 }
