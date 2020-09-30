@@ -26,11 +26,13 @@ type ArchiveSpanWriter struct {
 }
 
 func NewArchiveWriter(pool *table.SessionPool, factory metrics.Factory, logger *zap.Logger, opts BatchWriterOptions) *ArchiveSpanWriter {
+	ns := factory.Namespace(metrics.NSOptions{Name: "archive"})
+
 	return &ArchiveSpanWriter{
 		pool:    pool,
 		logger:  logger,
 		opts:    opts,
-		metrics: newBatchWriterMetrics(factory),
+		metrics: newBatchWriterMetrics(ns),
 	}
 }
 
