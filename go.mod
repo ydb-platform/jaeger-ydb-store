@@ -9,7 +9,7 @@ require (
 	github.com/golang/protobuf v1.3.5
 	github.com/hashicorp/go-hclog v0.14.0
 	github.com/hashicorp/golang-lru v0.5.3
-	github.com/jaegertracing/jaeger v1.19.3-0.20200929134621-5cd7e0abf70d
+	github.com/jaegertracing/jaeger v1.20.0
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/prometheus/client_golang v1.5.1
 	github.com/spf13/cobra v0.0.5
