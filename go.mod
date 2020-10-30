@@ -4,7 +4,6 @@ go 1.13
 
 require (
 	github.com/dgryski/go-farm v0.0.0-20200201041132-a6ae2369ad13
-	github.com/gogo/googleapis v1.2.0 // indirect
 	github.com/gogo/protobuf v1.2.1
 	github.com/golang/protobuf v1.3.5
 	github.com/hashicorp/go-hclog v0.14.0
