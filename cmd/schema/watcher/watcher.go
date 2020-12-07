@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/yandex-cloud/ydb-go-sdk"
 	"github.com/yandex-cloud/ydb-go-sdk/table"
 	"go.uber.org/zap"
@@ -31,6 +32,7 @@ type Watcher struct {
 	expiration       time.Duration
 	logger           *zap.Logger
 	tableDefinitions map[string]partDefinition
+	knownTables      *lru.Cache
 }
 
 func NewWatcher(sp table.SessionProvider, dbPath schema.DbPath, expiration time.Duration, logger *zap.Logger) *Watcher {
@@ -40,6 +42,7 @@ func NewWatcher(sp table.SessionProvider, dbPath schema.DbPath, expiration time.
 		expiration:       expiration,
 		logger:           logger,
 		tableDefinitions: definitions(),
+		knownTables:      musNewLRU(500),
 	}
 }
 
@@ -64,6 +67,10 @@ func (w *Watcher) createTables() {
 
 	for name, definition := range schema.Tables {
 		fullName := w.dbPath.FullTable(name)
+		if _, ok := w.knownTables.Get(fullName); ok {
+			// We already created this table, skip
+			continue
+		}
 		err := table.Retry(ctx, w.sessionProvider, table.OperationFunc(func(ctx context.Context, session *table.Session) error {
 			return session.CreateTable(ctx, fullName, definition()...)
 		}))
@@ -72,6 +79,8 @@ func (w *Watcher) createTables() {
 				zap.String("name", fullName), zap.Error(err),
 			)
 		}
+		// save knowledge about table for later
+		w.knownTables.Add(fullName, struct{}{})
 	}
 	parts := schema.MakePartitionList(t, t.Add(lookahead))
 	for _, part := range parts {
@@ -95,6 +104,10 @@ func (w *Watcher) createTables() {
 func (w *Watcher) createTablesForPartition(ctx context.Context, part schema.PartitionKey) error {
 	for name, def := range w.tableDefinitions {
 		fullName := part.BuildFullTableName(w.dbPath.String(), name)
+		if _, ok := w.knownTables.Get(fullName); ok {
+			// We already created this table, skip
+			continue
+		}
 		err := table.Retry(ctx, w.sessionProvider, table.OperationFunc(func(ctx context.Context, session *table.Session) error {
 			return session.CreateTable(ctx, fullName, def.defFunc(def.count)...)
 		}))
@@ -104,6 +117,8 @@ func (w *Watcher) createTablesForPartition(ctx context.Context, part schema.Part
 			)
 			return err
 		}
+		// save knowledge about table for later
+		w.knownTables.Add(fullName, struct{}{})
 	}
 	return nil
 }
