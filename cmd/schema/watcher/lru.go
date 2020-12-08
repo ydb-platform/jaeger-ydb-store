@@ -4,7 +4,7 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 )
 
-func musNewLRU(size int) *lru.Cache {
+func mustNewLRU(size int) *lru.Cache {
 	cache, err := lru.New(size)
 	if err != nil {
 		panic(err)
