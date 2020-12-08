@@ -1,5 +1,11 @@
 # Changes by version
 
+1.4.1 (2020-12-08)
+------------------
+
+### Changes
+* schema watcher: cache created tables
+
 1.4.0 (2020-09-30)
 ------------------
 
