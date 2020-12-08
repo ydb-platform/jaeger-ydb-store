@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/yandex-cloud/ydb-go-sdk"
 	"github.com/yandex-cloud/ydb-go-sdk/table"
 	"go.uber.org/zap"
@@ -31,6 +32,7 @@ type Watcher struct {
 	expiration       time.Duration
 	logger           *zap.Logger
 	tableDefinitions map[string]partDefinition
+	knownTables      *lru.Cache
 }
 
 func NewWatcher(sp table.SessionProvider, dbPath schema.DbPath, expiration time.Duration, logger *zap.Logger) *Watcher {
@@ -40,30 +42,42 @@ func NewWatcher(sp table.SessionProvider, dbPath schema.DbPath, expiration time.
 		expiration:       expiration,
 		logger:           logger,
 		tableDefinitions: definitions(),
+		knownTables:      mustNewLRU(500),
 	}
 }
 
 func (w *Watcher) Run(interval time.Duration) {
 	w.ticker = time.NewTicker(interval)
-	go w.watch()
+	go func() {
+		w.once()
+		for range w.ticker.C {
+			w.once()
+		}
+	}()
 }
 
-func (w *Watcher) watch() {
-	go w.createTables()
-	go w.dropOldTables()
-	for range w.ticker.C {
-		w.createTables()
-		w.dropOldTables()
+func (w *Watcher) once() {
+	err := w.createTables()
+	if err != nil {
+		w.logger.Error("create tables failed",
+			zap.Error(err),
+		)
+		return
 	}
+	w.dropOldTables()
 }
 
-func (w *Watcher) createTables() {
+func (w *Watcher) createTables() error {
 	t := time.Now()
 	ctx, cancel := context.WithTimeout(context.Background(), operationTimeout)
 	defer cancel()
 
 	for name, definition := range schema.Tables {
 		fullName := w.dbPath.FullTable(name)
+		if w.tableKnown(ctx, fullName) {
+			// We already created this table, skip
+			continue
+		}
 		err := table.Retry(ctx, w.sessionProvider, table.OperationFunc(func(ctx context.Context, session *table.Session) error {
 			return session.CreateTable(ctx, fullName, definition()...)
 		}))
@@ -71,13 +85,16 @@ func (w *Watcher) createTables() {
 			w.logger.Error("create table failed",
 				zap.String("name", fullName), zap.Error(err),
 			)
+			return err
 		}
+		// save knowledge about table for later
+		w.knownTables.Add(fullName, struct{}{})
 	}
 	parts := schema.MakePartitionList(t, t.Add(lookahead))
 	for _, part := range parts {
 		w.logger.Info("creating partition", zap.String("suffix", part.Suffix()))
 		if err := w.createTablesForPartition(ctx, part); err != nil {
-			break
+			return err
 		}
 		err := table.Retry(ctx, w.sessionProvider, table.OperationFunc(func(ctx context.Context, s *table.Session) error {
 			_, _, err := s.Execute(ctx, txc, schema.BuildQuery(w.dbPath, schema.InsertPart), part.QueryParams())
@@ -87,14 +104,19 @@ func (w *Watcher) createTables() {
 			w.logger.Error("partition save failed",
 				zap.String("suffix", part.Suffix()), zap.Error(err),
 			)
-			break
+			return err
 		}
 	}
+	return nil
 }
 
 func (w *Watcher) createTablesForPartition(ctx context.Context, part schema.PartitionKey) error {
 	for name, def := range w.tableDefinitions {
 		fullName := part.BuildFullTableName(w.dbPath.String(), name)
+		if w.tableKnown(ctx, fullName) {
+			// We already created this table, skip
+			continue
+		}
 		err := table.Retry(ctx, w.sessionProvider, table.OperationFunc(func(ctx context.Context, session *table.Session) error {
 			return session.CreateTable(ctx, fullName, def.defFunc(def.count)...)
 		}))
@@ -104,6 +126,8 @@ func (w *Watcher) createTablesForPartition(ctx context.Context, part schema.Part
 			)
 			return err
 		}
+		// save knowledge about table for later
+		w.knownTables.Add(fullName, struct{}{})
 	}
 	return nil
 }
@@ -185,4 +209,19 @@ func (w *Watcher) deletePartitionInfo(ctx context.Context, session *table.Sessio
 		return err
 	}
 	return nil
+}
+
+func (w *Watcher) tableKnown(ctx context.Context, fullName string) bool {
+	if _, ok := w.knownTables.Get(fullName); ok {
+		return true
+	}
+	err := table.Retry(ctx, w.sessionProvider, table.OperationFunc(func(ctx context.Context, session *table.Session) error {
+		_, err := session.DescribeTable(ctx, fullName)
+		return err
+	}))
+	if err != nil {
+		return false
+	}
+	w.knownTables.Add(fullName, struct{}{})
+	return true
 }
