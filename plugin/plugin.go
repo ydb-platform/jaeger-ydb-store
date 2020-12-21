@@ -22,21 +22,22 @@ import (
 )
 
 const (
-	keyYdbAddress           = "ydb.address"
-	keyYdbPath              = "ydb.path"
-	keyYdbFolder            = "ydb.folder"
-	keyYdbConnectTimeout    = "ydb.connect-timeout"
-	keyYdbWriteTimeout      = "ydb.write-timeout"
-	keyYdbReadTimeout       = "ydb.read-timeout"
-	keyYdbReadQueryParallel = "ydb.read-query-parallel"
-	keyYdbPoolSize          = "ydb.pool-size"
-	keyYdbQueryCacheSize    = "ydb.query-cache-size"
-	keyWriterBufferSize     = "ydb.writer.buffer-size"
-	keyWriterBatchSize      = "ydb.writer.batch-size"
-	keyWriterBatchWorkers   = "ydb.writer.batch-workers"
-	keyIndexerBufferSize    = "ydb.indexer.buffer-size"
-	keyIndexerMaxTraces     = "ydb.indexer.max-traces"
-	keyIndexerMaxTTL        = "ydb.indexer.max-ttl"
+	keyYdbAddress                          = "ydb.address"
+	keyYdbPath                             = "ydb.path"
+	keyYdbFolder                              = "ydb.folder"
+	keyYdbConnectTimeout                      = "ydb.connect-timeout"
+	keyYdbWriteTimeout                        = "ydb.write-timeout"
+	keyYdbReadTimeout                         = "ydb.read-timeout"
+	keyYdbReadQueryParallel                   = "ydb.read-query-parallel"
+	keyYdbPoolSize                            = "ydb.pool-size"
+	keyYdbQueryCacheSize                      = "ydb.query-cache-size"
+	keyWriterBufferSize                       = "ydb.writer.buffer-size"
+	keyWriterBatchSize                        = "ydb.writer.batch-size"
+	keyWriterBatchWorkers                     = "ydb.writer.batch-workers"
+	keyWriterServiceNameAndOperationCacheSize = "ydb.writer.service-name-operation-cache-size"
+	keyIndexerBufferSize                      = "ydb.indexer.buffer-size"
+	keyIndexerMaxTraces                       = "ydb.indexer.max-traces"
+	keyIndexerMaxTTL                          = "ydb.indexer.max-ttl"
 )
 
 type YdbStorage struct {
@@ -74,6 +75,7 @@ func (p *YdbStorage) InitFromViper(v *viper.Viper) {
 	v.SetDefault(keyYdbWriteTimeout, time.Second)
 	v.SetDefault(keyYdbReadTimeout, time.Second*10)
 	v.SetDefault(keyYdbReadQueryParallel, 16)
+	v.SetDefault(keyWriterServiceNameAndOperationCacheSize, 256)
 	p.opts = config.Options{
 		DbAddress:         v.GetString(keyYdbAddress),
 		DbPath:            schema.DbPath{Path: v.GetString(keyYdbPath), Folder: v.GetString(keyYdbFolder)},
@@ -89,6 +91,7 @@ func (p *YdbStorage) InitFromViper(v *viper.Viper) {
 		WriteTimeout:      v.GetDuration(keyYdbWriteTimeout),
 		ReadTimeout:       v.GetDuration(keyYdbReadTimeout),
 		ReadQueryParallel: v.GetInt(keyYdbReadQueryParallel),
+		CacheSize:         v.GetInt(keyWriterServiceNameAndOperationCacheSize),
 	}
 	var err error
 	cfg := zap.NewProductionConfig()
@@ -164,6 +167,7 @@ func (p *YdbStorage) initWriters() {
 		IndexerTTL:        p.opts.IndexerMaxTTL,
 		DbPath:            p.opts.DbPath,
 		WriteTimeout:      p.opts.WriteTimeout,
+		CacheSize:         p.opts.CacheSize,
 	}
 	ns := p.metricsFactory.Namespace(metrics.NSOptions{Name: "writer"})
 	p.writer = writer.NewSpanWriter(p.ydbPool, ns, p.logger, opts)
