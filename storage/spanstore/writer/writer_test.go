@@ -29,6 +29,7 @@ func TestSpanWriter_WriteSpan(t *testing.T) {
 		IndexerTTL:        time.Second,
 		DbPath:            schema.DbPath{Path: os.Getenv("YDB_PATH"), Folder: os.Getenv("YDB_FOLDER")},
 		WriteTimeout:      time.Second,
+		OpCacheSize:       256,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()

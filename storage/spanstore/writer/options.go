@@ -21,5 +21,5 @@ type SpanWriterOptions struct {
 	DbPath            schema.DbPath
 	WriteTimeout      time.Duration
 	ArchiveWriter     bool
-	CacheSize         int
+	OpCacheSize       int
 }

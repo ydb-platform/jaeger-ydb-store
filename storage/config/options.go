@@ -18,10 +18,11 @@ type Options struct {
 	DbAddress string
 	DbPath    schema.DbPath
 
-	PoolSize       int
-	QueryCacheSize int
-	ConnectTimeout time.Duration
-	WriteTimeout   time.Duration
+	PoolSize            int
+	QueryCacheSize      int
+	ConnectTimeout      time.Duration
+	WriteTimeout        time.Duration
+	WriteSvcOpCacheSize int // cache size for svc/operation index writer
 
 	ReadTimeout       time.Duration
 	ReadQueryParallel int

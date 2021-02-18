@@ -51,6 +51,7 @@ func addArchiveTestDataOnce(t *testing.T) {
 		DbPath:            schema.DbPath{Path: os.Getenv("YDB_PATH"), Folder: os.Getenv("YDB_FOLDER")},
 		WriteTimeout:      time.Second,
 		ArchiveWriter:     true,
+		OpCacheSize:       256,
 	}
 	writer := ydbWriter.NewSpanWriter(testutil.YdbSessionPool(t), metrics.NullFactory, testutil.Zap(), opts)
 

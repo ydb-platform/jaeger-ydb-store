@@ -27,7 +27,7 @@ type SpanWriter struct {
 
 // NewSpanWriter creates writer interface implementation for YDB
 func NewSpanWriter(pool *table.SessionPool, metricsFactory metrics.Factory, logger *zap.Logger, opts SpanWriterOptions) *SpanWriter {
-	cache, _ := lru.New(opts.CacheSize) // it's ok to ignore this error for negative size
+	cache, _ := lru.New(opts.OpCacheSize) // it's ok to ignore this error for negative size
 	batchOpts := batch.Options{
 		BufferSize:   opts.BufferSize,
 		BatchSize:    opts.BatchSize,

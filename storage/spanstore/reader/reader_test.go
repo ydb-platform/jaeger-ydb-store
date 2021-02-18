@@ -157,6 +157,7 @@ func addTestDataOnce(t *testing.T) {
 		IndexerTTL:        time.Second,
 		DbPath:            schema.DbPath{Path: os.Getenv("YDB_PATH"), Folder: os.Getenv("YDB_FOLDER")},
 		WriteTimeout:      time.Second,
+		OpCacheSize:       256,
 	}
 	writer := ydbWriter.NewSpanWriter(testutil.YdbSessionPool(t), metrics.NullFactory, testutil.Zap(), opts)
 
