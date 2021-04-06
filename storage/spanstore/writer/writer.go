@@ -2,6 +2,7 @@ package writer
 
 import (
 	"context"
+	"time"
 
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/jaegertracing/jaeger/model"
@@ -66,6 +67,10 @@ func NewSpanWriter(pool *table.SessionPool, metricsFactory metrics.Factory, logg
 
 // WriteSpan saves the span into YDB
 func (s *SpanWriter) WriteSpan(ctx context.Context, span *model.Span) error {
+	if s.opts.MaxSpanAge != time.Duration(0) && time.Now().Sub(span.StartTime) > s.opts.MaxSpanAge {
+		s.invalidateMetrics.Inc(span.Process.ServiceName, span.OperationName)
+		return nil
+	}
 	if span.StartTime.Unix() == 0 || span.StartTime.IsZero() {
 		s.invalidateMetrics.Inc(span.Process.ServiceName, span.OperationName)
 		return nil
