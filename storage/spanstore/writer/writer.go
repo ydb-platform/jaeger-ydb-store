@@ -24,7 +24,8 @@ type SpanWriter struct {
 	indexer           *indexer.Indexer
 	nameCache         *lru.Cache
 	invalidateMetrics *invalidSpanMetrics
-	oudatedCounter    metrics.Counter
+	outdatedCounts    map[string]metrics.Counter // counters per service
+	metricsFactory    metrics.Factory
 }
 
 // NewSpanWriter creates writer interface implementation for YDB
@@ -63,14 +64,20 @@ func NewSpanWriter(pool *table.SessionPool, metricsFactory metrics.Factory, logg
 		indexer:           idx,
 		nameCache:         cache,
 		invalidateMetrics: newInvalidSpanMetrics(metricsFactory),
-		oudatedCounter:    metricsFactory.Counter(metrics.Options{Name: "outdated"}),
+		metricsFactory:    metricsFactory,
 	}
 }
 
 // WriteSpan saves the span into YDB
 func (s *SpanWriter) WriteSpan(ctx context.Context, span *model.Span) error {
 	if s.opts.MaxSpanAge != time.Duration(0) && time.Now().Sub(span.StartTime) > s.opts.MaxSpanAge {
-		s.oudatedCounter.Inc(1)
+		var counter metrics.Counter
+		if c, ok := s.outdatedCounts[span.Process.ServiceName]; !ok {
+			s.outdatedCounts[span.Process.ServiceName] = s.metricsFactory.Counter(metrics.Options{Name: "outdated", Tags: map[string]string{"svc": span.Process.ServiceName}})
+		} else {
+			counter = c
+		}
+		counter.Inc(1)
 		return nil
 	}
 
