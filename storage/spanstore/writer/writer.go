@@ -2,6 +2,7 @@ package writer
 
 import (
 	"context"
+	"time"
 
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/jaegertracing/jaeger/model"
@@ -23,6 +24,7 @@ type SpanWriter struct {
 	indexer           *indexer.Indexer
 	nameCache         *lru.Cache
 	invalidateMetrics *invalidSpanMetrics
+	oudatedCounter    metrics.Counter
 }
 
 // NewSpanWriter creates writer interface implementation for YDB
@@ -61,11 +63,17 @@ func NewSpanWriter(pool *table.SessionPool, metricsFactory metrics.Factory, logg
 		indexer:           idx,
 		nameCache:         cache,
 		invalidateMetrics: newInvalidSpanMetrics(metricsFactory),
+		oudatedCounter:    metricsFactory.Counter(metrics.Options{Name: "outdated"}),
 	}
 }
 
 // WriteSpan saves the span into YDB
 func (s *SpanWriter) WriteSpan(ctx context.Context, span *model.Span) error {
+	if s.opts.MaxSpanAge != time.Duration(0) && time.Now().Sub(span.StartTime) > s.opts.MaxSpanAge {
+		s.oudatedCounter.Inc(1)
+		return nil
+	}
+
 	if span.StartTime.Unix() == 0 || span.StartTime.IsZero() {
 		s.invalidateMetrics.Inc(span.Process.ServiceName, span.OperationName)
 		return nil

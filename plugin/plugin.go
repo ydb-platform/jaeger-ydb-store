@@ -34,6 +34,9 @@ const (
 	keyWriterBufferSize     = "ydb.writer.buffer-size"
 	keyWriterBatchSize      = "ydb.writer.batch-size"
 	keyWriterBatchWorkers   = "ydb.writer.batch-workers"
+	// Each span older than time.Now() - keyWriterMaxSpanAge will be neglected.
+	// Defaults to zero which effectively means any span age is good.
+	keyWriterMaxSpanAge     = "ydb.writer.max-span-age"
 	keyWriterSvcOpCacheSize = "ydb.writer.service-name-operation-cache-size"
 	keyIndexerBufferSize    = "ydb.indexer.buffer-size"
 	keyIndexerMaxTraces     = "ydb.indexer.max-traces"
@@ -76,6 +79,8 @@ func (p *YdbStorage) InitFromViper(v *viper.Viper) {
 	v.SetDefault(keyYdbReadTimeout, time.Second*10)
 	v.SetDefault(keyYdbReadQueryParallel, 16)
 	v.SetDefault(keyWriterSvcOpCacheSize, 256)
+	// Zero stands for "unbound" interval so any span age is good.
+	v.SetDefault(keyWriterMaxSpanAge, time.Duration(0))
 	p.opts = config.Options{
 		DbAddress:           v.GetString(keyYdbAddress),
 		DbPath:              schema.DbPath{Path: v.GetString(keyYdbPath), Folder: v.GetString(keyYdbFolder)},
@@ -92,6 +97,7 @@ func (p *YdbStorage) InitFromViper(v *viper.Viper) {
 		ReadTimeout:         v.GetDuration(keyYdbReadTimeout),
 		ReadQueryParallel:   v.GetInt(keyYdbReadQueryParallel),
 		WriteSvcOpCacheSize: v.GetInt(keyWriterSvcOpCacheSize),
+		WriteMaxSpanAge:     v.GetDuration(keyWriterMaxSpanAge),
 	}
 	var err error
 	cfg := zap.NewProductionConfig()
@@ -168,6 +174,7 @@ func (p *YdbStorage) initWriters() {
 		DbPath:            p.opts.DbPath,
 		WriteTimeout:      p.opts.WriteTimeout,
 		OpCacheSize:       p.opts.WriteSvcOpCacheSize,
+		MaxSpanAge:        p.opts.WriteMaxSpanAge,
 	}
 	ns := p.metricsFactory.Namespace(metrics.NSOptions{Name: "writer"})
 	p.writer = writer.NewSpanWriter(p.ydbPool, ns, p.logger, opts)

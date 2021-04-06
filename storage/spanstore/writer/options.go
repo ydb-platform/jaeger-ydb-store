@@ -22,4 +22,5 @@ type SpanWriterOptions struct {
 	WriteTimeout      time.Duration
 	ArchiveWriter     bool
 	OpCacheSize       int
+	MaxSpanAge        time.Duration
 }
