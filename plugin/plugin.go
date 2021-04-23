@@ -21,28 +21,6 @@ import (
 	"github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/writer"
 )
 
-const (
-	keyYdbAddress           = "ydb.address"
-	keyYdbPath              = "ydb.path"
-	keyYdbFolder            = "ydb.folder"
-	keyYdbConnectTimeout    = "ydb.connect-timeout"
-	keyYdbWriteTimeout      = "ydb.write-timeout"
-	keyYdbReadTimeout       = "ydb.read-timeout"
-	keyYdbReadQueryParallel = "ydb.read-query-parallel"
-	keyYdbPoolSize          = "ydb.pool-size"
-	keyYdbQueryCacheSize    = "ydb.query-cache-size"
-	keyWriterBufferSize     = "ydb.writer.buffer-size"
-	keyWriterBatchSize      = "ydb.writer.batch-size"
-	keyWriterBatchWorkers   = "ydb.writer.batch-workers"
-	// Each span older than time.Now() - keyWriterMaxSpanAge will be neglected.
-	// Defaults to zero which effectively means any span age is good.
-	keyWriterMaxSpanAge     = "ydb.writer.max-span-age"
-	keyWriterSvcOpCacheSize = "ydb.writer.service-name-operation-cache-size"
-	keyIndexerBufferSize    = "ydb.indexer.buffer-size"
-	keyIndexerMaxTraces     = "ydb.indexer.max-traces"
-	keyIndexerMaxTTL        = "ydb.indexer.max-ttl"
-)
-
 type YdbStorage struct {
 	metricsFactory  metrics.Factory
 	metricsRegistry *prometheus.Registry
@@ -66,38 +44,41 @@ func NewYdbStorage() *YdbStorage {
 
 // InitFromViper pops settings from flags/env
 func (p *YdbStorage) InitFromViper(v *viper.Viper) {
-	v.SetDefault(keyYdbConnectTimeout, time.Second*10)
-	v.SetDefault(keyWriterBufferSize, 1000)
-	v.SetDefault(keyWriterBatchSize, 100)
-	v.SetDefault(keyWriterBatchWorkers, 10)
-	v.SetDefault(keyIndexerBufferSize, 1000)
-	v.SetDefault(keyIndexerMaxTraces, 100)
-	v.SetDefault(keyIndexerMaxTTL, time.Second*5)
-	v.SetDefault(keyYdbPoolSize, 100)
-	v.SetDefault(keyYdbQueryCacheSize, 50)
-	v.SetDefault(keyYdbWriteTimeout, time.Second)
-	v.SetDefault(keyYdbReadTimeout, time.Second*10)
-	v.SetDefault(keyYdbReadQueryParallel, 16)
-	v.SetDefault(keyWriterSvcOpCacheSize, 256)
+	v.SetDefault(db.KeyYdbConnectTimeout, time.Second*10)
+	v.SetDefault(db.KeyYdbWriterBufferSize, 1000)
+	v.SetDefault(db.KeyYdbWriterBatchSize, 100)
+	v.SetDefault(db.KeyYdbWriterBatchWorkers, 10)
+	v.SetDefault(db.KeyYdbIndexerBufferSize, 1000)
+	v.SetDefault(db.KeyYdbIndexerMaxTraces, 100)
+	v.SetDefault(db.KeyYdbIndexerMaxTTL, time.Second*5)
+	v.SetDefault(db.KeyYdbPoolSize, 100)
+	v.SetDefault(db.KeyYdbQueryCacheSize, 50)
+	v.SetDefault(db.KeyYdbWriteTimeout, time.Second)
+	v.SetDefault(db.KeyYdbReadTimeout, time.Second*10)
+	v.SetDefault(db.KeyYdbReadQueryParallel, 16)
+	v.SetDefault(db.KeyYdbWriterSvcOpCacheSize, 256)
 	// Zero stands for "unbound" interval so any span age is good.
-	v.SetDefault(keyWriterMaxSpanAge, time.Duration(0))
+	v.SetDefault(db.KeyYdbWriterMaxSpanAge, time.Duration(0))
 	p.opts = config.Options{
-		DbAddress:           v.GetString(keyYdbAddress),
-		DbPath:              schema.DbPath{Path: v.GetString(keyYdbPath), Folder: v.GetString(keyYdbFolder)},
-		PoolSize:            v.GetInt(keyYdbPoolSize),
-		QueryCacheSize:      v.GetInt(keyYdbQueryCacheSize),
-		ConnectTimeout:      v.GetDuration(keyYdbConnectTimeout),
-		BufferSize:          v.GetInt(keyWriterBufferSize),
-		BatchSize:           v.GetInt(keyWriterBatchSize),
-		BatchWorkers:        v.GetInt(keyWriterBatchWorkers),
-		IndexerBufferSize:   v.GetInt(keyIndexerBufferSize),
-		IndexerMaxTraces:    v.GetInt(keyIndexerMaxTraces),
-		IndexerMaxTTL:       v.GetDuration(keyIndexerMaxTTL),
-		WriteTimeout:        v.GetDuration(keyYdbWriteTimeout),
-		ReadTimeout:         v.GetDuration(keyYdbReadTimeout),
-		ReadQueryParallel:   v.GetInt(keyYdbReadQueryParallel),
-		WriteSvcOpCacheSize: v.GetInt(keyWriterSvcOpCacheSize),
-		WriteMaxSpanAge:     v.GetDuration(keyWriterMaxSpanAge),
+		DbAddress: v.GetString(db.KeyYdbAddress),
+		DbPath: schema.DbPath{
+			Path:   v.GetString(db.KeyYdbPath),
+			Folder: v.GetString(db.KeyYdbFolder),
+		},
+		PoolSize:            v.GetInt(db.KeyYdbPoolSize),
+		QueryCacheSize:      v.GetInt(db.KeyYdbQueryCacheSize),
+		ConnectTimeout:      v.GetDuration(db.KeyYdbConnectTimeout),
+		BufferSize:          v.GetInt(db.KeyYdbWriterBufferSize),
+		BatchSize:           v.GetInt(db.KeyYdbWriterBatchSize),
+		BatchWorkers:        v.GetInt(db.KeyYdbWriterBatchWorkers),
+		IndexerBufferSize:   v.GetInt(db.KeyYdbIndexerBufferSize),
+		IndexerMaxTraces:    v.GetInt(db.KeyYdbIndexerMaxTraces),
+		IndexerMaxTTL:       v.GetDuration(db.KeyYdbIndexerMaxTTL),
+		WriteTimeout:        v.GetDuration(db.KeyYdbWriteTimeout),
+		ReadTimeout:         v.GetDuration(db.KeyYdbReadTimeout),
+		ReadQueryParallel:   v.GetInt(db.KeyYdbReadQueryParallel),
+		WriteSvcOpCacheSize: v.GetInt(db.KeyYdbWriterSvcOpCacheSize),
+		WriteMaxSpanAge:     v.GetDuration(db.KeyYdbWriterMaxSpanAge),
 	}
 	var err error
 	cfg := zap.NewProductionConfig()

@@ -21,10 +21,6 @@ import (
 	"github.com/yandex-cloud/jaeger-ydb-store/schema"
 )
 
-const (
-	keyYdbAddress = "ydb.address"
-)
-
 func init() {
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_", ".", "_"))
 	viper.SetDefault("watcher_interval", time.Minute*5)
@@ -140,7 +136,7 @@ func tableClient(v *viper.Viper) (*table.Client, error) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
-	driver, err := dialer.Dial(ctx, v.GetString(keyYdbAddress))
+	driver, err := dialer.Dial(ctx, v.GetString(db.KeyYdbAddress))
 	if err != nil {
 		return nil, err
 	}

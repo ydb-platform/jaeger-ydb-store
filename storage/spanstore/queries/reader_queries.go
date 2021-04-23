@@ -18,11 +18,10 @@ WHERE trace_id_high = $trace_id_high and trace_id_low = $trace_id_low
 LIMIT $offset,$limit`
 
 	querySpanCount = `DECLARE $trace_id_high AS uint64;
-		DECLARE $trace_id_low AS uint64;
-		SELECT COUNT(*) AS c
-		FROM ` + "`%s`" + `
-		WHERE trace_id_high = $trace_id_high and trace_id_low = $trace_id_low
-`
+DECLARE $trace_id_low AS uint64;
+SELECT COUNT(*) AS c
+FROM ` + "`%s`" + `
+WHERE trace_id_high = $trace_id_high AND trace_id_low = $trace_id_low`
 
 	queryByTag = `DECLARE $hash AS uint64;
 DECLARE $time_min AS int64;
@@ -44,14 +43,13 @@ WHERE idx_hash = $hash AND rev_start_time <= 0-$time_min AND rev_start_time >= 0
 AND op_hash = $op_hash
 LIMIT $limit`
 
-	queryByServiceAndOperationName = `DECLARE $idx_hash AS uint64;
+	queryByServiceAndOperationName = `DECLARE $hash AS uint64;
 DECLARE $time_min AS int64;
 DECLARE $time_max AS int64;
 DECLARE $limit AS uint64;
 SELECT trace_ids, rev_start_time
 FROM ` + "`%s`" + `
-WHERE idx_hash = $idx_hash
-AND rev_start_time <= 0-$time_min AND rev_start_time >= 0-$time_max
+WHERE idx_hash = $hash AND rev_start_time <= 0-$time_min AND rev_start_time >= 0-$time_max
 LIMIT $limit`
 
 	queryByDuration = `DECLARE $hash AS uint64;
@@ -66,23 +64,26 @@ WHERE idx_hash = $hash AND rev_start_time <= 0-$time_min AND rev_start_time >= 0
 AND duration >= $duration_min AND duration <= $duration_max
 LIMIT $limit`
 
-	queryByServiceName = `DECLARE $idx_hash AS uint64;
+	queryByServiceName = `DECLARE $hash AS uint64;
 DECLARE $time_min AS int64;
 DECLARE $time_max AS int64;
 DECLARE $limit AS uint64;
 SELECT trace_ids, rev_start_time
 FROM ` + "`%s`" + `
-WHERE idx_hash = $idx_hash
-AND rev_start_time <= 0-$time_min AND rev_start_time >= 0-$time_max
+WHERE idx_hash = $hash AND rev_start_time <= 0-$time_min AND rev_start_time >= 0-$time_max
 LIMIT $limit`
 
-	queryServiceNames = `SELECT service_name FROM ` + "`%s`"
-	queryOperations   = `DECLARE $service_name AS utf8;
-SELECT operation_name FROM ` + "`%s`" + ` WHERE service_name = $service_name`
+	queryServiceNames = `SELECT DISTINCT(service_name)
+FROM ` + "`%s`"
+	queryOperations = `DECLARE $service_name AS utf8;
+SELECT DISTINCT(operation_name)
+FROM ` + "`%s`" + `
+WHERE service_name = $service_name`
 	queryOperationsWithKind = `DECLARE $service_name AS utf8;
 DECLARE $span_kind AS utf8;
-SELECT operation_name FROM ` + "`%s`" + ` WHERE service_name = $service_name
-AND span_kind = $span_kind`
+SELECT DISTINCT(operation_name)
+FROM ` + "`%s`" + `
+WHERE service_name = $service_name AND span_kind = $span_kind`
 )
 
 var (

@@ -44,6 +44,8 @@ docker-compose up -d
 - YDB_INDEXER_MAX_TTL (duration, default: 5s): maximum amount of time for indexer to batch trace_idы for index records
 - YDB_SCHEMA_NUM_PARTITIONS (integer, default: 10): number of partitioned tables per day. Changing it requires recreating full data set
 - YDB_TOKEN (string): auth token for internal purposes
+- YDB_FEATURE_SPLIT_BY_LOAD (bool): enable table split by load feature
+- YDB_FEATURE_COMPRESSION (bool): enable table compression feature, used for span storage
 
 ## schema watcher configuration
 
