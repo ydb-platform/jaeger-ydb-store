@@ -41,7 +41,7 @@ func (s *Span) Scan(res *table.Result) (err error) {
 }
 
 func (s *Span) StructValue() ydb.Value {
-	val := ydb.StructValue(
+	return ydb.StructValue(
 		ydb.StructFieldValue("trace_id_low", ydb.OptionalValue(ydb.Uint64Value(s.TraceIDLow))),
 		ydb.StructFieldValue("trace_id_high", ydb.OptionalValue(ydb.Uint64Value(s.TraceIDHigh))),
 		ydb.StructFieldValue("span_id", ydb.OptionalValue(ydb.Uint64Value(s.SpanID))),
@@ -51,5 +51,4 @@ func (s *Span) StructValue() ydb.Value {
 		ydb.StructFieldValue("duration", ydb.OptionalValue(ydb.Int64Value(s.Duration))),
 		ydb.StructFieldValue("extra", ydb.OptionalValue(ydb.StringValue(s.Extra))),
 	)
-	return val
 }

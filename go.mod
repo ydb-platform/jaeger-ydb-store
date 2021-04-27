@@ -1,11 +1,11 @@
 module github.com/yandex-cloud/jaeger-ydb-store
 
-go 1.13
+go 1.16
 
 require (
 	github.com/dgryski/go-farm v0.0.0-20200201041132-a6ae2369ad13
 	github.com/gogo/protobuf v1.2.1
-	github.com/golang/protobuf v1.3.5
+	github.com/golang/protobuf v1.5.0
 	github.com/hashicorp/go-hclog v0.14.0
 	github.com/hashicorp/golang-lru v0.5.3
 	github.com/jaegertracing/jaeger v1.20.0
@@ -16,8 +16,10 @@ require (
 	github.com/stretchr/testify v1.5.1
 	github.com/uber/jaeger-client-go v2.23.1+incompatible
 	github.com/uber/jaeger-lib v2.2.0+incompatible
-	github.com/yandex-cloud/ydb-go-sdk v0.0.0-20200424185505-e7fa5b87c7e8
+	github.com/yandex-cloud/go-genproto v0.0.0-20210419102011-ea71516bb3f7 // indirect
+	github.com/yandex-cloud/ydb-go-sdk v0.0.0-20210421191645-84012efe0d28
 	go.uber.org/zap v1.16.0
 	google.golang.org/genproto v0.0.0-20200316142031-303a05041dad // indirect
 	google.golang.org/grpc v1.29.1
+	google.golang.org/protobuf v1.26.0 // indirect
 )

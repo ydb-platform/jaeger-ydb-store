@@ -1,6 +1,8 @@
 package schema
 
 import (
+	"github.com/spf13/viper"
+	"github.com/yandex-cloud/jaeger-ydb-store/internal/db"
 	"github.com/yandex-cloud/ydb-go-sdk"
 	"github.com/yandex-cloud/ydb-go-sdk/table"
 )
@@ -30,15 +32,8 @@ var (
 
 // Traces returns traces table schema
 func Traces(numPartitions uint64) []table.CreateTableOption {
-	res := ArchiveTraces()
-	res = append(res,
-		table.WithProfile(
-			table.WithPartitioningPolicy(
-				table.WithPartitioningPolicyUniformPartitions(numPartitions),
-			),
-		))
-
-	return res
+	return append(ArchiveTraces(),
+		table.WithPartitioningSettingsObject(partitioningSettings(numPartitions)))
 }
 
 // ArchiveTraces returns archive_traces table schema
@@ -54,6 +49,16 @@ func ArchiveTraces() []table.CreateTableOption {
 		table.WithColumn("extra", ydb.Optional(ydb.TypeString)),
 		table.WithPrimaryKeyColumn("trace_id_low", "trace_id_high", "span_id"),
 	}
+	if viper.GetBool(db.KeyYDBFeatureCompression) {
+		res = append(res,
+			table.WithColumnFamilies(
+				table.ColumnFamily{
+					Name:        "default",
+					Compression: table.ColumnFamilyCompressionLZ4,
+				},
+			),
+		)
+	}
 	return res
 }
 
@@ -65,7 +70,7 @@ func ServiceOperationIndex(numPartitions uint64) []table.CreateTableOption {
 		table.WithColumn("uniq", ydb.Optional(ydb.TypeUint32)),
 		table.WithColumn("trace_ids", ydb.Optional(ydb.TypeString)),
 		table.WithPrimaryKeyColumn("idx_hash", "rev_start_time", "uniq"),
-		table.WithProfile(table.WithPartitioningPolicy(table.WithPartitioningPolicyUniformPartitions(numPartitions))),
+		table.WithPartitioningSettingsObject(partitioningSettings(numPartitions)),
 	}
 }
 
@@ -77,7 +82,7 @@ func ServiceNameIndex(numPartitions uint64) []table.CreateTableOption {
 		table.WithColumn("uniq", ydb.Optional(ydb.TypeUint32)),
 		table.WithColumn("trace_ids", ydb.Optional(ydb.TypeString)),
 		table.WithPrimaryKeyColumn("idx_hash", "rev_start_time", "uniq"),
-		table.WithProfile(table.WithPartitioningPolicy(table.WithPartitioningPolicyUniformPartitions(numPartitions))),
+		table.WithPartitioningSettingsObject(partitioningSettings(numPartitions)),
 	}
 }
 
@@ -90,11 +95,11 @@ func DurationIndex(numPartitions uint64) []table.CreateTableOption {
 		table.WithColumn("uniq", ydb.Optional(ydb.TypeUint32)),
 		table.WithColumn("trace_ids", ydb.Optional(ydb.TypeString)),
 		table.WithPrimaryKeyColumn("idx_hash", "duration", "rev_start_time", "uniq"),
-		table.WithProfile(table.WithPartitioningPolicy(table.WithPartitioningPolicyUniformPartitions(numPartitions))),
+		table.WithPartitioningSettingsObject(partitioningSettings(numPartitions)),
 	}
 }
 
-// TagIndex returns tag_index_v2 table schema
+// TagIndexV2 returns tag_index_v2 table schema
 func TagIndexV2(numPartitions uint64) []table.CreateTableOption {
 	return []table.CreateTableOption{
 		table.WithColumn("idx_hash", ydb.Optional(ydb.TypeUint64)),
@@ -103,7 +108,7 @@ func TagIndexV2(numPartitions uint64) []table.CreateTableOption {
 		table.WithColumn("uniq", ydb.Optional(ydb.TypeUint32)),
 		table.WithColumn("trace_ids", ydb.Optional(ydb.TypeString)),
 		table.WithPrimaryKeyColumn("idx_hash", "rev_start_time", "op_hash", "uniq"),
-		table.WithProfile(table.WithPartitioningPolicy(table.WithPartitioningPolicyUniformPartitions(numPartitions))),
+		table.WithPartitioningSettingsObject(partitioningSettings(numPartitions)),
 	}
 }
 
@@ -115,7 +120,7 @@ func ServiceNames() []table.CreateTableOption {
 	}
 }
 
-// OperationNames returns operation_names_v2 table schema
+// OperationNamesV2 returns operation_names_v2 table schema
 func OperationNamesV2() []table.CreateTableOption {
 	return []table.CreateTableOption{
 		table.WithColumn("service_name", ydb.Optional(ydb.TypeUTF8)),
@@ -132,4 +137,16 @@ func Partitions() []table.CreateTableOption {
 		table.WithColumn("is_active", ydb.Optional(ydb.TypeBool)),
 		table.WithPrimaryKeyColumn("part_date", "part_num"),
 	}
+}
+
+func partitioningSettings(numPartitions uint64) (settings table.PartitioningSettings) {
+	settings = table.PartitioningSettings{
+		PartitioningBySize: ydb.FeatureEnabled,
+		PartitionSizeMb:    1024, // up to 1 GiB
+		MinPartitionsCount: numPartitions,
+	}
+	if viper.GetBool(db.KeyYDBFeatureSplitByLoad) {
+		settings.PartitioningByLoad = ydb.FeatureEnabled
+	}
+	return
 }
