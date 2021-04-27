@@ -1,5 +1,32 @@
 # Changes by version
 
+1.5.0 (2021-04-28)
+------------------
+
+### Changes
+* Updated [README](README.md)
+* Updated Go to 1.16.3
+* Added YDB feature flags (see [README](README.md) for description) for Watcher
+  - `YDB_FEATURE_SPLIT_BY_LOAD`
+  - `YDB_FEATURE_COMPRESSION`
+
+### Improvements
+* Started using `OnlineReadOnly` + `AllowInconsistentReads` in Query
+  instead of `SerializableReadWrite` isolation level
+* Added `DISTINCT` to a couple of search queries 
+
+1.4.3 (2021-04-21)
+------------------
+
+### Changes
+* Skip outdated spans
+
+1.4.2 (2021-02-18)
+------------------
+
+### Changes
+* span writer: svc+op cache size
+
 1.4.1 (2020-12-08)
 ------------------
 
