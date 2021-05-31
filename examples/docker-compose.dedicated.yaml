@@ -1,0 +1,59 @@
+version: '3'
+services:
+  schema:
+    image: cr.yandex/yc/jaeger-ydb-watcher:dev
+    environment:
+      PARTS_IDX_TAG_V2:          4
+      PARTS_TRACES:              4
+      PARTS_IDX_SERVICE_OP:      4
+      PARTS_DURATION:            4
+      PARTS_IDX_SERVICE_NAME:    4
+      YDB_SA_META_AUTH:          "true"
+      YDB_CA_FILE:               "/ydb-ca.pem"
+      YDB_ADDRESS:               lb.zzz.ydb.mdb.yandexcloud.net:2135
+      YDB_PATH:                  /xxx/yyy/zzz
+      YDB_FEATURE_COMPRESSION:   "true"
+      YDB_FEATURE_SPLIT_BY_LOAD: "true"
+    command: watcher
+  collector:
+    image: cr.yandex/yc/jaeger-ydb-collector:dev
+    ports:
+    - 14269:14269
+    environment:
+      YDB_SA_META_AUTH:          "true"
+      YDB_CA_FILE:               "/ydb-ca.pem"
+      YDB_ADDRESS:               lb.zzz.ydb.mdb.yandexcloud.net:2135
+      YDB_PATH:                  /xxx/yyy/zzz
+      YDB_FEATURE_COMPRESSION:   "true"
+      YDB_FEATURE_SPLIT_BY_LOAD: "true"
+      YDB_WRITER_BUFFER_SIZE:    50000
+      YDB_WRITER_BATCH_SIZE:     5000
+      YDB_WRITER_BATCH_WORKERS:  100
+      YDB_INDEXER_BUFFER_SIZE:   5000
+      COLLECTOR_QUEUE_SIZE:      50000
+      PLUGIN_LOG_PATH:           /tmp/plugin.log
+  query:
+    image: cr.yandex/yc/jaeger-ydb-query:dev
+    ports:
+    - 16686:16686
+    environment:
+      YDB_SA_META_AUTH:          "true"
+      YDB_CA_FILE:               "/ydb-ca.pem"
+      YDB_ADDRESS:               lb.zzz.ydb.mdb.yandexcloud.net:2135
+      YDB_PATH:                  /xxx/yyy/zzz
+      YDB_FEATURE_COMPRESSION:   "true"
+      YDB_FEATURE_SPLIT_BY_LOAD: "true"
+      PLUGIN_LOG_PATH:           /tmp/plugin.log
+  agent:
+    image: jaegertracing/jaeger-agent
+    command:
+    - "--reporter.grpc.host-port=collector:14250"
+    - "--processor.jaeger-binary.server-queue-size=10000"
+    - "--processor.jaeger-compact.server-queue-size=10000"
+    - "--processor.zipkin-compact.server-queue-size=10000"
+    ports:
+    - 5775:5775/udp
+    - 6831:6831/udp
+    - 6832:6832/udp
+    - 5778:5778
+    restart: on-failure
