@@ -1,5 +1,11 @@
 # Changes by version
 
+1.5.1 (2021-04-28)
+------------------
+
+### Improvements
+* increase query limit for op names
+
 1.5.0 (2021-04-28)
 ------------------
 

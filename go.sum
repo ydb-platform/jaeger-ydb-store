@@ -524,8 +524,8 @@ github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q
 github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77/go.mod h1:aYKd//L2LvnjZzWKhF00oedf4jCCReLcmhLdhm1A27Q=
 github.com/yandex-cloud/go-genproto v0.0.0-20210419102011-ea71516bb3f7 h1:qI0iykKTUTAFQ34/7cpnFZefKJTa5vprwPs8ncTkFGQ=
 github.com/yandex-cloud/go-genproto v0.0.0-20210419102011-ea71516bb3f7/go.mod h1:HEUYX/p8966tMUHHT+TsS0hF/Ca/NYwqprC5WXSDMfE=
-github.com/yandex-cloud/ydb-go-sdk v0.0.0-20210421191645-84012efe0d28 h1:khJEZZO2IucbZ8FNMdstOWQNxh1Yzns6CdcgIO/YBP8=
-github.com/yandex-cloud/ydb-go-sdk v0.0.0-20210421191645-84012efe0d28/go.mod h1:Z3BlkJgkSZxGxy4DcOXpN+XPhT4Nqsx1lGHsGlxcMvw=
+github.com/yandex-cloud/ydb-go-sdk v0.0.0-20210609075805-4850fc2a9350 h1:5PwTL1U28mgjHvhzZB3opDhiw3lMBao4nSrlezU86Bw=
+github.com/yandex-cloud/ydb-go-sdk v0.0.0-20210609075805-4850fc2a9350/go.mod h1:Z3BlkJgkSZxGxy4DcOXpN+XPhT4Nqsx1lGHsGlxcMvw=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/bbolt v1.3.3/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=

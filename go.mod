@@ -17,7 +17,7 @@ require (
 	github.com/uber/jaeger-client-go v2.23.1+incompatible
 	github.com/uber/jaeger-lib v2.2.0+incompatible
 	github.com/yandex-cloud/go-genproto v0.0.0-20210419102011-ea71516bb3f7 // indirect
-	github.com/yandex-cloud/ydb-go-sdk v0.0.0-20210421191645-84012efe0d28
+	github.com/yandex-cloud/ydb-go-sdk v0.0.0-20210609075805-4850fc2a9350
 	go.uber.org/zap v1.16.0
 	google.golang.org/genproto v0.0.0-20200316142031-303a05041dad // indirect
 	google.golang.org/grpc v1.29.1

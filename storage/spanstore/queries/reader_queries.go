@@ -73,17 +73,23 @@ FROM ` + "`%s`" + `
 WHERE idx_hash = $hash AND rev_start_time <= 0-$time_min AND rev_start_time >= 0-$time_max
 LIMIT $limit`
 
-	queryServiceNames = `SELECT DISTINCT(service_name)
+	queryServiceNames = `SELECT service_name
 FROM ` + "`%s`"
+
 	queryOperations = `DECLARE $service_name AS utf8;
-SELECT DISTINCT(operation_name)
+DECLARE $limit AS uint64;
+SELECT operation_name
 FROM ` + "`%s`" + `
-WHERE service_name = $service_name`
+WHERE service_name = $service_name
+LIMIT $limit`
+
 	queryOperationsWithKind = `DECLARE $service_name AS utf8;
 DECLARE $span_kind AS utf8;
-SELECT DISTINCT(operation_name)
+DECLARE $limit AS uint64;
+SELECT operation_name
 FROM ` + "`%s`" + `
-WHERE service_name = $service_name AND span_kind = $span_kind`
+WHERE service_name = $service_name AND span_kind = $span_kind
+LIMIT $limit`
 )
 
 var (

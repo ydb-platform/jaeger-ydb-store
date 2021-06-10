@@ -79,6 +79,7 @@ type SpanReader struct {
 type SpanReaderOptions struct {
 	DbPath        schema.DbPath
 	ReadTimeout   time.Duration
+	OpLimit       uint64 // max number of operations to fetch from operation_names index
 	QueryParallel int
 	ArchiveReader bool
 }
@@ -140,29 +141,25 @@ func (s *SpanReader) GetOperations(ctx context.Context, query spanstore.Operatio
 		queryParameters = table.NewQueryParameters(
 			table.ValueParam("$service_name", ydb.UTF8Value(query.ServiceName)),
 			table.ValueParam("$span_kind", ydb.UTF8Value(query.SpanKind)),
+			table.ValueParam("$limit", ydb.Uint64Value(s.opts.OpLimit)),
 		)
 	} else {
 		prepQuery = queries.BuildQuery("query-operations", s.opts.DbPath)
 		queryParameters = table.NewQueryParameters(
 			table.ValueParam("$service_name", ydb.UTF8Value(query.ServiceName)),
+			table.ValueParam("$limit", ydb.Uint64Value(s.opts.OpLimit)),
 		)
 	}
 
 	result := make([]spanstore.Operation, 0)
 	err := table.Retry(ctx, s.pool, table.OperationFunc(func(ctx context.Context, session *table.Session) error {
-		_, res, err := session.Execute(
-			ctx,
-			txc,
-			prepQuery,
-			queryParameters,
-			table.WithQueryCachePolicy(table.WithQueryCachePolicyKeepInCache()),
-		)
+		res, err := session.StreamExecuteScanQuery(ctx, prepQuery, queryParameters)
 		if err != nil {
 			return err
 		}
 		defer res.Close()
 
-		for res.NextSet() {
+		for res.NextStreamSet(ctx) {
 			for res.NextRow() {
 				v := spanstore.Operation{
 					SpanKind: query.SpanKind,

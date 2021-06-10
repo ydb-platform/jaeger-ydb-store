@@ -48,6 +48,7 @@ func (p *YdbStorage) InitFromViper(v *viper.Viper) {
 	v.SetDefault(db.KeyYdbWriterBufferSize, 1000)
 	v.SetDefault(db.KeyYdbWriterBatchSize, 100)
 	v.SetDefault(db.KeyYdbWriterBatchWorkers, 10)
+	v.SetDefault(db.KeyYdbWriterSvcOpCacheSize, 256)
 	v.SetDefault(db.KeyYdbIndexerBufferSize, 1000)
 	v.SetDefault(db.KeyYdbIndexerMaxTraces, 100)
 	v.SetDefault(db.KeyYdbIndexerMaxTTL, time.Second*5)
@@ -56,7 +57,7 @@ func (p *YdbStorage) InitFromViper(v *viper.Viper) {
 	v.SetDefault(db.KeyYdbWriteTimeout, time.Second)
 	v.SetDefault(db.KeyYdbReadTimeout, time.Second*10)
 	v.SetDefault(db.KeyYdbReadQueryParallel, 16)
-	v.SetDefault(db.KeyYdbWriterSvcOpCacheSize, 256)
+	v.SetDefault(db.KeyYdbReadOpLimit, 5000)
 	// Zero stands for "unbound" interval so any span age is good.
 	v.SetDefault(db.KeyYdbWriterMaxSpanAge, time.Duration(0))
 	p.opts = config.Options{
@@ -71,13 +72,14 @@ func (p *YdbStorage) InitFromViper(v *viper.Viper) {
 		BufferSize:          v.GetInt(db.KeyYdbWriterBufferSize),
 		BatchSize:           v.GetInt(db.KeyYdbWriterBatchSize),
 		BatchWorkers:        v.GetInt(db.KeyYdbWriterBatchWorkers),
+		WriteSvcOpCacheSize: v.GetInt(db.KeyYdbWriterSvcOpCacheSize),
 		IndexerBufferSize:   v.GetInt(db.KeyYdbIndexerBufferSize),
 		IndexerMaxTraces:    v.GetInt(db.KeyYdbIndexerMaxTraces),
 		IndexerMaxTTL:       v.GetDuration(db.KeyYdbIndexerMaxTTL),
 		WriteTimeout:        v.GetDuration(db.KeyYdbWriteTimeout),
 		ReadTimeout:         v.GetDuration(db.KeyYdbReadTimeout),
 		ReadQueryParallel:   v.GetInt(db.KeyYdbReadQueryParallel),
-		WriteSvcOpCacheSize: v.GetInt(db.KeyYdbWriterSvcOpCacheSize),
+		ReadOpLimit:         v.GetUint64(db.KeyYdbReadOpLimit),
 		WriteMaxSpanAge:     v.GetDuration(db.KeyYdbWriterMaxSpanAge),
 	}
 	var err error
@@ -169,6 +171,7 @@ func (p *YdbStorage) initReaders() {
 		DbPath:        p.opts.DbPath,
 		ReadTimeout:   p.opts.ReadTimeout,
 		QueryParallel: p.opts.ReadQueryParallel,
+		OpLimit:       p.opts.ReadOpLimit,
 	}
 	p.reader = reader.NewSpanReader(p.ydbPool, opts, p.logger)
 

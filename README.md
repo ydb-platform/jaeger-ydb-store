@@ -36,6 +36,7 @@ Name | Type | Default | Description
 `YDB_WRITE_TIMEOUT` | `duration`| `1s` | write queries timeout
 `YDB_READ_TIMEOUT` | `duration` | `10s` | read queries timeout
 `YDB_READ_QUERY_PARALLEL` | `integer` | `16` | controls number of parallel read subqueries
+`YDB_READ_OP_LIMIT` | `integer` | `5000` | max operation names to fetch for service
 `YDB_POOL_SIZE` | `integer` | `100` | db session pool size
 `YDB_QUERY_CACHE_SIZE` | `integer` | `50` | db query cache size
 `YDB_WRITER_BUFFER_SIZE` | `integer` | `1000` | span buffer size for batch writer
