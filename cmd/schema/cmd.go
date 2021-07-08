@@ -32,6 +32,9 @@ func init() {
 	viper.SetDefault("parts_idx_service_name", 32)
 	viper.SetDefault("parts_idx_service_op", 32)
 	viper.AutomaticEnv()
+	viper.SetConfigName("jaeger_ydb_config")
+	viper.AddConfigPath("$JAEGER_YDB_CONFIG_PATH")
+	viper.ReadInConfig()
 }
 
 func main() {

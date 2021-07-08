@@ -1,12 +1,13 @@
 package main
 
 import (
-	"github.com/jaegertracing/jaeger/plugin/storage/grpc/shared"
 	"io"
 	"net/http"
 	"net/http/pprof"
 	"os"
 	"strings"
+
+	"github.com/jaegertracing/jaeger/plugin/storage/grpc/shared"
 
 	"github.com/hashicorp/go-hclog"
 	jaegerGrpc "github.com/jaegertracing/jaeger/plugin/storage/grpc"
@@ -26,6 +27,10 @@ func init() {
 	viper.SetDefault("plugin_http_listen_address", ":15000")
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_", ".", "_"))
 	viper.AutomaticEnv()
+	viper.SetConfigName("jaeger_ydb_config")
+	viper.AddConfigPath("$JAEGER_YDB_CONFIG_PATH")
+	viper.ReadInConfig()
+
 	logger = hclog.New(&hclog.LoggerOptions{
 		Name:       "ydb",
 		JSONFormat: true,
