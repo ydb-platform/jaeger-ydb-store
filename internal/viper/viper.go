@@ -19,7 +19,7 @@ func ConfigureViperFromFlag(v *viper.Viper) {
 	if len(*path) > 0 {
 		var extension = filepath.Ext(*path)
 		if len(extension) == 0 {
-			return
+			log.Fatal("Cannot find file extension in path", *path)
 		}
 		extension = extension[1:]
 		v.SetConfigType(extension)
