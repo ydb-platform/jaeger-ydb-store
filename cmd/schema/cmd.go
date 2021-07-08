@@ -40,19 +40,21 @@ func main() {
 	var path = pflag.String("config", "", "full path to configuration file")
 	pflag.Parse()
 
-	var extension = filepath.Ext(*path)
-	if len(extension) > 0 {
-		extension = extension[1:]
-	}
-	viper.SetConfigType(extension)
+	if len(*path) > 0 {
+		var extension = filepath.Ext(*path)
+		if len(extension) > 0 {
+			extension = extension[1:]
+		}
+		viper.SetConfigType(extension)
 
-	f, err := os.Open(*path)
-	if err != nil {
-		log.Fatal("Could not open file", *path)
-	}
-	err = viper.ReadConfig(f)
-	if err != nil {
-		log.Fatal("Could not read config file", *path)
+		f, err := os.Open(*path)
+		if err != nil {
+			log.Fatal("Could not open file", *path)
+		}
+		err = viper.ReadConfig(f)
+		if err != nil {
+			log.Fatal("Could not read config file", *path)
+		}
 	}
 
 	command := &cobra.Command{
