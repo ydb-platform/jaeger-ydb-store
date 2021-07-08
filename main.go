@@ -2,12 +2,15 @@ package main
 
 import (
 	"io"
+	"log"
 	"net/http"
 	"net/http/pprof"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/jaegertracing/jaeger/plugin/storage/grpc/shared"
+	"github.com/spf13/pflag"
 
 	"github.com/hashicorp/go-hclog"
 	jaegerGrpc "github.com/jaegertracing/jaeger/plugin/storage/grpc"
@@ -27,9 +30,6 @@ func init() {
 	viper.SetDefault("plugin_http_listen_address", ":15000")
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_", ".", "_"))
 	viper.AutomaticEnv()
-	viper.SetConfigName("jaeger_ydb_config")
-	viper.AddConfigPath("$JAEGER_YDB_CONFIG_PATH")
-	viper.ReadInConfig()
 
 	logger = hclog.New(&hclog.LoggerOptions{
 		Name:       "ydb",
@@ -38,6 +38,24 @@ func init() {
 }
 
 func main() {
+	var path = pflag.String("config", "", "full path to configuration file")
+	pflag.Parse()
+
+	var extension = filepath.Ext(*path)
+	if len(extension) > 0 {
+		extension = extension[1:]
+	}
+	viper.SetConfigType(extension)
+
+	f, err := os.Open(*path)
+	if err != nil {
+		log.Fatal("Could not open file", *path)
+	}
+	err = viper.ReadConfig(f)
+	if err != nil {
+		log.Fatal("Could not read config file", *path)
+	}
+
 	ydbPlugin := plugin.NewYdbStorage()
 	ydbPlugin.InitFromViper(viper.GetViper())
 	go serveHttp(ydbPlugin.Registry())

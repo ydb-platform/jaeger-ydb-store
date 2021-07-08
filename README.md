@@ -48,7 +48,7 @@ Name | Type | Default | Description
 `YDB_SCHEMA_NUM_PARTITIONS` | `integer` | `10` | number of partitioned tables per day. Changing it requires recreating full data set
 `YDB_TOKEN` | `string` | | auth token for internal purposes
 
-Configuration options can be passed via config file. The only available config path is defined via $JAEGER_YDB_CONFIG_PATH environment variable. File name must be `jaeger_ydb_config`. File extension can be of any kind supported by Viper (yaml, json etc.).
+Configuration options can be passed via config file. Use `--grpc-storage-plugin.configuration-file` to pass configuration to YDB Plugin. In case of watcher use `--config` for the same purpose.  
 
 ## schema watcher configuration
 
