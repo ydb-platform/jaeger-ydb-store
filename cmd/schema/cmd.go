@@ -6,14 +6,13 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	localViper "github.com/yandex-cloud/jaeger-ydb-store/internal/viper"
 	"github.com/yandex-cloud/ydb-go-sdk/scheme"
 	"github.com/yandex-cloud/ydb-go-sdk/table"
 	"go.uber.org/zap"
@@ -37,25 +36,7 @@ func init() {
 }
 
 func main() {
-	var path = pflag.String("config", "", "full path to configuration file")
-	pflag.Parse()
-
-	if len(*path) > 0 {
-		var extension = filepath.Ext(*path)
-		if len(extension) > 0 {
-			extension = extension[1:]
-		}
-		viper.SetConfigType(extension)
-
-		f, err := os.Open(*path)
-		if err != nil {
-			log.Fatal("Could not open file", *path)
-		}
-		err = viper.ReadConfig(f)
-		if err != nil {
-			log.Fatal("Could not read config file", *path)
-		}
-	}
+	localViper.ConfigureViperFromFlag(viper.GetViper())
 
 	command := &cobra.Command{
 		Use: "jaeger-ydb-schema",

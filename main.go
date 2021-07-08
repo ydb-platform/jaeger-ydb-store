@@ -2,23 +2,20 @@ package main
 
 import (
 	"io"
-	"log"
 	"net/http"
 	"net/http/pprof"
 	"os"
-	"path/filepath"
 	"strings"
-
-	"github.com/jaegertracing/jaeger/plugin/storage/grpc/shared"
-	"github.com/spf13/pflag"
 
 	"github.com/hashicorp/go-hclog"
 	jaegerGrpc "github.com/jaegertracing/jaeger/plugin/storage/grpc"
+	"github.com/jaegertracing/jaeger/plugin/storage/grpc/shared"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/viper"
 	jaegerCfg "github.com/uber/jaeger-client-go/config"
 
+	localViper "github.com/yandex-cloud/jaeger-ydb-store/internal/viper"
 	"github.com/yandex-cloud/jaeger-ydb-store/plugin"
 )
 
@@ -38,25 +35,7 @@ func init() {
 }
 
 func main() {
-	var path = pflag.String("config", "", "full path to configuration file")
-	pflag.Parse()
-
-	if len(*path) > 0 {
-		var extension = filepath.Ext(*path)
-		if len(extension) > 0 {
-			extension = extension[1:]
-		}
-		viper.SetConfigType(extension)
-
-		f, err := os.Open(*path)
-		if err != nil {
-			log.Fatal("Could not open file", *path)
-		}
-		err = viper.ReadConfig(f)
-		if err != nil {
-			log.Fatal("Could not read config file", *path)
-		}
-	}
+	localViper.ConfigureViperFromFlag(viper.GetViper())
 
 	ydbPlugin := plugin.NewYdbStorage()
 	ydbPlugin.InitFromViper(viper.GetViper())
