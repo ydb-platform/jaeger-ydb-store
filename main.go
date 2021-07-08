@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/jaegertracing/jaeger/plugin/storage/grpc/shared"
 	"io"
 	"net/http"
 	"net/http/pprof"
@@ -10,11 +9,13 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 	jaegerGrpc "github.com/jaegertracing/jaeger/plugin/storage/grpc"
+	"github.com/jaegertracing/jaeger/plugin/storage/grpc/shared"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/viper"
 	jaegerCfg "github.com/uber/jaeger-client-go/config"
 
+	localViper "github.com/yandex-cloud/jaeger-ydb-store/internal/viper"
 	"github.com/yandex-cloud/jaeger-ydb-store/plugin"
 )
 
@@ -26,6 +27,7 @@ func init() {
 	viper.SetDefault("plugin_http_listen_address", ":15000")
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_", ".", "_"))
 	viper.AutomaticEnv()
+
 	logger = hclog.New(&hclog.LoggerOptions{
 		Name:       "ydb",
 		JSONFormat: true,
@@ -33,6 +35,8 @@ func init() {
 }
 
 func main() {
+	localViper.ConfigureViperFromFlag(viper.GetViper())
+
 	ydbPlugin := plugin.NewYdbStorage()
 	ydbPlugin.InitFromViper(viper.GetViper())
 	go serveHttp(ydbPlugin.Registry())

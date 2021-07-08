@@ -12,6 +12,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	localViper "github.com/yandex-cloud/jaeger-ydb-store/internal/viper"
 	"github.com/yandex-cloud/ydb-go-sdk/scheme"
 	"github.com/yandex-cloud/ydb-go-sdk/table"
 	"go.uber.org/zap"
@@ -35,6 +36,8 @@ func init() {
 }
 
 func main() {
+	localViper.ConfigureViperFromFlag(viper.GetViper())
+
 	command := &cobra.Command{
 		Use: "jaeger-ydb-schema",
 	}

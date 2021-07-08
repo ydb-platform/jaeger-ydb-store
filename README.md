@@ -48,6 +48,8 @@ Name | Type | Default | Description
 `YDB_SCHEMA_NUM_PARTITIONS` | `integer` | `10` | number of partitioned tables per day. Changing it requires recreating full data set
 `YDB_TOKEN` | `string` | | auth token for internal purposes
 
+Configuration options can be passed via config file. Use `--grpc-storage-plugin.configuration-file` to pass configuration to YDB Plugin. In case of watcher use `--config` for the same purpose.  
+
 ## schema watcher configuration
 
 Name | Type | Default | Description
