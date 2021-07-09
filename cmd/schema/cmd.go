@@ -45,6 +45,8 @@ func main() {
 	command.PersistentFlags().String("path", "", "ydb path (env: YDB_PATH)")
 	command.PersistentFlags().String("folder", "", "ydb folder (env: YDB_FOLDER)")
 	command.PersistentFlags().String("token", "", "ydb oauth token (env: YDB_TOKEN)")
+	command.PersistentFlags().String("config", "", "path to config file to configure Viper from")
+
 	viper.BindPFlag("ydb_address", command.PersistentFlags().Lookup("address"))
 	viper.BindPFlag("ydb_path", command.PersistentFlags().Lookup("path"))
 	viper.BindPFlag("ydb_folder", command.PersistentFlags().Lookup("folder"))
