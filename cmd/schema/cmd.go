@@ -69,8 +69,8 @@ func main() {
 			shutdown := make(chan os.Signal)
 			signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM)
 			dbPath := schema.DbPath{
-				Path:   viper.GetString("ydb_path"),
-				Folder: viper.GetString("ydb_folder"),
+				Path:   viper.GetString(db.KeyYdbPath),
+				Folder: viper.GetString(db.KeyYdbFolder),
 			}
 			tc, err := tableClient(viper.GetViper())
 			if err != nil {
@@ -94,8 +94,8 @@ func main() {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 			defer cancel()
 			dbPath := schema.DbPath{
-				Path:   viper.GetString("ydb_path"),
-				Folder: viper.GetString("ydb_folder"),
+				Path:   viper.GetString(db.KeyYdbPath),
+				Folder: viper.GetString(db.KeyYdbFolder),
 			}
 			tc, err := tableClient(viper.GetViper())
 			if err != nil {
