@@ -37,6 +37,7 @@ const (
 	KeyYdbIndexerMaxTraces  = "ydb.indexer.max-traces"
 	KeyYdbIndexerMaxTTL     = "ydb.indexer.max-ttl"
 
+	KeyYDBPartitionSize      = "ydb.partition-size"
 	KeyYDBFeatureSplitByLoad = "ydb.feature.split-by-load"
 	KeyYDBFeatureCompression = "ydb.feature.compression"
 )

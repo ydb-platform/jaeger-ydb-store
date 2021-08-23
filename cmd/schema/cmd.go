@@ -32,6 +32,7 @@ func init() {
 	viper.SetDefault("parts_idx_duration", 32)
 	viper.SetDefault("parts_idx_service_name", 32)
 	viper.SetDefault("parts_idx_service_op", 32)
+	viper.SetDefault(db.KeyYDBPartitionSize, "1024mb")
 	viper.AutomaticEnv()
 }
 

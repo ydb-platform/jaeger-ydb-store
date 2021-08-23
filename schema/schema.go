@@ -32,8 +32,13 @@ var (
 
 // Traces returns traces table schema
 func Traces(numPartitions uint64) []table.CreateTableOption {
-	return append(ArchiveTraces(),
-		table.WithPartitioningSettingsObject(partitioningSettings(numPartitions)))
+	return append(
+		ArchiveTraces(),
+		table.WithProfile(
+			table.WithPartitioningPolicy(table.WithPartitioningPolicyUniformPartitions(numPartitions)),
+		),
+		table.WithPartitioningSettingsObject(partitioningSettings(numPartitions)),
+	)
 }
 
 // ArchiveTraces returns archive_traces table schema
@@ -70,6 +75,9 @@ func ServiceOperationIndex(numPartitions uint64) []table.CreateTableOption {
 		table.WithColumn("uniq", ydb.Optional(ydb.TypeUint32)),
 		table.WithColumn("trace_ids", ydb.Optional(ydb.TypeString)),
 		table.WithPrimaryKeyColumn("idx_hash", "rev_start_time", "uniq"),
+		table.WithProfile(
+			table.WithPartitioningPolicy(table.WithPartitioningPolicyUniformPartitions(numPartitions)),
+		),
 		table.WithPartitioningSettingsObject(partitioningSettings(numPartitions)),
 	}
 }
@@ -82,6 +90,9 @@ func ServiceNameIndex(numPartitions uint64) []table.CreateTableOption {
 		table.WithColumn("uniq", ydb.Optional(ydb.TypeUint32)),
 		table.WithColumn("trace_ids", ydb.Optional(ydb.TypeString)),
 		table.WithPrimaryKeyColumn("idx_hash", "rev_start_time", "uniq"),
+		table.WithProfile(
+			table.WithPartitioningPolicy(table.WithPartitioningPolicyUniformPartitions(numPartitions)),
+		),
 		table.WithPartitioningSettingsObject(partitioningSettings(numPartitions)),
 	}
 }
@@ -95,6 +106,9 @@ func DurationIndex(numPartitions uint64) []table.CreateTableOption {
 		table.WithColumn("uniq", ydb.Optional(ydb.TypeUint32)),
 		table.WithColumn("trace_ids", ydb.Optional(ydb.TypeString)),
 		table.WithPrimaryKeyColumn("idx_hash", "duration", "rev_start_time", "uniq"),
+		table.WithProfile(
+			table.WithPartitioningPolicy(table.WithPartitioningPolicyUniformPartitions(numPartitions)),
+		),
 		table.WithPartitioningSettingsObject(partitioningSettings(numPartitions)),
 	}
 }
@@ -108,6 +122,9 @@ func TagIndexV2(numPartitions uint64) []table.CreateTableOption {
 		table.WithColumn("uniq", ydb.Optional(ydb.TypeUint32)),
 		table.WithColumn("trace_ids", ydb.Optional(ydb.TypeString)),
 		table.WithPrimaryKeyColumn("idx_hash", "rev_start_time", "op_hash", "uniq"),
+		table.WithProfile(
+			table.WithPartitioningPolicy(table.WithPartitioningPolicyUniformPartitions(numPartitions)),
+		),
 		table.WithPartitioningSettingsObject(partitioningSettings(numPartitions)),
 	}
 }
@@ -142,7 +159,7 @@ func Partitions() []table.CreateTableOption {
 func partitioningSettings(numPartitions uint64) (settings table.PartitioningSettings) {
 	settings = table.PartitioningSettings{
 		PartitioningBySize: ydb.FeatureEnabled,
-		PartitionSizeMb:    1024, // up to 1 GiB
+		PartitionSizeMb:    uint64(viper.GetSizeInBytes(db.KeyYDBPartitionSize)),
 		MinPartitionsCount: numPartitions,
 	}
 	if viper.GetBool(db.KeyYDBFeatureSplitByLoad) {
