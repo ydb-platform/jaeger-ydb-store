@@ -15,7 +15,6 @@ import (
 
 const (
 	operationTimeout = time.Minute
-	lookahead        = time.Hour * 12
 )
 
 var (
@@ -25,22 +24,28 @@ var (
 	)
 )
 
+type Options struct {
+	Expiration time.Duration
+	Lookahead  time.Duration
+	DBPath     schema.DbPath
+}
+
 type Watcher struct {
+	sessionProvider table.SessionProvider
+	opts            Options
+	logger          *zap.Logger
+
 	ticker           *time.Ticker
-	sessionProvider  table.SessionProvider
-	dbPath           schema.DbPath
-	expiration       time.Duration
-	logger           *zap.Logger
 	tableDefinitions map[string]partDefinition
 	knownTables      *lru.Cache
 }
 
-func NewWatcher(sp table.SessionProvider, dbPath schema.DbPath, expiration time.Duration, logger *zap.Logger) *Watcher {
+func NewWatcher(opts Options, sp table.SessionProvider, logger *zap.Logger) *Watcher {
 	return &Watcher{
-		sessionProvider:  sp,
-		dbPath:           dbPath,
-		expiration:       expiration,
-		logger:           logger,
+		sessionProvider: sp,
+		opts:            opts,
+		logger:          logger,
+
 		tableDefinitions: definitions(),
 		knownTables:      mustNewLRU(500),
 	}
@@ -73,7 +78,7 @@ func (w *Watcher) createTables() error {
 	defer cancel()
 
 	for name, definition := range schema.Tables {
-		fullName := w.dbPath.FullTable(name)
+		fullName := w.opts.DBPath.FullTable(name)
 		if w.tableKnown(ctx, fullName) {
 			// We already created this table, skip
 			continue
@@ -90,14 +95,14 @@ func (w *Watcher) createTables() error {
 		// save knowledge about table for later
 		w.knownTables.Add(fullName, struct{}{})
 	}
-	parts := schema.MakePartitionList(t, t.Add(lookahead))
+	parts := schema.MakePartitionList(t, t.Add(w.opts.Lookahead))
 	for _, part := range parts {
 		w.logger.Info("creating partition", zap.String("suffix", part.Suffix()))
 		if err := w.createTablesForPartition(ctx, part); err != nil {
 			return err
 		}
 		err := table.Retry(ctx, w.sessionProvider, table.OperationFunc(func(ctx context.Context, s *table.Session) error {
-			_, _, err := s.Execute(ctx, txc, schema.BuildQuery(w.dbPath, schema.InsertPart), part.QueryParams())
+			_, _, err := s.Execute(ctx, txc, schema.BuildQuery(w.opts.DBPath, schema.InsertPart), part.QueryParams())
 			return err
 		}))
 		if err != nil {
@@ -112,7 +117,7 @@ func (w *Watcher) createTables() error {
 
 func (w *Watcher) createTablesForPartition(ctx context.Context, part schema.PartitionKey) error {
 	for name, def := range w.tableDefinitions {
-		fullName := part.BuildFullTableName(w.dbPath.String(), name)
+		fullName := part.BuildFullTableName(w.opts.DBPath.String(), name)
 		if w.tableKnown(ctx, fullName) {
 			// We already created this table, skip
 			continue
@@ -133,12 +138,12 @@ func (w *Watcher) createTablesForPartition(ctx context.Context, part schema.Part
 }
 
 func (w *Watcher) dropOldTables() {
-	expireTime := time.Now().Add(-w.expiration)
+	expireTime := time.Now().Add(-w.opts.Expiration)
 	w.logger.Info("delete old tables", zap.Time("before", expireTime))
 	ctx, cancel := context.WithTimeout(context.Background(), operationTimeout)
 	defer cancel()
 
-	query := schema.BuildQuery(w.dbPath, schema.QueryParts)
+	query := schema.BuildQuery(w.opts.DBPath, schema.QueryParts)
 	_ = table.Retry(ctx, w.sessionProvider, table.OperationFunc(func(ctx context.Context, session *table.Session) error {
 		_, res, err := session.Execute(ctx, txc, query, nil)
 		if err != nil {
@@ -178,7 +183,7 @@ func (w *Watcher) dropOldTables() {
 
 func (w *Watcher) dropTables(ctx context.Context, session *table.Session, k schema.PartitionKey) error {
 	for name := range schema.PartitionTables {
-		fullName := k.BuildFullTableName(w.dbPath.String(), name)
+		fullName := k.BuildFullTableName(w.opts.DBPath.String(), name)
 		err := session.DropTable(ctx, fullName)
 		if err != nil {
 			switch {
@@ -196,7 +201,7 @@ func (w *Watcher) dropTables(ctx context.Context, session *table.Session, k sche
 
 func (w *Watcher) markPartitionForDelete(ctx context.Context, session *table.Session, k schema.PartitionKey) error {
 	k.IsActive = false
-	_, _, err := session.Execute(ctx, txc, schema.BuildQuery(w.dbPath, schema.UpdatePart), k.QueryParams())
+	_, _, err := session.Execute(ctx, txc, schema.BuildQuery(w.opts.DBPath, schema.UpdatePart), k.QueryParams())
 	if err != nil {
 		return err
 	}
@@ -204,7 +209,7 @@ func (w *Watcher) markPartitionForDelete(ctx context.Context, session *table.Ses
 }
 
 func (w *Watcher) deletePartitionInfo(ctx context.Context, session *table.Session, k schema.PartitionKey) error {
-	_, _, err := session.Execute(ctx, txc, schema.BuildQuery(w.dbPath, schema.DeletePart), k.QueryWhereParams())
+	_, _, err := session.Execute(ctx, txc, schema.BuildQuery(w.opts.DBPath, schema.DeletePart), k.QueryWhereParams())
 	if err != nil {
 		return err
 	}

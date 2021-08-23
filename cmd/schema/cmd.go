@@ -26,6 +26,7 @@ func init() {
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_", ".", "_"))
 	viper.SetDefault("watcher_interval", time.Minute*5)
 	viper.SetDefault("watcher_age", time.Hour*24)
+	viper.SetDefault("watcher_lookahead", time.Hour*12)
 	viper.SetDefault("parts_traces", 32)
 	viper.SetDefault("parts_idx_tag", 32)
 	viper.SetDefault("parts_idx_tag_v2", 32)
@@ -62,17 +63,20 @@ func main() {
 	watcherCmd := &cobra.Command{
 		Use: "watcher",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			maxAge := viper.GetDuration("watcher_age")
-			if maxAge == 0 {
-				return fmt.Errorf("cannot use watcher age '%s'", maxAge)
+			opts := watcher.Options{
+				Expiration: viper.GetDuration("watcher_age"),
+				Lookahead:  viper.GetDuration("watcher_lookahead"),
+				DBPath: schema.DbPath{
+					Path:   viper.GetString(db.KeyYdbPath),
+					Folder: viper.GetString(db.KeyYdbFolder),
+				},
+			}
+			if opts.Expiration == 0 {
+				return fmt.Errorf("cannot use watcher age '%s'", opts.Expiration)
 			}
 
 			shutdown := make(chan os.Signal)
 			signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM)
-			dbPath := schema.DbPath{
-				Path:   viper.GetString(db.KeyYdbPath),
-				Folder: viper.GetString(db.KeyYdbFolder),
-			}
 			tc, err := tableClient(viper.GetViper())
 			if err != nil {
 				return fmt.Errorf("failed to create table client: %w", err)
@@ -82,7 +86,7 @@ func main() {
 			}
 
 			logger.Info("starting watcher")
-			w := watcher.NewWatcher(pool, dbPath, maxAge, logger)
+			w := watcher.NewWatcher(opts, pool, logger)
 			w.Run(viper.GetDuration("watcher_interval"))
 			<-shutdown
 			logger.Info("stopping watcher")
