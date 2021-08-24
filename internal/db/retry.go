@@ -2,9 +2,10 @@ package db
 
 import (
 	"context"
-	"github.com/yandex-cloud/ydb-go-sdk"
-	"github.com/yandex-cloud/ydb-go-sdk/table"
 	"time"
+
+	"github.com/yandex-cloud/ydb-go-sdk/v2"
+	"github.com/yandex-cloud/ydb-go-sdk/v2/table"
 )
 
 type Checkable interface {

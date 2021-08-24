@@ -1,8 +1,9 @@
 package db
 
 import (
-	"github.com/yandex-cloud/ydb-go-sdk"
 	"strings"
+
+	"github.com/yandex-cloud/ydb-go-sdk/v2"
 )
 
 func IssueContainsMessage(it ydb.IssueIterator, msg string) bool {

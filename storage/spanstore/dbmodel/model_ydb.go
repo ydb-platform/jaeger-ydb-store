@@ -1,9 +1,10 @@
 package dbmodel
 
 import (
-	"github.com/yandex-cloud/ydb-go-sdk"
-	"github.com/yandex-cloud/ydb-go-sdk/table"
 	"strconv"
+
+	"github.com/yandex-cloud/ydb-go-sdk/v2"
+	"github.com/yandex-cloud/ydb-go-sdk/v2/table"
 )
 
 var (

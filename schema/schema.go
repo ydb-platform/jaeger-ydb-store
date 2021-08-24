@@ -3,8 +3,8 @@ package schema
 import (
 	"github.com/spf13/viper"
 	"github.com/yandex-cloud/jaeger-ydb-store/internal/db"
-	"github.com/yandex-cloud/ydb-go-sdk"
-	"github.com/yandex-cloud/ydb-go-sdk/table"
+	"github.com/yandex-cloud/ydb-go-sdk/v2"
+	"github.com/yandex-cloud/ydb-go-sdk/v2/table"
 )
 
 // Definition is a list of create table options

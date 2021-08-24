@@ -7,7 +7,7 @@ import (
 
 	"github.com/dgryski/go-farm"
 	"github.com/jaegertracing/jaeger/model"
-	"github.com/yandex-cloud/ydb-go-sdk"
+	"github.com/yandex-cloud/ydb-go-sdk/v2"
 
 	"github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/dbmodel"
 )

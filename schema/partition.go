@@ -1,13 +1,14 @@
 package schema
 
 import (
-	"github.com/yandex-cloud/ydb-go-sdk"
-	"github.com/yandex-cloud/ydb-go-sdk/table"
 	"math"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/yandex-cloud/ydb-go-sdk/v2"
+	"github.com/yandex-cloud/ydb-go-sdk/v2/table"
 )
 
 const (

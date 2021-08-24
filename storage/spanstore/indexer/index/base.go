@@ -1,9 +1,10 @@
 package index
 
 import (
-	"github.com/jaegertracing/jaeger/model"
-	"github.com/yandex-cloud/ydb-go-sdk"
 	"time"
+
+	"github.com/jaegertracing/jaeger/model"
+	"github.com/yandex-cloud/ydb-go-sdk/v2"
 )
 
 type Indexable interface {

@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/spf13/viper"
-	"github.com/yandex-cloud/ydb-go-sdk"
-	"github.com/yandex-cloud/ydb-go-sdk/auth/iam"
+	"github.com/yandex-cloud/ydb-go-sdk/v2"
+	"github.com/yandex-cloud/ydb-go-sdk/v2/auth/iam"
 )
 
 const (

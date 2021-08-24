@@ -3,8 +3,9 @@ package dbmodel
 import (
 	"encoding/binary"
 	"errors"
+
 	"github.com/jaegertracing/jaeger/model"
-	"github.com/yandex-cloud/ydb-go-sdk/table"
+	"github.com/yandex-cloud/ydb-go-sdk/v2/table"
 )
 
 const (

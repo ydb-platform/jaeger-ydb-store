@@ -1,9 +1,10 @@
 package db
 
 import (
-	"github.com/stretchr/testify/assert"
-	"github.com/yandex-cloud/ydb-go-sdk"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/yandex-cloud/ydb-go-sdk/v2"
 )
 
 func TestCheckGeneric_Check(t *testing.T) {

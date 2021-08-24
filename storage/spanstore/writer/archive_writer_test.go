@@ -9,8 +9,7 @@ import (
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/uber/jaeger-lib/metrics"
-	"github.com/yandex-cloud/ydb-go-sdk/table"
-	_ "github.com/yandex-cloud/ydb-go-sdk/ydbsql"
+	"github.com/yandex-cloud/ydb-go-sdk/v2/table"
 
 	"github.com/yandex-cloud/jaeger-ydb-store/internal/testutil"
 	"github.com/yandex-cloud/jaeger-ydb-store/schema"

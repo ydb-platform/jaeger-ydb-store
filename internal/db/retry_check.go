@@ -1,6 +1,6 @@
 package db
 
-import "github.com/yandex-cloud/ydb-go-sdk"
+import "github.com/yandex-cloud/ydb-go-sdk/v2"
 
 type checkGeneric struct {
 	base Checkable

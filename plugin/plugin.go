@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/uber/jaeger-lib/metrics"
 	jgrProm "github.com/uber/jaeger-lib/metrics/prometheus"
-	"github.com/yandex-cloud/ydb-go-sdk/table"
+	"github.com/yandex-cloud/ydb-go-sdk/v2/table"
 	"go.uber.org/zap"
 
 	"github.com/yandex-cloud/jaeger-ydb-store/internal/db"
