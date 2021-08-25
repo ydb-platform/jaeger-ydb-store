@@ -159,7 +159,7 @@ func Partitions() []table.CreateTableOption {
 func partitioningSettings(numPartitions uint64) (settings table.PartitioningSettings) {
 	settings = table.PartitioningSettings{
 		PartitioningBySize: ydb.FeatureEnabled,
-		PartitionSizeMb:    uint64(viper.GetSizeInBytes(db.KeyYDBPartitionSize)),
+		PartitionSizeMb:    uint64(viper.GetSizeInBytes(db.KeyYDBPartitionSize) / 1024 / 1024),
 		MinPartitionsCount: numPartitions,
 	}
 	if viper.GetBool(db.KeyYDBFeatureSplitByLoad) {
