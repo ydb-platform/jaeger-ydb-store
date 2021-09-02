@@ -9,8 +9,8 @@ FROM jaegertracing/jaeger-query:${jaeger_version} as base-query
 FROM golang:${golang_version} as builder
 WORKDIR /build
 COPY . .
-RUN CGO_ENABLED=0 go build -mod=vendor -ldflags='-w -s' -o /ydb-plugin .
-RUN CGO_ENABLED=0 go build -mod=vendor -ldflags='-w -s' -o /ydb-schema ./cmd/schema
+RUN CGO_ENABLED=0 go build -ldflags='-w -s' -o /ydb-plugin .
+RUN CGO_ENABLED=0 go build -ldflags='-w -s' -o /ydb-schema ./cmd/schema
 
 FROM alpine:${alpine_version} AS watcher
 ENV YDB_CA_FILE="/ydb-ca.pem"
