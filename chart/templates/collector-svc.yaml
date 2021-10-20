@@ -1,0 +1,38 @@
+{{- with .Values.service.collector }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "jaeger-ydb-store.fullname" $ }}-collector
+  {{- with .annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  labels:
+    {{- include "jaeger-ydb-store.labels" $ | nindent 4 }}
+    {{- include "jaeger-ydb-store.collectorSelectorLabels" $ | nindent 4 }}
+spec:
+  type: {{ .type }}
+  {{- if .headless }}
+  clusterIP: None
+  {{- end }}
+  {{- with .ipFamilies }}
+  ipFamilies:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- if .ipFamilyPolicy }}
+  ipFamilyPolicy: {{ .ipFamilyPolicy }}
+  {{- end }}
+  ports:
+    {{- range $key, $value := .ports }}
+    - name: {{ $value.name }}
+      port: {{ $value.port }}
+      targetPort: {{ $value.name }}
+      protocol: {{ default "TCP" $value.protocol }}
+      {{- if $value.nodePort }}
+      nodePort: {{ $value.nodePort }}
+      {{- end }}
+    {{- end }}
+  selector:
+    {{- include "jaeger-ydb-store.selectorLabels" $ | nindent 4 }}
+    {{- include "jaeger-ydb-store.collectorSelectorLabels" $ | nindent 4 }}
+{{- end }}

@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "jaeger-ydb-store.fullname" . }}-watcher
+  labels:
+    {{- include "jaeger-ydb-store.labels" . | nindent 4 }}
+    {{- include "jaeger-ydb-store.watcherSelectorLabels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.watcher.replicas }}
+  selector:
+    matchLabels:
+      {{- include "jaeger-ydb-store.selectorLabels" . | nindent 6 }}
+      {{- include "jaeger-ydb-store.watcherSelectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        {{- if .Values.ydb.saPrivateKey }}
+        checksum/secrets: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- end }}
+        {{- with .Values.watcher.podAnnotations }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "jaeger-ydb-store.selectorLabels" . | nindent 8 }}
+        {{- include "jaeger-ydb-store.watcherSelectorLabels" $ | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "jaeger-ydb-store.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.watcher.podSecurityContext | nindent 8 }}
+      containers:
+        - name: watcher
+          args:
+            - watcher
+          env:
+          {{- include "jaeger-ydb-store.ydb.env" . | nindent 10 }}
+          securityContext:
+            {{- toYaml .Values.watcher.securityContext | nindent 12 }}
+          image: "{{ .Values.image.watcher.repository }}:{{ .Values.image.watcher.tag }}"
+          imagePullPolicy: {{ .Values.image.watcher.pullPolicy }}
+          {{- if .Values.ydb.saPrivateKey }}
+          volumeMounts:
+            - mountPath: /opt/secrets
+              name: secrets
+              readOnly: true
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources.watcher | nindent 12 }}
+      {{- if .Values.ydb.saPrivateKey }}
+      volumes:
+        - name: secrets
+          secret:
+            secretName: {{ include "jaeger-ydb-store.fullname" . }}
+      {{- end }}
+      {{- with .Values.watcher.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.watcher.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.watcher.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
