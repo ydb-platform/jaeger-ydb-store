@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "jaeger-ydb-store.fullname" . }}-collector
+  labels:
+    {{- include "jaeger-ydb-store.labels" . | nindent 4 }}
+    {{- include "jaeger-ydb-store.collectorSelectorLabels" $ | nindent 4 }}
+spec:
+  replicas: {{ .Values.collector.replicas }}
+  selector:
+    matchLabels:
+      {{- include "jaeger-ydb-store.selectorLabels" . | nindent 6 }}
+      {{- include "jaeger-ydb-store.collectorSelectorLabels" $ | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        {{- if .Values.ydb.saPrivateKey }}
+        checksum/secrets: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- end }}
+        {{- with .Values.collector.podAnnotations }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "jaeger-ydb-store.selectorLabels" . | nindent 8 }}
+        {{- include "jaeger-ydb-store.collectorSelectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "jaeger-ydb-store.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.collector.podSecurityContext | nindent 8 }}
+      containers:
+        - name: collector
+          env:
+          {{- include "jaeger-ydb-store.ydb.env" . | nindent 10 }}
+          securityContext:
+            {{- toYaml .Values.collector.securityContext | nindent 12 }}
+          image: "{{ .Values.image.collector.repository }}:{{ .Values.image.collector.tag }}"
+          imagePullPolicy: {{ .Values.image.collector.pullPolicy }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: admin
+          ports:
+            - name: admin
+              containerPort: 14269
+              protocol: TCP
+          {{- range $key, $value := merge dict .Values.service.collector.ports }}
+            - name: {{ $key }}
+              containerPort: {{ $value.port }}
+              protocol: {{ default "TCP" $value.protocol }}
+          {{- end }}
+          {{- if .Values.ydb.saPrivateKey }}
+          volumeMounts:
+            - mountPath: /opt/secrets
+              name: secrets
+              readOnly: true
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources.collector | nindent 12 }}
+      {{- if .Values.ydb.saPrivateKey }}
+      volumes:
+        - name: secrets
+          secret:
+            secretName: {{ include "jaeger-ydb-store.fullname" . }}
+      {{- end }}
+      {{- with .Values.collector.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.collector.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.collector.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
