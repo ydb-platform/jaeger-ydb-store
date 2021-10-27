@@ -13,8 +13,10 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	localViper "github.com/yandex-cloud/jaeger-ydb-store/internal/viper"
-	"github.com/yandex-cloud/ydb-go-sdk/v2/scheme"
-	"github.com/yandex-cloud/ydb-go-sdk/v2/table"
+	"github.com/ydb-platform/ydb-go-sdk/v3"
+	"github.com/ydb-platform/ydb-go-sdk/v3/config"
+	"github.com/ydb-platform/ydb-go-sdk/v3/scheme"
+	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 	"go.uber.org/zap"
 
 	"github.com/yandex-cloud/jaeger-ydb-store/cmd/schema/watcher"
@@ -77,16 +79,13 @@ func main() {
 
 			shutdown := make(chan os.Signal)
 			signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM)
-			tc, err := tableClient(viper.GetViper())
+			conn, err := ydbConn(viper.GetViper())
 			if err != nil {
 				return fmt.Errorf("failed to create table client: %w", err)
 			}
-			pool := &table.SessionPool{
-				Builder: tc,
-			}
 
 			logger.Info("starting watcher")
-			w := watcher.NewWatcher(opts, pool, logger)
+			w := watcher.NewWatcher(opts, conn.Table(), logger)
 			w.Run(viper.GetDuration("watcher_interval"))
 			<-shutdown
 			logger.Info("stopping watcher")
@@ -98,34 +97,31 @@ func main() {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 			defer cancel()
+
 			dbPath := schema.DbPath{
 				Path:   viper.GetString(db.KeyYdbPath),
 				Folder: viper.GetString(db.KeyYdbFolder),
 			}
-			tc, err := tableClient(viper.GetViper())
+			conn, err := ydbConn(viper.GetViper())
 			if err != nil {
 				return fmt.Errorf("failed to create table client: %w", err)
 			}
-			session, err := tc.CreateSession(ctx)
-			if err != nil {
-				return err
-			}
-			sc := scheme.Client{Driver: tc.Driver}
-			d, err := sc.ListDirectory(ctx, dbPath.String())
+			d, err := conn.Scheme().ListDirectory(ctx, dbPath.String())
 			if err != nil {
 				return err
 			}
 			for _, c := range d.Children {
 				if c.Type == scheme.EntryTable {
-					ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+					opCtx, opCancel := context.WithTimeout(context.Background(), time.Second*5)
 					fullName := dbPath.FullTable(c.Name)
 					fmt.Printf("dropping table '%s'\n", fullName)
-					err = session.DropTable(ctx, fullName)
+					err = conn.Table().Do(opCtx, func(ctx context.Context, session table.Session) error {
+						return session.DropTable(ctx, fullName)
+					})
+					opCancel()
 					if err != nil {
-						cancel()
 						return err
 					}
-					cancel()
 				}
 			}
 			return nil
@@ -139,16 +135,11 @@ func main() {
 	}
 }
 
-func tableClient(v *viper.Viper) (*table.Client, error) {
-	dialer, err := db.DialerFromViper(v)
-	if err != nil {
-		return nil, err
-	}
+func ydbConn(v *viper.Viper) (ydb.Connection, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
-	driver, err := dialer.Dial(ctx, v.GetString(db.KeyYdbAddress))
-	if err != nil {
-		return nil, err
-	}
-	return &table.Client{Driver: driver}, nil
+
+	return db.DialFromViper(ctx, v,
+		ydb.With(config.WithEndpoint(v.GetString(db.KeyYdbAddress)), config.WithDatabase(v.GetString(db.KeyYdbPath))),
+	)
 }

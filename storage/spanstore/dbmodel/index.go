@@ -3,9 +3,9 @@ package dbmodel
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 
 	"github.com/jaegertracing/jaeger/model"
-	"github.com/yandex-cloud/ydb-go-sdk/v2/table"
 )
 
 const (
@@ -47,6 +47,25 @@ func (dbTraceID TraceID) ToDomain() model.TraceID {
 
 type TraceIDList []TraceID
 
+func (t *TraceIDList) Scan(src interface{}) error {
+	var in []byte
+	switch v := src.(type) {
+	case []byte:
+		in = v
+	case string:
+		in = []byte(v)
+	default:
+		return fmt.Errorf("invalid trace id list type: %T", src)
+	}
+
+	lst, err := TraceIDListFromBytes(in)
+	if err != nil {
+		return err
+	}
+	*t = lst
+	return nil
+}
+
 func TraceIDListFromBytes(buf []byte) (TraceIDList, error) {
 	if len(buf)%16 != 0 {
 		return nil, errListLength
@@ -66,16 +85,4 @@ func TraceIDListFromBytes(buf []byte) (TraceIDList, error) {
 type IndexResult struct {
 	Ids   TraceIDList
 	RevTs int64
-}
-
-func (qr *IndexResult) Scan(res *table.Result) (err error) {
-	res.SeekItem("trace_ids")
-	ids, err := TraceIDListFromBytes(res.OString())
-	if err != nil {
-		return err
-	}
-	qr.Ids = ids
-	res.SeekItem("rev_start_time")
-	qr.RevTs = res.OInt64()
-	return res.Err()
 }

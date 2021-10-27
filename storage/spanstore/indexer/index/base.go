@@ -4,12 +4,12 @@ import (
 	"time"
 
 	"github.com/jaegertracing/jaeger/model"
-	"github.com/yandex-cloud/ydb-go-sdk/v2"
+	"github.com/ydb-platform/ydb-go-sdk/v3/table/types"
 )
 
 type Indexable interface {
 	Hash() uint64
-	StructFields(bucket uint8) []ydb.StructValueOption
+	StructFields(bucket uint8) []types.StructValueOption
 	Timestamp() time.Time
 }
 

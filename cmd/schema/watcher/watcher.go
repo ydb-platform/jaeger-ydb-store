@@ -2,11 +2,12 @@ package watcher
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	lru "github.com/hashicorp/golang-lru"
-	"github.com/yandex-cloud/ydb-go-sdk/v2"
-	"github.com/yandex-cloud/ydb-go-sdk/v2/table"
+	"github.com/ydb-platform/ydb-go-sdk/v3"
+	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 	"go.uber.org/zap"
 
 	"github.com/yandex-cloud/jaeger-ydb-store/internal/db"
@@ -31,7 +32,7 @@ type Options struct {
 }
 
 type Watcher struct {
-	sessionProvider table.SessionProvider
+	sessionProvider table.Client
 	opts            Options
 	logger          *zap.Logger
 
@@ -40,7 +41,7 @@ type Watcher struct {
 	knownTables      *lru.Cache
 }
 
-func NewWatcher(opts Options, sp table.SessionProvider, logger *zap.Logger) *Watcher {
+func NewWatcher(opts Options, sp table.Client, logger *zap.Logger) *Watcher {
 	return &Watcher{
 		sessionProvider: sp,
 		opts:            opts,
@@ -83,9 +84,9 @@ func (w *Watcher) createTables() error {
 			// We already created this table, skip
 			continue
 		}
-		err := table.Retry(ctx, w.sessionProvider, table.OperationFunc(func(ctx context.Context, session *table.Session) error {
+		err := w.sessionProvider.Do(ctx, func(ctx context.Context, session table.Session) error {
 			return session.CreateTable(ctx, fullName, definition()...)
-		}))
+		})
 		if err != nil {
 			w.logger.Error("create table failed",
 				zap.String("name", fullName), zap.Error(err),
@@ -101,10 +102,10 @@ func (w *Watcher) createTables() error {
 		if err := w.createTablesForPartition(ctx, part); err != nil {
 			return err
 		}
-		err := table.Retry(ctx, w.sessionProvider, table.OperationFunc(func(ctx context.Context, s *table.Session) error {
-			_, _, err := s.Execute(ctx, txc, schema.BuildQuery(w.opts.DBPath, schema.InsertPart), part.QueryParams())
+		err := w.sessionProvider.Do(ctx, func(ctx context.Context, session table.Session) error {
+			_, _, err := session.Execute(ctx, txc, schema.BuildQuery(w.opts.DBPath, schema.InsertPart), part.QueryParams())
 			return err
-		}))
+		})
 		if err != nil {
 			w.logger.Error("partition save failed",
 				zap.String("suffix", part.Suffix()), zap.Error(err),
@@ -122,9 +123,9 @@ func (w *Watcher) createTablesForPartition(ctx context.Context, part schema.Part
 			// We already created this table, skip
 			continue
 		}
-		err := table.Retry(ctx, w.sessionProvider, table.OperationFunc(func(ctx context.Context, session *table.Session) error {
+		err := w.sessionProvider.Do(ctx, func(ctx context.Context, session table.Session) error {
 			return session.CreateTable(ctx, fullName, def.defFunc(def.count)...)
-		}))
+		})
 		if err != nil {
 			w.logger.Error("create table failed",
 				zap.String("name", fullName), zap.Error(err),
@@ -144,52 +145,54 @@ func (w *Watcher) dropOldTables() {
 	defer cancel()
 
 	query := schema.BuildQuery(w.opts.DBPath, schema.QueryParts)
-	_ = table.Retry(ctx, w.sessionProvider, table.OperationFunc(func(ctx context.Context, session *table.Session) error {
+	_ = w.sessionProvider.Do(ctx, func(ctx context.Context, session table.Session) error {
 		_, res, err := session.Execute(ctx, txc, query, nil)
 		if err != nil {
 			w.logger.Error("partition list query failed", zap.Error(err))
 			return err
 		}
-		part := schema.PartitionKey{}
-		res.NextSet()
-		for res.NextRow() {
-			err = part.Scan(res)
-			if err != nil {
-				w.logger.Error("partition scan failed", zap.Error(err))
-				return err
-			}
-			_, t := part.TimeSpan()
-			if expireTime.Sub(t) > 0 {
-				if part.IsActive {
-					err := w.markPartitionForDelete(ctx, session, part)
-					if err != nil {
-						w.logger.Error("update partition failed", zap.String("suffix", part.Suffix()), zap.Error(err))
-					}
-				} else {
-					w.logger.Info("delete partition", zap.String("suffix", part.Suffix()))
-					if err := w.dropTables(ctx, session, part); err != nil {
-						continue
-					}
-					err = w.deletePartitionInfo(ctx, session, part)
-					if err != nil {
-						w.logger.Error("delete partition failed", zap.String("suffix", part.Suffix()), zap.Error(err))
+		for res.NextResultSet(ctx) {
+			for res.NextRow() {
+				part := schema.PartitionKey{}
+				err = res.ScanWithDefaults(&part.Date, &part.Num, &part.IsActive)
+				if err != nil {
+					w.logger.Error("partition scan failed", zap.Error(err))
+					return fmt.Errorf("part scan err: %w", err)
+				}
+				_, t := part.TimeSpan()
+				if expireTime.Sub(t) > 0 {
+					if part.IsActive {
+						err := w.markPartitionForDelete(ctx, session, part)
+						if err != nil {
+							w.logger.Error("update partition failed", zap.String("suffix", part.Suffix()), zap.Error(err))
+						}
+					} else {
+						w.logger.Info("delete partition", zap.String("suffix", part.Suffix()))
+						if err := w.dropTables(ctx, session, part); err != nil {
+							continue
+						}
+						err = w.deletePartitionInfo(ctx, session, part)
+						if err != nil {
+							w.logger.Error("delete partition failed", zap.String("suffix", part.Suffix()), zap.Error(err))
+						}
 					}
 				}
 			}
 		}
 		return nil
-	}))
+	})
 }
 
-func (w *Watcher) dropTables(ctx context.Context, session *table.Session, k schema.PartitionKey) error {
+func (w *Watcher) dropTables(ctx context.Context, session table.Session, k schema.PartitionKey) error {
 	for name := range schema.PartitionTables {
 		fullName := k.BuildFullTableName(w.opts.DBPath.String(), name)
 		err := session.DropTable(ctx, fullName)
 		if err != nil {
+			isOpErr, _, _ := ydb.IsOperationError(err)
 			switch {
 			// table or path already removed, ignore err
-			case ydb.IsOpError(err, ydb.StatusGenericError) && db.IssueContainsMessage(err.(*ydb.OpError).Issues(), "EPathStateNotExist"):
-			case ydb.IsOpError(err, ydb.StatusSchemeError) && db.IssueContainsMessage(err.(*ydb.OpError).Issues(), "Path does not exist"):
+			case isOpErr && db.IssueContainsMessage(err, "EPathStateNotExist"):
+			case ydb.IsStatusSchemeError(err) && db.IssueContainsMessage(err, "Path does not exist"):
 			default:
 				w.logger.Error("drop table failed", zap.String("table", fullName), zap.Error(err))
 				return err
@@ -199,7 +202,7 @@ func (w *Watcher) dropTables(ctx context.Context, session *table.Session, k sche
 	return nil
 }
 
-func (w *Watcher) markPartitionForDelete(ctx context.Context, session *table.Session, k schema.PartitionKey) error {
+func (w *Watcher) markPartitionForDelete(ctx context.Context, session table.Session, k schema.PartitionKey) error {
 	k.IsActive = false
 	_, _, err := session.Execute(ctx, txc, schema.BuildQuery(w.opts.DBPath, schema.UpdatePart), k.QueryParams())
 	if err != nil {
@@ -208,7 +211,7 @@ func (w *Watcher) markPartitionForDelete(ctx context.Context, session *table.Ses
 	return nil
 }
 
-func (w *Watcher) deletePartitionInfo(ctx context.Context, session *table.Session, k schema.PartitionKey) error {
+func (w *Watcher) deletePartitionInfo(ctx context.Context, session table.Session, k schema.PartitionKey) error {
 	_, _, err := session.Execute(ctx, txc, schema.BuildQuery(w.opts.DBPath, schema.DeletePart), k.QueryWhereParams())
 	if err != nil {
 		return err
@@ -220,10 +223,10 @@ func (w *Watcher) tableKnown(ctx context.Context, fullName string) bool {
 	if _, ok := w.knownTables.Get(fullName); ok {
 		return true
 	}
-	err := table.Retry(ctx, w.sessionProvider, table.OperationFunc(func(ctx context.Context, session *table.Session) error {
+	err := w.sessionProvider.Do(ctx, func(ctx context.Context, session table.Session) error {
 		_, err := session.DescribeTable(ctx, fullName)
 		return err
-	}))
+	})
 	if err != nil {
 		return false
 	}

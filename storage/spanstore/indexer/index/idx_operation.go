@@ -2,7 +2,7 @@ package index
 
 import (
 	"github.com/jaegertracing/jaeger/model"
-	"github.com/yandex-cloud/ydb-go-sdk/v2"
+	"github.com/ydb-platform/ydb-go-sdk/v3/table/types"
 
 	"github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/dbmodel"
 )
@@ -25,9 +25,9 @@ func (s serviceOperationIndex) Hash() uint64 {
 	return dbmodel.HashData(s.serviceName, s.operationName)
 }
 
-func (s serviceOperationIndex) StructFields(bucket uint8) []ydb.StructValueOption {
-	return []ydb.StructValueOption{
-		ydb.StructFieldValue("idx_hash", ydb.Uint64Value(s.Hash())),
-		ydb.StructFieldValue("rev_start_time", ydb.Int64Value(-s.startTime.UnixNano())),
+func (s serviceOperationIndex) StructFields(bucket uint8) []types.StructValueOption {
+	return []types.StructValueOption{
+		types.StructFieldValue("idx_hash", types.Uint64Value(s.Hash())),
+		types.StructFieldValue("rev_start_time", types.Int64Value(-s.startTime.UnixNano())),
 	}
 }

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yandex-cloud/ydb-go-sdk/v2"
-	"github.com/yandex-cloud/ydb-go-sdk/v2/table"
+	"github.com/ydb-platform/ydb-go-sdk/v3/table"
+	"github.com/ydb-platform/ydb-go-sdk/v3/table/types"
 )
 
 const (
@@ -29,41 +29,31 @@ func init() {
 }
 
 type PartitionKey struct {
-	date     string
-	num      int
+	Date     string
+	Num      uint8
 	IsActive bool
 }
 
 func (k PartitionKey) Suffix() string {
 	w := new(strings.Builder)
-	w.WriteString(k.date)
+	w.WriteString(k.Date)
 	w.WriteString("_")
-	w.WriteString(strconv.FormatInt(int64(k.num), 10))
+	w.WriteString(strconv.FormatInt(int64(k.Num), 10))
 	return w.String()
-}
-
-func (k *PartitionKey) Scan(res *table.Result) (err error) {
-	res.SeekItem("part_date")
-	k.date = res.OUTF8()
-	res.SeekItem("part_num")
-	k.num = int(res.OUint8())
-	res.SeekItem("is_active")
-	k.IsActive = res.OBool()
-	return res.Err()
 }
 
 func (k PartitionKey) QueryWhereParams() *table.QueryParameters {
 	return table.NewQueryParameters(
-		table.ValueParam("$part_date", ydb.UTF8Value(k.date)),
-		table.ValueParam("$part_num", ydb.Uint8Value(uint8(k.num))),
+		table.ValueParam("$part_date", types.UTF8Value(k.Date)),
+		table.ValueParam("$part_num", types.Uint8Value(uint8(k.Num))),
 	)
 }
 
 func (k PartitionKey) QueryParams() *table.QueryParameters {
 	return table.NewQueryParameters(
-		table.ValueParam("$part_date", ydb.UTF8Value(k.date)),
-		table.ValueParam("$part_num", ydb.Uint8Value(uint8(k.num))),
-		table.ValueParam("$is_active", ydb.BoolValue(k.IsActive)),
+		table.ValueParam("$part_date", types.UTF8Value(k.Date)),
+		table.ValueParam("$part_num", types.Uint8Value(uint8(k.Num))),
+		table.ValueParam("$is_active", types.BoolValue(k.IsActive)),
 	)
 }
 
@@ -73,27 +63,27 @@ func (k PartitionKey) BuildFullTableName(dbPath, table string) string {
 	sb.WriteString("/")
 	sb.WriteString(table)
 	sb.WriteString("_")
-	sb.WriteString(k.date)
+	sb.WriteString(k.Date)
 	sb.WriteString("_")
-	sb.WriteString(strconv.FormatInt(int64(k.num), 10))
+	sb.WriteString(strconv.FormatInt(int64(k.Num), 10))
 	return sb.String()
 }
 
 func (k PartitionKey) TimeSpan() (begin time.Time, end time.Time) {
-	t, err := time.Parse(partitionDateFormat, k.date)
+	t, err := time.Parse(partitionDateFormat, k.Date)
 	if err != nil {
 		return
 	}
-	begin = t.Add(time.Duration(k.num) * partitionStep)
-	end = t.Add(time.Duration(k.num+1) * partitionStep)
+	begin = t.Add(time.Duration(k.Num) * partitionStep)
+	end = t.Add(time.Duration(k.Num+1) * partitionStep)
 	return
 }
 
 func PartitionFromTime(t time.Time) PartitionKey {
 	hours := t.UTC().Sub(t.Truncate(time.Hour * 24)).Hours()
 	return PartitionKey{
-		date:     t.UTC().Format(partitionDateFormat),
-		num:      int(hours * float64(numPartitions) / 24),
+		Date:     t.UTC().Format(partitionDateFormat),
+		Num:      uint8(hours * float64(numPartitions) / 24),
 		IsActive: true,
 	}
 }

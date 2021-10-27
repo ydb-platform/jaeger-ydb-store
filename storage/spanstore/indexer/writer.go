@@ -7,8 +7,8 @@ import (
 
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/uber/jaeger-lib/metrics"
-	"github.com/yandex-cloud/ydb-go-sdk/v2"
-	"github.com/yandex-cloud/ydb-go-sdk/v2/table"
+	"github.com/ydb-platform/ydb-go-sdk/v3/table"
+	"github.com/ydb-platform/ydb-go-sdk/v3/table/types"
 	"go.uber.org/zap"
 
 	"github.com/yandex-cloud/jaeger-ydb-store/schema"
@@ -19,7 +19,7 @@ import (
 )
 
 type indexWriter struct {
-	pool      *table.SessionPool
+	pool      table.Client
 	logger    *zap.Logger
 	metrics   indexerMetrics
 	tableName string
@@ -39,7 +39,7 @@ type indexerMetrics interface {
 	Emit(err error, latency time.Duration, count int)
 }
 
-func startIndexWriter(pool *table.SessionPool, mf metrics.Factory, logger *zap.Logger, tableName string, opts Options) *indexWriter {
+func startIndexWriter(pool table.Client, mf metrics.Factory, logger *zap.Logger, tableName string, opts Options) *indexWriter {
 	w := &indexWriter{
 		pool:      pool,
 		logger:    logger,
@@ -81,23 +81,23 @@ func (w *indexWriter) WriteItems(items []interface{}) {
 func (w *indexWriter) writePartition(part schema.PartitionKey, items []indexData) {
 	fullTableName := tableName(w.opts.DbPath, part, w.tableName)
 	brr := newBucketRR(dbmodel.NumIndexBuckets)
-	rows := make([]ydb.Value, 0, len(items))
+	rows := make([]types.Value, 0, len(items))
 	for _, item := range items {
 		brr.Next()
 		buf := item.traceIds.ToBytes()
 		fields := item.idx.StructFields(brr.Next())
 		fields = append(fields,
-			ydb.StructFieldValue("uniq", ydb.Uint32Value(w.idxRand.Uint32())),
-			ydb.StructFieldValue("trace_ids", ydb.StringValue(buf)),
+			types.StructFieldValue("uniq", types.Uint32Value(w.idxRand.Uint32())),
+			types.StructFieldValue("trace_ids", types.StringValue(buf)),
 		)
-		rows = append(rows, ydb.StructValue(fields...))
+		rows = append(rows, types.StructValue(fields...))
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), w.opts.WriteTimeout)
 	defer cancel()
 	ts := time.Now()
-	err := table.Retry(ctx, w.pool, table.OperationFunc(func(ctx context.Context, session *table.Session) error {
-		return session.BulkUpsert(ctx, fullTableName, ydb.ListValue(rows...))
-	}))
+	err := w.pool.Do(ctx, func(ctx context.Context, session table.Session) (err error) {
+		return session.BulkUpsert(ctx, fullTableName, types.ListValue(rows...))
+	})
 	w.metrics.Emit(err, time.Since(ts), len(rows))
 	if err != nil {
 		w.logger.Error("indexer write fail", zap.String("table", w.tableName), zap.Error(err))

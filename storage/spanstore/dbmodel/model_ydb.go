@@ -1,55 +1,18 @@
 package dbmodel
 
 import (
-	"strconv"
-
-	"github.com/yandex-cloud/ydb-go-sdk/v2"
-	"github.com/yandex-cloud/ydb-go-sdk/v2/table"
+	"github.com/ydb-platform/ydb-go-sdk/v3/table/types"
 )
 
-var (
-	_ = strconv.Itoa
-	_ = ydb.StringValue
-	_ = table.NewQueryParameters
-)
-
-func (s *Span) Scan(res *table.Result) (err error) {
-	res.SeekItem("trace_id_low")
-	s.TraceIDLow = res.OUint64()
-
-	res.SeekItem("trace_id_high")
-	s.TraceIDHigh = res.OUint64()
-
-	res.SeekItem("span_id")
-	s.SpanID = res.OUint64()
-
-	res.SeekItem("operation_name")
-	s.OperationName = res.OUTF8()
-
-	res.SeekItem("flags")
-	s.Flags = res.OUint32()
-
-	res.SeekItem("start_time")
-	s.StartTime = res.OInt64()
-
-	res.SeekItem("duration")
-	s.Duration = res.OInt64()
-
-	res.SeekItem("extra")
-	s.Extra = res.OString()
-
-	return res.Err()
-}
-
-func (s *Span) StructValue() ydb.Value {
-	return ydb.StructValue(
-		ydb.StructFieldValue("trace_id_low", ydb.OptionalValue(ydb.Uint64Value(s.TraceIDLow))),
-		ydb.StructFieldValue("trace_id_high", ydb.OptionalValue(ydb.Uint64Value(s.TraceIDHigh))),
-		ydb.StructFieldValue("span_id", ydb.OptionalValue(ydb.Uint64Value(s.SpanID))),
-		ydb.StructFieldValue("operation_name", ydb.OptionalValue(ydb.UTF8Value(s.OperationName))),
-		ydb.StructFieldValue("flags", ydb.OptionalValue(ydb.Uint32Value(s.Flags))),
-		ydb.StructFieldValue("start_time", ydb.OptionalValue(ydb.Int64Value(s.StartTime))),
-		ydb.StructFieldValue("duration", ydb.OptionalValue(ydb.Int64Value(s.Duration))),
-		ydb.StructFieldValue("extra", ydb.OptionalValue(ydb.StringValue(s.Extra))),
+func (s *Span) StructValue() types.Value {
+	return types.StructValue(
+		types.StructFieldValue("trace_id_low", types.OptionalValue(types.Uint64Value(s.TraceIDLow))),
+		types.StructFieldValue("trace_id_high", types.OptionalValue(types.Uint64Value(s.TraceIDHigh))),
+		types.StructFieldValue("span_id", types.OptionalValue(types.Uint64Value(s.SpanID))),
+		types.StructFieldValue("operation_name", types.OptionalValue(types.UTF8Value(s.OperationName))),
+		types.StructFieldValue("flags", types.OptionalValue(types.Uint32Value(s.Flags))),
+		types.StructFieldValue("start_time", types.OptionalValue(types.Int64Value(s.StartTime))),
+		types.StructFieldValue("duration", types.OptionalValue(types.Int64Value(s.Duration))),
+		types.StructFieldValue("extra", types.OptionalValue(types.StringValue(s.Extra))),
 	)
 }

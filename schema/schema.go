@@ -3,13 +3,13 @@ package schema
 import (
 	"github.com/spf13/viper"
 	"github.com/yandex-cloud/jaeger-ydb-store/internal/db"
-	"github.com/yandex-cloud/ydb-go-sdk/v2"
-	"github.com/yandex-cloud/ydb-go-sdk/v2/table"
+	"github.com/ydb-platform/ydb-go-sdk/v3/table/options"
+	"github.com/ydb-platform/ydb-go-sdk/v3/table/types"
 )
 
 // Definition is a list of create table options
-type Definition func() []table.CreateTableOption
-type PartitionedDefinition func(partitionCount uint64) []table.CreateTableOption
+type Definition func() []options.CreateTableOption
+type PartitionedDefinition func(partitionCount uint64) []options.CreateTableOption
 
 var (
 	// Tables are global tables
@@ -31,35 +31,35 @@ var (
 )
 
 // Traces returns traces table schema
-func Traces(numPartitions uint64) []table.CreateTableOption {
+func Traces(numPartitions uint64) []options.CreateTableOption {
 	return append(
 		ArchiveTraces(),
-		table.WithProfile(
-			table.WithPartitioningPolicy(table.WithPartitioningPolicyUniformPartitions(numPartitions)),
+		options.WithProfile(
+			options.WithPartitioningPolicy(options.WithPartitioningPolicyUniformPartitions(numPartitions)),
 		),
-		table.WithPartitioningSettingsObject(partitioningSettings(numPartitions)),
+		options.WithPartitioningSettingsObject(partitioningSettings(numPartitions)),
 	)
 }
 
 // ArchiveTraces returns archive_traces table schema
-func ArchiveTraces() []table.CreateTableOption {
-	res := []table.CreateTableOption{
-		table.WithColumn("trace_id_low", ydb.Optional(ydb.TypeUint64)),
-		table.WithColumn("trace_id_high", ydb.Optional(ydb.TypeUint64)),
-		table.WithColumn("span_id", ydb.Optional(ydb.TypeUint64)),
-		table.WithColumn("operation_name", ydb.Optional(ydb.TypeUTF8)),
-		table.WithColumn("flags", ydb.Optional(ydb.TypeUint32)),
-		table.WithColumn("start_time", ydb.Optional(ydb.TypeInt64)),
-		table.WithColumn("duration", ydb.Optional(ydb.TypeInt64)),
-		table.WithColumn("extra", ydb.Optional(ydb.TypeString)),
-		table.WithPrimaryKeyColumn("trace_id_low", "trace_id_high", "span_id"),
+func ArchiveTraces() []options.CreateTableOption {
+	res := []options.CreateTableOption{
+		options.WithColumn("trace_id_low", types.Optional(types.TypeUint64)),
+		options.WithColumn("trace_id_high", types.Optional(types.TypeUint64)),
+		options.WithColumn("span_id", types.Optional(types.TypeUint64)),
+		options.WithColumn("operation_name", types.Optional(types.TypeUTF8)),
+		options.WithColumn("flags", types.Optional(types.TypeUint32)),
+		options.WithColumn("start_time", types.Optional(types.TypeInt64)),
+		options.WithColumn("duration", types.Optional(types.TypeInt64)),
+		options.WithColumn("extra", types.Optional(types.TypeString)),
+		options.WithPrimaryKeyColumn("trace_id_low", "trace_id_high", "span_id"),
 	}
 	if viper.GetBool(db.KeyYDBFeatureCompression) {
 		res = append(res,
-			table.WithColumnFamilies(
-				table.ColumnFamily{
+			options.WithColumnFamilies(
+				options.ColumnFamily{
 					Name:        "default",
-					Compression: table.ColumnFamilyCompressionLZ4,
+					Compression: options.ColumnFamilyCompressionLZ4,
 				},
 			),
 		)
@@ -68,102 +68,102 @@ func ArchiveTraces() []table.CreateTableOption {
 }
 
 // ServiceOperationIndex returns service_operation_index table schema
-func ServiceOperationIndex(numPartitions uint64) []table.CreateTableOption {
-	return []table.CreateTableOption{
-		table.WithColumn("idx_hash", ydb.Optional(ydb.TypeUint64)),
-		table.WithColumn("rev_start_time", ydb.Optional(ydb.TypeInt64)),
-		table.WithColumn("uniq", ydb.Optional(ydb.TypeUint32)),
-		table.WithColumn("trace_ids", ydb.Optional(ydb.TypeString)),
-		table.WithPrimaryKeyColumn("idx_hash", "rev_start_time", "uniq"),
-		table.WithProfile(
-			table.WithPartitioningPolicy(table.WithPartitioningPolicyUniformPartitions(numPartitions)),
+func ServiceOperationIndex(numPartitions uint64) []options.CreateTableOption {
+	return []options.CreateTableOption{
+		options.WithColumn("idx_hash", types.Optional(types.TypeUint64)),
+		options.WithColumn("rev_start_time", types.Optional(types.TypeInt64)),
+		options.WithColumn("uniq", types.Optional(types.TypeUint32)),
+		options.WithColumn("trace_ids", types.Optional(types.TypeString)),
+		options.WithPrimaryKeyColumn("idx_hash", "rev_start_time", "uniq"),
+		options.WithProfile(
+			options.WithPartitioningPolicy(options.WithPartitioningPolicyUniformPartitions(numPartitions)),
 		),
-		table.WithPartitioningSettingsObject(partitioningSettings(numPartitions)),
+		options.WithPartitioningSettingsObject(partitioningSettings(numPartitions)),
 	}
 }
 
 // ServiceNameIndex returns service_name_index table schema
-func ServiceNameIndex(numPartitions uint64) []table.CreateTableOption {
-	return []table.CreateTableOption{
-		table.WithColumn("idx_hash", ydb.Optional(ydb.TypeUint64)),
-		table.WithColumn("rev_start_time", ydb.Optional(ydb.TypeInt64)),
-		table.WithColumn("uniq", ydb.Optional(ydb.TypeUint32)),
-		table.WithColumn("trace_ids", ydb.Optional(ydb.TypeString)),
-		table.WithPrimaryKeyColumn("idx_hash", "rev_start_time", "uniq"),
-		table.WithProfile(
-			table.WithPartitioningPolicy(table.WithPartitioningPolicyUniformPartitions(numPartitions)),
+func ServiceNameIndex(numPartitions uint64) []options.CreateTableOption {
+	return []options.CreateTableOption{
+		options.WithColumn("idx_hash", types.Optional(types.TypeUint64)),
+		options.WithColumn("rev_start_time", types.Optional(types.TypeInt64)),
+		options.WithColumn("uniq", types.Optional(types.TypeUint32)),
+		options.WithColumn("trace_ids", types.Optional(types.TypeString)),
+		options.WithPrimaryKeyColumn("idx_hash", "rev_start_time", "uniq"),
+		options.WithProfile(
+			options.WithPartitioningPolicy(options.WithPartitioningPolicyUniformPartitions(numPartitions)),
 		),
-		table.WithPartitioningSettingsObject(partitioningSettings(numPartitions)),
+		options.WithPartitioningSettingsObject(partitioningSettings(numPartitions)),
 	}
 }
 
 // DurationIndex returns duration_index table schema
-func DurationIndex(numPartitions uint64) []table.CreateTableOption {
-	return []table.CreateTableOption{
-		table.WithColumn("idx_hash", ydb.Optional(ydb.TypeUint64)),
-		table.WithColumn("duration", ydb.Optional(ydb.TypeInt64)),
-		table.WithColumn("rev_start_time", ydb.Optional(ydb.TypeInt64)),
-		table.WithColumn("uniq", ydb.Optional(ydb.TypeUint32)),
-		table.WithColumn("trace_ids", ydb.Optional(ydb.TypeString)),
-		table.WithPrimaryKeyColumn("idx_hash", "duration", "rev_start_time", "uniq"),
-		table.WithProfile(
-			table.WithPartitioningPolicy(table.WithPartitioningPolicyUniformPartitions(numPartitions)),
+func DurationIndex(numPartitions uint64) []options.CreateTableOption {
+	return []options.CreateTableOption{
+		options.WithColumn("idx_hash", types.Optional(types.TypeUint64)),
+		options.WithColumn("duration", types.Optional(types.TypeInt64)),
+		options.WithColumn("rev_start_time", types.Optional(types.TypeInt64)),
+		options.WithColumn("uniq", types.Optional(types.TypeUint32)),
+		options.WithColumn("trace_ids", types.Optional(types.TypeString)),
+		options.WithPrimaryKeyColumn("idx_hash", "duration", "rev_start_time", "uniq"),
+		options.WithProfile(
+			options.WithPartitioningPolicy(options.WithPartitioningPolicyUniformPartitions(numPartitions)),
 		),
-		table.WithPartitioningSettingsObject(partitioningSettings(numPartitions)),
+		options.WithPartitioningSettingsObject(partitioningSettings(numPartitions)),
 	}
 }
 
 // TagIndexV2 returns tag_index_v2 table schema
-func TagIndexV2(numPartitions uint64) []table.CreateTableOption {
-	return []table.CreateTableOption{
-		table.WithColumn("idx_hash", ydb.Optional(ydb.TypeUint64)),
-		table.WithColumn("rev_start_time", ydb.Optional(ydb.TypeInt64)),
-		table.WithColumn("op_hash", ydb.Optional(ydb.TypeUint64)),
-		table.WithColumn("uniq", ydb.Optional(ydb.TypeUint32)),
-		table.WithColumn("trace_ids", ydb.Optional(ydb.TypeString)),
-		table.WithPrimaryKeyColumn("idx_hash", "rev_start_time", "op_hash", "uniq"),
-		table.WithProfile(
-			table.WithPartitioningPolicy(table.WithPartitioningPolicyUniformPartitions(numPartitions)),
+func TagIndexV2(numPartitions uint64) []options.CreateTableOption {
+	return []options.CreateTableOption{
+		options.WithColumn("idx_hash", types.Optional(types.TypeUint64)),
+		options.WithColumn("rev_start_time", types.Optional(types.TypeInt64)),
+		options.WithColumn("op_hash", types.Optional(types.TypeUint64)),
+		options.WithColumn("uniq", types.Optional(types.TypeUint32)),
+		options.WithColumn("trace_ids", types.Optional(types.TypeString)),
+		options.WithPrimaryKeyColumn("idx_hash", "rev_start_time", "op_hash", "uniq"),
+		options.WithProfile(
+			options.WithPartitioningPolicy(options.WithPartitioningPolicyUniformPartitions(numPartitions)),
 		),
-		table.WithPartitioningSettingsObject(partitioningSettings(numPartitions)),
+		options.WithPartitioningSettingsObject(partitioningSettings(numPartitions)),
 	}
 }
 
 // ServiceNames returns service_names table schema
-func ServiceNames() []table.CreateTableOption {
-	return []table.CreateTableOption{
-		table.WithColumn("service_name", ydb.Optional(ydb.TypeUTF8)),
-		table.WithPrimaryKeyColumn("service_name"),
+func ServiceNames() []options.CreateTableOption {
+	return []options.CreateTableOption{
+		options.WithColumn("service_name", types.Optional(types.TypeUTF8)),
+		options.WithPrimaryKeyColumn("service_name"),
 	}
 }
 
 // OperationNamesV2 returns operation_names_v2 table schema
-func OperationNamesV2() []table.CreateTableOption {
-	return []table.CreateTableOption{
-		table.WithColumn("service_name", ydb.Optional(ydb.TypeUTF8)),
-		table.WithColumn("span_kind", ydb.Optional(ydb.TypeUTF8)),
-		table.WithColumn("operation_name", ydb.Optional(ydb.TypeUTF8)),
-		table.WithPrimaryKeyColumn("service_name", "span_kind", "operation_name"),
+func OperationNamesV2() []options.CreateTableOption {
+	return []options.CreateTableOption{
+		options.WithColumn("service_name", types.Optional(types.TypeUTF8)),
+		options.WithColumn("span_kind", types.Optional(types.TypeUTF8)),
+		options.WithColumn("operation_name", types.Optional(types.TypeUTF8)),
+		options.WithPrimaryKeyColumn("service_name", "span_kind", "operation_name"),
 	}
 }
 
-func Partitions() []table.CreateTableOption {
-	return []table.CreateTableOption{
-		table.WithColumn("part_date", ydb.Optional(ydb.TypeUTF8)),
-		table.WithColumn("part_num", ydb.Optional(ydb.TypeUint8)),
-		table.WithColumn("is_active", ydb.Optional(ydb.TypeBool)),
-		table.WithPrimaryKeyColumn("part_date", "part_num"),
+func Partitions() []options.CreateTableOption {
+	return []options.CreateTableOption{
+		options.WithColumn("part_date", types.Optional(types.TypeUTF8)),
+		options.WithColumn("part_num", types.Optional(types.TypeUint8)),
+		options.WithColumn("is_active", types.Optional(types.TypeBool)),
+		options.WithPrimaryKeyColumn("part_date", "part_num"),
 	}
 }
 
-func partitioningSettings(numPartitions uint64) (settings table.PartitioningSettings) {
-	settings = table.PartitioningSettings{
-		PartitioningBySize: ydb.FeatureEnabled,
+func partitioningSettings(numPartitions uint64) (settings options.PartitioningSettings) {
+	settings = options.PartitioningSettings{
+		PartitioningBySize: options.FeatureEnabled,
 		PartitionSizeMb:    uint64(viper.GetSizeInBytes(db.KeyYDBPartitionSize) / 1024 / 1024),
 		MinPartitionsCount: numPartitions,
 	}
 	if viper.GetBool(db.KeyYDBFeatureSplitByLoad) {
-		settings.PartitioningByLoad = ydb.FeatureEnabled
+		settings.PartitioningByLoad = options.FeatureEnabled
 	}
 	return
 }
