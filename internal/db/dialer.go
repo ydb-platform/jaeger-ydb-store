@@ -32,7 +32,7 @@ func DialFromViper(ctx context.Context, v *viper.Viper, opts ...ydb.Option) (ydb
 		if v.GetBool(KeyYdbSaMetaAuth) {
 			authCredentials = yc.WithMetadataCredentials(context.Background())
 		} else {
-			authCredentials = yc.WithAuthClientOptions(
+			authCredentials = yc.WithAuthClientCredentials(
 				yc.WithEndpoint(v.GetString(KeyIAMEndpoint)),
 				yc.WithKeyID(v.GetString(KeyYdbSaKeyID)),
 				yc.WithIssuer(v.GetString(KeyYdbSaId)),
