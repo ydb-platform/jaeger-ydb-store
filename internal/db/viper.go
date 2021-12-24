@@ -12,6 +12,7 @@ const (
 	KeyYdbSaKeyID          = "ydb.sa.key-id"
 
 	KeyYdbCAFile = "ydb.ca-file"
+	KeyYdbUseTLS = "ydb.use-tls"
 
 	KeyYdbConnectTimeout = "ydb.connect-timeout"
 	KeyYdbWriteTimeout   = "ydb.write-timeout"
