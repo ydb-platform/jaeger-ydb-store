@@ -27,5 +27,6 @@ type Options struct {
 
 	ReadTimeout       time.Duration
 	ReadQueryParallel int
-	ReadOpLimit uint64
+	ReadOpLimit       uint64
+	ReadSvcLimit      uint64
 }

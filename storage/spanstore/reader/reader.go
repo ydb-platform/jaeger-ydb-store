@@ -81,6 +81,7 @@ type SpanReaderOptions struct {
 	DbPath        schema.DbPath
 	ReadTimeout   time.Duration
 	OpLimit       uint64 // max number of operations to fetch from operation_names index
+	SvcLimit      uint64 // max number of services to fetch
 	QueryParallel int
 	ArchiveReader bool
 }
@@ -101,12 +102,12 @@ func (s *SpanReader) GetServices(ctx context.Context) ([]string, error) {
 	defer cancel()
 	result := make([]string, 0)
 	err := s.pool.Do(ctx, func(ctx context.Context, session table.Session) error {
-		_, res, err := session.Execute(
+		res, err := session.StreamExecuteScanQuery(
 			ctx,
-			txc,
 			queries.BuildQuery("query-services", s.opts.DbPath),
-			nil,
-			options.WithQueryCachePolicy(options.WithQueryCachePolicyKeepInCache()),
+			table.NewQueryParameters(
+				table.ValueParam("$limit", types.Uint64Value(s.opts.SvcLimit)),
+			),
 		)
 		if err != nil {
 			return err

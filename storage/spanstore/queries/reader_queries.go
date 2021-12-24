@@ -73,8 +73,10 @@ FROM ` + "`%s`" + `
 WHERE idx_hash = $hash AND rev_start_time <= 0-$time_min AND rev_start_time >= 0-$time_max
 LIMIT $limit`
 
-	queryServiceNames = `SELECT service_name
-FROM ` + "`%s`"
+	queryServiceNames = `DECLARE $limit AS uint64;
+SELECT service_name
+FROM ` + "`%s`" + `
+LIMIT $limit`
 
 	queryOperations = `DECLARE $service_name AS utf8;
 DECLARE $limit AS uint64;

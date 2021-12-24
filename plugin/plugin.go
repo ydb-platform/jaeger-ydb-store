@@ -59,6 +59,7 @@ func (p *YdbStorage) InitFromViper(v *viper.Viper) {
 	v.SetDefault(db.KeyYdbReadTimeout, time.Second*10)
 	v.SetDefault(db.KeyYdbReadQueryParallel, 16)
 	v.SetDefault(db.KeyYdbReadOpLimit, 5000)
+	v.SetDefault(db.KeyYdbReadSvcLimit, 1000)
 	// Zero stands for "unbound" interval so any span age is good.
 	v.SetDefault(db.KeyYdbWriterMaxSpanAge, time.Duration(0))
 	p.opts = config.Options{
@@ -81,6 +82,7 @@ func (p *YdbStorage) InitFromViper(v *viper.Viper) {
 		ReadTimeout:         v.GetDuration(db.KeyYdbReadTimeout),
 		ReadQueryParallel:   v.GetInt(db.KeyYdbReadQueryParallel),
 		ReadOpLimit:         v.GetUint64(db.KeyYdbReadOpLimit),
+		ReadSvcLimit:        v.GetUint64(db.KeyYdbReadSvcLimit),
 		WriteMaxSpanAge:     v.GetDuration(db.KeyYdbWriterMaxSpanAge),
 	}
 	var err error
@@ -165,6 +167,7 @@ func (p *YdbStorage) initReaders() {
 		ReadTimeout:   p.opts.ReadTimeout,
 		QueryParallel: p.opts.ReadQueryParallel,
 		OpLimit:       p.opts.ReadOpLimit,
+		SvcLimit:      p.opts.ReadSvcLimit,
 	}
 	p.reader = reader.NewSpanReader(p.ydbPool, opts, p.logger)
 
