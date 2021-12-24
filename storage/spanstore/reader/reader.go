@@ -81,6 +81,7 @@ type SpanReaderOptions struct {
 	DbPath        schema.DbPath
 	ReadTimeout   time.Duration
 	OpLimit       uint64 // max number of operations to fetch from operation_names index
+	SvcLimit      uint64 // max number of services to fetch
 	QueryParallel int
 	ArchiveReader bool
 }
@@ -101,12 +102,12 @@ func (s *SpanReader) GetServices(ctx context.Context) ([]string, error) {
 	defer cancel()
 	result := make([]string, 0)
 	err := s.pool.Do(ctx, func(ctx context.Context, session table.Session) error {
-		_, res, err := session.Execute(
+		res, err := session.StreamExecuteScanQuery(
 			ctx,
-			txc,
 			queries.BuildQuery("query-services", s.opts.DbPath),
-			nil,
-			options.WithQueryCachePolicy(options.WithQueryCachePolicyKeepInCache()),
+			table.NewQueryParameters(
+				table.ValueParam("$limit", types.Uint64Value(s.opts.SvcLimit)),
+			),
 		)
 		if err != nil {
 			return err
@@ -317,7 +318,7 @@ func (s *SpanReader) queryPartitionList(ctx context.Context) ([]schema.Partition
 		}
 		defer res.Close()
 
-		result = make([]schema.PartitionKey, 0, res.TotalRowCount())
+		var result []schema.PartitionKey
 		for res.NextResultSet(ctx, "part_date", "part_num", "is_active") {
 			for res.NextRow() {
 				part := schema.PartitionKey{}
@@ -658,7 +659,7 @@ func (s *SpanReader) execQuery(ctx context.Context, span opentracing.Span, query
 			return err
 		}
 		defer res.Close()
-		result = make([]dbmodel.IndexResult, 0, res.TotalRowCount())
+		var result []dbmodel.IndexResult
 
 		for res.NextResultSet(ctx, "trace_ids", "rev_start_time") {
 			for res.NextRow() {

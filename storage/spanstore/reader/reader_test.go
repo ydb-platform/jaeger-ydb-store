@@ -227,6 +227,7 @@ func setUpReader(t *testing.T) *SpanReader {
 			ReadTimeout:   time.Second * 10,
 			QueryParallel: 10,
 			OpLimit:       100,
+			SvcLimit:      100,
 		},
 		testutil.Zap(),
 	)

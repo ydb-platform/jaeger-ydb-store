@@ -19,6 +19,7 @@ const (
 	KeyYdbReadTimeout       = "ydb.read-timeout"
 	KeyYdbReadQueryParallel = "ydb.read-query-parallel"
 	KeyYdbReadOpLimit       = "ydb.read-op-limit"
+	KeyYdbReadSvcLimit      = "ydb.read-svc-limit"
 
 	KeyYdbPoolSize = "ydb.pool-size"
 
