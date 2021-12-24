@@ -318,7 +318,7 @@ func (s *SpanReader) queryPartitionList(ctx context.Context) ([]schema.Partition
 		}
 		defer res.Close()
 
-		var result []schema.PartitionKey
+		result = make([]schema.PartitionKey, 0, res.TotalRowCount())
 		for res.NextResultSet(ctx, "part_date", "part_num", "is_active") {
 			for res.NextRow() {
 				part := schema.PartitionKey{}
@@ -659,7 +659,7 @@ func (s *SpanReader) execQuery(ctx context.Context, span opentracing.Span, query
 			return err
 		}
 		defer res.Close()
-		var result []dbmodel.IndexResult
+		result = make([]dbmodel.IndexResult, 0, res.TotalRowCount())
 
 		for res.NextResultSet(ctx, "trace_ids", "rev_start_time") {
 			for res.NextRow() {
