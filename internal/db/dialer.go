@@ -14,13 +14,15 @@ const (
 )
 
 func DialFromViper(ctx context.Context, v *viper.Viper, opts ...ydb.Option) (ydb.Connection, error) {
-	var authCredentials, certFileOpt ydb.Option
+	var authCredentials ydb.Option
 	v.SetDefault(KeyIAMEndpoint, defaultIAMEndpoint)
+	connOpts := opts
 	if v.GetString(KeyYdbToken) != "" {
 		authCredentials = ydb.WithAccessTokenCredentials(v.GetString(KeyYdbToken))
 	} else {
+		connOpts = append(connOpts, ydb.With(config.WithSecure(true)))
 		if caFile := v.GetString(KeyYdbCAFile); caFile != "" {
-			certFileOpt = ydb.WithCertificatesFromFile(caFile)
+			connOpts = append(connOpts, ydb.WithCertificatesFromFile(caFile))
 		}
 
 		if v.GetBool(KeyYdbSaMetaAuth) {
@@ -35,10 +37,7 @@ func DialFromViper(ctx context.Context, v *viper.Viper, opts ...ydb.Option) (ydb
 			)
 		}
 	}
+	connOpts = append(connOpts, authCredentials)
 
-	connOpts := append(opts, authCredentials)
-	if certFileOpt != nil {
-		connOpts = append(connOpts, certFileOpt, ydb.With(config.WithSecure(true)))
-	}
 	return ydb.New(ctx, connOpts...)
 }
