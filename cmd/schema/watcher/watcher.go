@@ -188,11 +188,11 @@ func (w *Watcher) dropTables(ctx context.Context, session table.Session, k schem
 		fullName := k.BuildFullTableName(w.opts.DBPath.String(), name)
 		err := session.DropTable(ctx, fullName)
 		if err != nil {
-			isOpErr, _, _ := ydb.IsOperationError(err)
+			isOpErr := ydb.IsOperationError(err)
 			switch {
 			// table or path already removed, ignore err
 			case isOpErr && db.IssueContainsMessage(err, "EPathStateNotExist"):
-			case ydb.IsStatusSchemeError(err) && db.IssueContainsMessage(err, "Path does not exist"):
+			case ydb.IsOperationErrorSchemeError(err) && db.IssueContainsMessage(err, "Path does not exist"):
 			default:
 				w.logger.Error("drop table failed", zap.String("table", fullName), zap.Error(err))
 				return err
