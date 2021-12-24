@@ -1,5 +1,13 @@
 # Changes by version
 
+1.6.0 (2021-12-24)
+------------------
+
+* update ydb-go-sdk to v3
+* increase num results limit for querying service names
+* add config flag for reading config file
+* fix initial partition size on table schema creation
+
 1.5.1 (2021-04-28)
 ------------------
 
