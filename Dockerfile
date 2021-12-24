@@ -1,4 +1,4 @@
-ARG jaeger_version=1.20.0
+ARG jaeger_version=1.25.0
 ARG golang_version=1.16.3
 ARG alpine_version=3.10
 

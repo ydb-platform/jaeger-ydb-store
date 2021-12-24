@@ -6,8 +6,8 @@ import (
 
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/uber/jaeger-lib/metrics"
-	"github.com/yandex-cloud/ydb-go-sdk"
-	"github.com/yandex-cloud/ydb-go-sdk/table"
+	"github.com/ydb-platform/ydb-go-sdk/v3/table"
+	"github.com/ydb-platform/ydb-go-sdk/v3/table/types"
 	"go.uber.org/zap"
 
 	"github.com/yandex-cloud/jaeger-ydb-store/schema"
@@ -21,12 +21,12 @@ const (
 
 type BatchSpanWriter struct {
 	metrics batchWriterMetrics
-	pool    *table.SessionPool
+	pool    table.Client
 	logger  *zap.Logger
 	opts    BatchWriterOptions
 }
 
-func NewBatchWriter(pool *table.SessionPool, factory metrics.Factory, logger *zap.Logger, opts BatchWriterOptions) *BatchSpanWriter {
+func NewBatchWriter(pool table.Client, factory metrics.Factory, logger *zap.Logger, opts BatchWriterOptions) *BatchSpanWriter {
 	return &BatchSpanWriter{
 		pool:    pool,
 		logger:  logger,
@@ -48,7 +48,7 @@ func (w *BatchSpanWriter) WriteItems(items []interface{}) {
 }
 
 func (w *BatchSpanWriter) writeItemsToPartition(part schema.PartitionKey, items []*model.Span) {
-	spanRecords := make([]ydb.Value, 0, len(items))
+	spanRecords := make([]types.Value, 0, len(items))
 	for _, span := range items {
 		dbSpan, _ := dbmodel.FromDomain(span)
 		spanRecords = append(spanRecords, dbSpan.StructValue())
@@ -67,12 +67,12 @@ func (w *BatchSpanWriter) writeItemsToPartition(part schema.PartitionKey, items 
 	}
 }
 
-func (w *BatchSpanWriter) uploadRows(ctx context.Context, tableName string, rows []ydb.Value, metrics *wmetrics.WriteMetrics) error {
+func (w *BatchSpanWriter) uploadRows(ctx context.Context, tableName string, rows []types.Value, metrics *wmetrics.WriteMetrics) error {
 	ts := time.Now()
-	data := ydb.ListValue(rows...)
-	err := table.Retry(ctx, w.pool, table.OperationFunc(func(ctx context.Context, session *table.Session) error {
+	data := types.ListValue(rows...)
+	err := w.pool.Do(ctx, func(ctx context.Context, session table.Session) (err error) {
 		return session.BulkUpsert(ctx, tableName, data)
-	}))
+	})
 	metrics.Emit(err, time.Since(ts), len(rows))
 	return err
 }

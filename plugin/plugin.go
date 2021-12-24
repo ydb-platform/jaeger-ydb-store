@@ -10,7 +10,8 @@ import (
 	"github.com/spf13/viper"
 	"github.com/uber/jaeger-lib/metrics"
 	jgrProm "github.com/uber/jaeger-lib/metrics/prometheus"
-	"github.com/yandex-cloud/ydb-go-sdk/table"
+	"github.com/ydb-platform/ydb-go-sdk/v3"
+	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 	"go.uber.org/zap"
 
 	"github.com/yandex-cloud/jaeger-ydb-store/internal/db"
@@ -25,7 +26,7 @@ type YdbStorage struct {
 	metricsFactory  metrics.Factory
 	metricsRegistry *prometheus.Registry
 	logger          *zap.Logger
-	ydbPool         *table.SessionPool
+	ydbPool         table.Client
 	opts            config.Options
 
 	writer        *writer.SpanWriter
@@ -122,28 +123,20 @@ func (*YdbStorage) DependencyReader() dependencystore.Reader {
 }
 
 func (p *YdbStorage) initDB(v *viper.Viper) {
-	dialer, err := db.DialerFromViper(v)
-	if err != nil {
-		panic(err)
-	}
 	ctx, cancel := context.WithTimeout(context.Background(), p.opts.ConnectTimeout)
 	defer cancel()
 
-	driver, err := dialer.Dial(ctx, p.opts.DbAddress)
+	conn, err := db.DialFromViper(ctx, v,
+		ydb.WithSessionPoolSizeLimit(p.opts.PoolSize),
+		ydb.WithSessionPoolKeepAliveTimeout(time.Second),
+		ydb.WithConnectParams(ydb.EndpointDatabase(p.opts.DbAddress, p.opts.DbPath.Path, false)),
+		ydb.WithTraceTable(tableClientMetrics(p.metricsFactory)),
+	)
 	if err != nil {
 		p.logger.Fatal("db init failed", zap.Error(err))
 	}
-	tc := &table.Client{
-		Driver:            driver,
-		MaxQueryCacheSize: p.opts.QueryCacheSize,
-		Trace:             tableClientMetrics(p.metricsFactory),
-	}
-	p.ydbPool = &table.SessionPool{
-		SizeLimit:          p.opts.PoolSize,
-		KeepAliveBatchSize: -1,
-		KeepAliveTimeout:   time.Second,
-		Builder:            tc,
-	}
+
+	p.ydbPool = conn.Table()
 }
 
 func (p *YdbStorage) initWriters() {

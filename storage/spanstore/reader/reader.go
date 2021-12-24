@@ -12,8 +12,9 @@ import (
 	"github.com/opentracing/opentracing-go"
 	ottag "github.com/opentracing/opentracing-go/ext"
 	otlog "github.com/opentracing/opentracing-go/log"
-	"github.com/yandex-cloud/ydb-go-sdk"
-	"github.com/yandex-cloud/ydb-go-sdk/table"
+	"github.com/ydb-platform/ydb-go-sdk/v3/table"
+	"github.com/ydb-platform/ydb-go-sdk/v3/table/options"
+	"github.com/ydb-platform/ydb-go-sdk/v3/table/types"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -70,7 +71,7 @@ var (
 var _ spanstore.Reader = (*SpanReader)(nil)
 
 type SpanReader struct {
-	pool   *table.SessionPool
+	pool   table.Client
 	opts   SpanReaderOptions
 	logger *zap.Logger
 	cache  *ttlCache
@@ -85,7 +86,7 @@ type SpanReaderOptions struct {
 }
 
 // NewSpanReader returns a new SpanReader.
-func NewSpanReader(pool *table.SessionPool, opts SpanReaderOptions, logger *zap.Logger) *SpanReader {
+func NewSpanReader(pool table.Client, opts SpanReaderOptions, logger *zap.Logger) *SpanReader {
 	return &SpanReader{
 		pool:   pool,
 		opts:   opts,
@@ -99,30 +100,33 @@ func (s *SpanReader) GetServices(ctx context.Context) ([]string, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.opts.ReadTimeout)
 	defer cancel()
 	result := make([]string, 0)
-	err := table.Retry(ctx, s.pool, table.OperationFunc(func(ctx context.Context, session *table.Session) error {
+	err := s.pool.Do(ctx, func(ctx context.Context, session table.Session) error {
 		_, res, err := session.Execute(
 			ctx,
 			txc,
 			queries.BuildQuery("query-services", s.opts.DbPath),
 			nil,
-			table.WithQueryCachePolicy(table.WithQueryCachePolicyKeepInCache()),
+			options.WithQueryCachePolicy(options.WithQueryCachePolicyKeepInCache()),
 		)
 		if err != nil {
 			return err
 		}
 		defer res.Close()
 
-		for res.NextSet() {
+		for res.NextResultSet(ctx) {
 			for res.NextRow() {
-				res.NextItem()
-				result = append(result, res.OUTF8())
+				var v string
+				if err := res.ScanWithDefaults(&v); err != nil {
+					return fmt.Errorf("scan fail: %w", err)
+				}
+				result = append(result, v)
 			}
 		}
 		if err = res.Err(); err != nil {
 			return err
 		}
 		return nil
-	}))
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -139,34 +143,34 @@ func (s *SpanReader) GetOperations(ctx context.Context, query spanstore.Operatio
 	if len(query.SpanKind) > 0 {
 		prepQuery = queries.BuildQuery("query-operations-with-kind", s.opts.DbPath)
 		queryParameters = table.NewQueryParameters(
-			table.ValueParam("$service_name", ydb.UTF8Value(query.ServiceName)),
-			table.ValueParam("$span_kind", ydb.UTF8Value(query.SpanKind)),
-			table.ValueParam("$limit", ydb.Uint64Value(s.opts.OpLimit)),
+			table.ValueParam("$service_name", types.UTF8Value(query.ServiceName)),
+			table.ValueParam("$span_kind", types.UTF8Value(query.SpanKind)),
+			table.ValueParam("$limit", types.Uint64Value(s.opts.OpLimit)),
 		)
 	} else {
 		prepQuery = queries.BuildQuery("query-operations", s.opts.DbPath)
 		queryParameters = table.NewQueryParameters(
-			table.ValueParam("$service_name", ydb.UTF8Value(query.ServiceName)),
-			table.ValueParam("$limit", ydb.Uint64Value(s.opts.OpLimit)),
+			table.ValueParam("$service_name", types.UTF8Value(query.ServiceName)),
+			table.ValueParam("$limit", types.Uint64Value(s.opts.OpLimit)),
 		)
 	}
 
 	result := make([]spanstore.Operation, 0)
-	err := table.Retry(ctx, s.pool, table.OperationFunc(func(ctx context.Context, session *table.Session) error {
+	err := s.pool.Do(ctx, func(ctx context.Context, session table.Session) error {
 		res, err := session.StreamExecuteScanQuery(ctx, prepQuery, queryParameters)
 		if err != nil {
 			return err
 		}
 		defer res.Close()
 
-		for res.NextStreamSet(ctx) {
+		for res.NextResultSet(ctx) {
 			for res.NextRow() {
 				v := spanstore.Operation{
 					SpanKind: query.SpanKind,
 				}
-
-				res.SeekItem("operation_name")
-				v.Name = res.OUTF8()
+				if err := res.ScanWithDefaults(&v.Name); err != nil {
+					return fmt.Errorf("scan failed: %w", err)
+				}
 
 				result = append(result, v)
 			}
@@ -175,7 +179,7 @@ func (s *SpanReader) GetOperations(ctx context.Context, query spanstore.Operatio
 			return res.Err()
 		}
 		return nil
-	}))
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -300,31 +304,31 @@ func (s *SpanReader) queryPartitionList(ctx context.Context) ([]schema.Partition
 	span, ctx := opentracing.StartSpanFromContext(ctx, "queryPartitions")
 	defer span.Finish()
 	var result []schema.PartitionKey
-	err := table.Retry(ctx, s.pool, table.OperationFunc(func(ctx context.Context, session *table.Session) error {
+	err := s.pool.Do(ctx, func(ctx context.Context, session table.Session) error {
 		_, res, err := session.Execute(
 			ctx,
 			txc,
 			schema.BuildQuery(s.opts.DbPath, schema.QueryActiveParts),
 			nil,
-			table.WithQueryCachePolicy(table.WithQueryCachePolicyKeepInCache()),
+			options.WithQueryCachePolicy(options.WithQueryCachePolicyKeepInCache()),
 		)
 		if err != nil {
 			return err
 		}
 		defer res.Close()
 
-		result = make([]schema.PartitionKey, 0, res.RowCount())
-		part := schema.PartitionKey{}
-		for res.NextSet() {
+		result = make([]schema.PartitionKey, 0, res.TotalRowCount())
+		for res.NextResultSet(ctx, "part_date", "part_num", "is_active") {
 			for res.NextRow() {
-				if err = part.Scan(res); err != nil {
+				part := schema.PartitionKey{}
+				if err = res.ScanWithDefaults(&part.Date, &part.Num, &part.IsActive); err != nil {
 					return err
 				}
 				result = append(result, part)
 			}
 		}
 		return nil
-	}))
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -388,37 +392,36 @@ func (s *SpanReader) readArchiveTrace(ctx context.Context, traceID model.TraceID
 func (s *SpanReader) spansFromPartition(ctx context.Context, traceID model.TraceID, part schema.PartitionKey) ([]*model.Span, error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "spansFromPartition")
 
-	var numSpans int
+	var numSpans uint64
 	var query string
 	if s.opts.ArchiveReader {
 		query = queries.BuildQuery("querySpanCount", s.opts.DbPath)
 	} else {
 		query = queries.BuildPartitionQuery("querySpanCount", s.opts.DbPath, part)
 	}
-	err := table.Retry(ctx, s.pool, table.OperationFunc(func(ctx context.Context, session *table.Session) error {
+	err := s.pool.Do(ctx, func(ctx context.Context, session table.Session) error {
 		_, res, err := session.Execute(
 			ctx,
 			txc,
 			query,
 			table.NewQueryParameters(
-				table.ValueParam("$trace_id_high", ydb.Uint64Value(traceID.High)),
-				table.ValueParam("$trace_id_low", ydb.Uint64Value(traceID.Low)),
+				table.ValueParam("$trace_id_high", types.Uint64Value(traceID.High)),
+				table.ValueParam("$trace_id_low", types.Uint64Value(traceID.Low)),
 			),
-			table.WithQueryCachePolicy(table.WithQueryCachePolicyKeepInCache()),
+			options.WithQueryCachePolicy(options.WithQueryCachePolicyKeepInCache()),
 		)
 		if err != nil {
 			return err
 		}
 		defer res.Close()
 
-		if res.NextSet() && res.NextRow() && res.NextItem() {
-			numSpans = int(res.Uint64())
-			if err := res.Err(); err != nil {
+		if res.NextResultSet(ctx) && res.NextRow() {
+			if err := res.Scan(&numSpans); err != nil {
 				return fmt.Errorf("failed to read spancount result: %w", err)
 			}
 		}
 		return nil
-	}))
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -433,21 +436,21 @@ func (s *SpanReader) spansFromPartition(ctx context.Context, traceID model.Trace
 	}
 
 	var result []*model.Span
-	err = table.Retry(ctx, s.pool, table.OperationFunc(func(ctx context.Context, session *table.Session) error {
+	err = s.pool.Do(ctx, func(ctx context.Context, session table.Session) error {
 		result = make([]*model.Span, 0, numSpans)
 		dbSpan := dbmodel.Span{}
 		var span *model.Span
-		for i := 0; i < numSpans/1000+1; i++ {
+		for i := uint64(0); i < numSpans/1000+1; i++ {
 			offset := i * resultLimit
 			_, res, err := session.Execute(
 				ctx,
 				txc,
 				query,
 				table.NewQueryParameters(
-					table.ValueParam("$trace_id_high", ydb.Uint64Value(traceID.High)),
-					table.ValueParam("$trace_id_low", ydb.Uint64Value(traceID.Low)),
-					table.ValueParam("$limit", ydb.Uint64Value(uint64(resultLimit))),
-					table.ValueParam("$offset", ydb.Uint64Value(uint64(offset))),
+					table.ValueParam("$trace_id_high", types.Uint64Value(traceID.High)),
+					table.ValueParam("$trace_id_low", types.Uint64Value(traceID.Low)),
+					table.ValueParam("$limit", types.Uint64Value(uint64(resultLimit))),
+					table.ValueParam("$offset", types.Uint64Value(offset)),
 				),
 			)
 			if err != nil {
@@ -455,9 +458,19 @@ func (s *SpanReader) spansFromPartition(ctx context.Context, traceID model.Trace
 			}
 			defer res.Close()
 
-			for res.NextSet() {
+			for res.NextResultSet(ctx, "trace_id_low", "trace_id_high", "span_id", "operation_name", "flags", "start_time", "duration", "extra") {
 				for res.NextRow() {
-					if err = dbSpan.Scan(res); err != nil {
+					err = res.ScanWithDefaults(
+						&dbSpan.TraceIDLow,
+						&dbSpan.TraceIDHigh,
+						&dbSpan.SpanID,
+						&dbSpan.OperationName,
+						&dbSpan.Flags,
+						&dbSpan.StartTime,
+						&dbSpan.Duration,
+						&dbSpan.Extra,
+					)
+					if err != nil {
 						return fmt.Errorf("span.Scan failed: %w", err)
 					}
 					if span, err = dbmodel.ToDomain(&dbSpan); err != nil {
@@ -472,7 +485,7 @@ func (s *SpanReader) spansFromPartition(ctx context.Context, traceID model.Trace
 			}
 		}
 		return nil
-	}))
+	})
 	logErrorToSpan(span, err) // will skip if err == nil
 	return result, err
 }
@@ -513,11 +526,11 @@ func (s *SpanReader) queryByTagsAndLogs(ctx context.Context, tq *spanstore.Trace
 			span, ctx := opentracing.StartSpanFromContext(ctx, "queryBucket", opentracing.Tags{"bucket": bucket, "hash": hash})
 			defer span.Finish()
 			values := []table.ParameterOption{
-				table.ValueParam("$hash", ydb.Uint64Value(hash)),
+				table.ValueParam("$hash", types.Uint64Value(hash)),
 			}
 			queryName := "queryByTag"
 			if tq.OperationName != "" {
-				values = append(values, table.ValueParam("$op_hash", ydb.Uint64Value(dbmodel.HashData(tq.OperationName))))
+				values = append(values, table.ValueParam("$op_hash", types.Uint64Value(dbmodel.HashData(tq.OperationName))))
 				queryName = "queryByTagAndOperation"
 			}
 			ids, err := s.queryParallel(ctx, parts, queryName, tq, values...)
@@ -550,9 +563,9 @@ func (s *SpanReader) queryByDuration(ctx context.Context, tq *spanstore.TraceQue
 	runBucketOperation(ctx, dbmodel.NumIndexBuckets, func(ctx context.Context, bucket uint8) {
 		hash := dbmodel.HashBucketData(bucket, tq.ServiceName, tq.OperationName)
 		values := []table.ParameterOption{
-			table.ValueParam("$hash", ydb.Uint64Value(hash)),
-			table.ValueParam("$duration_min", ydb.Int64Value(minDurationNano)),
-			table.ValueParam("$duration_max", ydb.Int64Value(maxDurationNano)),
+			table.ValueParam("$hash", types.Uint64Value(hash)),
+			table.ValueParam("$duration_min", types.Int64Value(minDurationNano)),
+			table.ValueParam("$duration_max", types.Int64Value(maxDurationNano)),
 		}
 		ids, err := s.queryParallel(ctx, parts, "queryByDuration", tq, values...)
 		result.AddRows(ids, err)
@@ -568,7 +581,7 @@ func (s *SpanReader) queryByServiceNameAndOperation(ctx context.Context, tq *spa
 	span, ctx := startSpanForQuery(ctx, "queryByServiceNameAndOperation")
 	defer span.Finish()
 	values := []table.ParameterOption{
-		table.ValueParam("$hash", ydb.Uint64Value(dbmodel.HashData(tq.ServiceName, tq.OperationName))),
+		table.ValueParam("$hash", types.Uint64Value(dbmodel.HashData(tq.ServiceName, tq.OperationName))),
 	}
 	parts := schema.MakePartitionList(tq.StartTimeMin, tq.StartTimeMax)
 	ctx, cancel := context.WithCancel(ctx)
@@ -585,7 +598,7 @@ func (s *SpanReader) queryByService(ctx context.Context, tq *spanstore.TraceQuer
 	ctx, cancel := context.WithCancel(ctx)
 	sr := newSharedResult(cancel)
 	runBucketOperation(ctx, dbmodel.NumIndexBuckets, func(ctx context.Context, bucket uint8) {
-		hashParam := table.ValueParam("$hash", ydb.Uint64Value(dbmodel.HashBucketData(bucket, tq.ServiceName)))
+		hashParam := table.ValueParam("$hash", types.Uint64Value(dbmodel.HashBucketData(bucket, tq.ServiceName)))
 		sr.AddRows(s.queryParallel(ctx, parts, "queryByServiceName", tq, hashParam))
 	})
 	return sr.ProcessRows()
@@ -625,16 +638,16 @@ func (s *SpanReader) queryInPartition(ctx context.Context, queryName string, par
 	}
 
 	values = append(values,
-		table.ValueParam("$time_min", ydb.Int64Value(timeStart.UnixNano())),
-		table.ValueParam("$time_max", ydb.Int64Value(timeEnd.UnixNano())),
-		table.ValueParam("$limit", ydb.Uint64Value(uint64(limit))),
+		table.ValueParam("$time_min", types.Int64Value(timeStart.UnixNano())),
+		table.ValueParam("$time_max", types.Int64Value(timeEnd.UnixNano())),
+		table.ValueParam("$limit", types.Uint64Value(uint64(limit))),
 	)
 	return s.execQuery(ctx, span, query, values...)
 }
 
 func (s *SpanReader) execQuery(ctx context.Context, span opentracing.Span, query string, values ...table.ParameterOption) ([]dbmodel.IndexResult, error) {
 	var result []dbmodel.IndexResult
-	err := table.Retry(ctx, s.pool, table.OperationFunc(func(ctx context.Context, session *table.Session) error {
+	err := s.pool.Do(ctx, func(ctx context.Context, session table.Session) error {
 		_, res, err := session.Execute(
 			ctx,
 			txc,
@@ -645,13 +658,13 @@ func (s *SpanReader) execQuery(ctx context.Context, span opentracing.Span, query
 			return err
 		}
 		defer res.Close()
-		result = make([]dbmodel.IndexResult, 0, res.RowCount())
+		result = make([]dbmodel.IndexResult, 0, res.TotalRowCount())
 
-		for res.NextSet() {
+		for res.NextResultSet(ctx, "trace_ids", "rev_start_time") {
 			for res.NextRow() {
 				qr := dbmodel.IndexResult{}
-				if err := qr.Scan(res); err != nil {
-					return err
+				if err := res.ScanWithDefaults(&qr.Ids, &qr.RevTs); err != nil {
+					return fmt.Errorf("scan failed: %w", err)
 				}
 				result = append(result, qr)
 			}
@@ -660,7 +673,7 @@ func (s *SpanReader) execQuery(ctx context.Context, span opentracing.Span, query
 			return res.Err()
 		}
 		return nil
-	}))
+	})
 	if err != nil {
 		span.LogFields(otlog.String("query", query))
 		s.logger.Error("Failed to exec query", zap.Error(err), zap.String("query", query))

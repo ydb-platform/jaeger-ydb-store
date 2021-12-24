@@ -7,7 +7,7 @@ import (
 
 	"github.com/dgryski/go-farm"
 	"github.com/jaegertracing/jaeger/model"
-	"github.com/yandex-cloud/ydb-go-sdk"
+	"github.com/ydb-platform/ydb-go-sdk/v3/table/types"
 
 	"github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/dbmodel"
 )
@@ -47,10 +47,10 @@ func (i durationIndex) Hash() uint64 {
 	return farm.Hash64(buf.Bytes())
 }
 
-func (i durationIndex) StructFields(bucket uint8) []ydb.StructValueOption {
-	return []ydb.StructValueOption{
-		ydb.StructFieldValue("idx_hash", ydb.Uint64Value(dbmodel.HashBucketData(bucket, i.serviceName, i.operationName))),
-		ydb.StructFieldValue("duration", ydb.Int64Value(i.duration)),
-		ydb.StructFieldValue("rev_start_time", ydb.Int64Value(-i.startTime.UnixNano())),
+func (i durationIndex) StructFields(bucket uint8) []types.StructValueOption {
+	return []types.StructValueOption{
+		types.StructFieldValue("idx_hash", types.Uint64Value(dbmodel.HashBucketData(bucket, i.serviceName, i.operationName))),
+		types.StructFieldValue("duration", types.Int64Value(i.duration)),
+		types.StructFieldValue("rev_start_time", types.Int64Value(-i.startTime.UnixNano())),
 	}
 }

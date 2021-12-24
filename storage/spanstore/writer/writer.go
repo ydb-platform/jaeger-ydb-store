@@ -7,8 +7,8 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/uber/jaeger-lib/metrics"
-	"github.com/yandex-cloud/ydb-go-sdk"
-	"github.com/yandex-cloud/ydb-go-sdk/table"
+	"github.com/ydb-platform/ydb-go-sdk/v3/table"
+	"github.com/ydb-platform/ydb-go-sdk/v3/table/types"
 	"go.uber.org/zap"
 
 	"github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/batch"
@@ -18,7 +18,7 @@ import (
 // SpanWriter handles all span/indexer writes to YDB
 type SpanWriter struct {
 	opts              SpanWriterOptions
-	pool              *table.SessionPool
+	pool              table.Client
 	logger            *zap.Logger
 	spanBatch         *batch.Queue
 	indexer           *indexer.Indexer
@@ -27,7 +27,7 @@ type SpanWriter struct {
 }
 
 // NewSpanWriter creates writer interface implementation for YDB
-func NewSpanWriter(pool *table.SessionPool, metricsFactory metrics.Factory, logger *zap.Logger, opts SpanWriterOptions) *SpanWriter {
+func NewSpanWriter(pool table.Client, metricsFactory metrics.Factory, logger *zap.Logger, opts SpanWriterOptions) *SpanWriter {
 	cache, _ := lru.New(opts.OpCacheSize) // it's ok to ignore this error for negative size
 	batchOpts := batch.Options{
 		BufferSize:   opts.BufferSize,
@@ -100,12 +100,12 @@ func (s *SpanWriter) saveServiceNameAndOperationName(span *model.Span) error {
 	operationName := span.GetOperationName()
 	kind, _ := span.GetSpanKind()
 	if exists, _ := s.nameCache.ContainsOrAdd(serviceName, true); !exists {
-		data := ydb.ListValue(ydb.StructValue(
-			ydb.StructFieldValue("service_name", ydb.UTF8Value(serviceName)),
+		data := types.ListValue(types.StructValue(
+			types.StructFieldValue("service_name", types.UTF8Value(serviceName)),
 		))
-		err := table.Retry(ctx, s.pool, table.OperationFunc(func(ctx context.Context, session *table.Session) error {
+		err := s.pool.Do(ctx, func(ctx context.Context, session table.Session) (err error) {
 			return session.BulkUpsert(ctx, s.opts.DbPath.FullTable("service_names"), data)
-		}))
+		})
 		if err != nil {
 			return err
 		}
@@ -114,14 +114,14 @@ func (s *SpanWriter) saveServiceNameAndOperationName(span *model.Span) error {
 		return nil
 	}
 	if exists, _ := s.nameCache.ContainsOrAdd(serviceName+"-"+operationName+"-"+kind, true); !exists {
-		data := ydb.ListValue(ydb.StructValue(
-			ydb.StructFieldValue("service_name", ydb.UTF8Value(serviceName)),
-			ydb.StructFieldValue("operation_name", ydb.UTF8Value(operationName)),
-			ydb.StructFieldValue("span_kind", ydb.UTF8Value(kind)),
+		data := types.ListValue(types.StructValue(
+			types.StructFieldValue("service_name", types.UTF8Value(serviceName)),
+			types.StructFieldValue("operation_name", types.UTF8Value(operationName)),
+			types.StructFieldValue("span_kind", types.UTF8Value(kind)),
 		))
-		err := table.Retry(ctx, s.pool, table.OperationFunc(func(ctx context.Context, session *table.Session) error {
+		err := s.pool.Do(ctx, func(ctx context.Context, session table.Session) error {
 			return session.BulkUpsert(ctx, s.opts.DbPath.FullTable("operation_names_v2"), data)
-		}))
+		})
 		if err != nil {
 			return err
 		}

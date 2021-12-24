@@ -8,10 +8,8 @@ import (
 
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/uber/jaeger-lib/metrics"
-	"github.com/yandex-cloud/ydb-go-sdk/table"
-	_ "github.com/yandex-cloud/ydb-go-sdk/ydbsql"
-
 	"github.com/yandex-cloud/jaeger-ydb-store/internal/testutil"
 	"github.com/yandex-cloud/jaeger-ydb-store/schema"
 	"github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/reader"
@@ -36,12 +34,8 @@ func TestArchiveSpanWriter_WriteSpan(t *testing.T) {
 	defer cancel()
 
 	dt := time.Date(2063, 4, 5, 0, 0, 0, 0, time.UTC)
-	err = table.Retry(ctx, pool, table.OperationFunc(func(ctx context.Context, session *table.Session) error {
-		return testutil.CreatePartitionTables(ctx, session, schema.PartitionFromTime(dt))
-	}))
-	if !assert.NoError(t, err) {
-		return
-	}
+	err = testutil.CreatePartitionTables(ctx, pool, schema.PartitionFromTime(dt))
+	require.NoError(t, err)
 
 	testTraceId := model.NewTraceID(1, 47)
 	writer := NewSpanWriter(pool, metrics.NullFactory, testutil.Zap(), opts)

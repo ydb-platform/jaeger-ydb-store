@@ -5,7 +5,7 @@ import (
 
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/uber/jaeger-lib/metrics"
-	"github.com/yandex-cloud/ydb-go-sdk/table"
+	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 	"go.uber.org/zap"
 
 	"github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/indexer/index"
@@ -34,7 +34,7 @@ type Indexer struct {
 	dropCounter    metrics.Counter
 }
 
-func StartIndexer(pool *table.SessionPool, mf metrics.Factory, logger *zap.Logger, opts Options) *Indexer {
+func StartIndexer(pool table.Client, mf metrics.Factory, logger *zap.Logger, opts Options) *Indexer {
 	indexer := &Indexer{
 		logger: logger,
 		opts:   opts,
