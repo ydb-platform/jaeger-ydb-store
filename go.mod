@@ -17,10 +17,10 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/uber/jaeger-client-go v2.29.1+incompatible
 	github.com/uber/jaeger-lib v2.4.1+incompatible
-	github.com/ydb-platform/ydb-go-sdk/v3 v3.4.1
+	github.com/ydb-platform/ydb-go-sdk/v3 v3.5.1
 	github.com/ydb-platform/ydb-go-yc v0.2.1
 	go.uber.org/zap v1.18.1
-	google.golang.org/grpc v1.39.0
+	google.golang.org/grpc v1.43.0
 )
 
 require (
@@ -56,10 +56,10 @@ require (
 	github.com/ydb-platform/ydb-go-genproto v0.0.0-20211103074319-526e57659e16 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
-	golang.org/x/net v0.0.0-20210614182718-04defd469f4e // indirect
-	golang.org/x/sys v0.0.0-20210615035016-665e8c7367d1 // indirect
-	golang.org/x/text v0.3.6 // indirect
-	google.golang.org/genproto v0.0.0-20210602131652-f16073e35f0c // indirect
+	golang.org/x/net v0.0.0-20211216030914-fe4d6282115f // indirect
+	golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e // indirect
+	golang.org/x/text v0.3.7 // indirect
+	google.golang.org/genproto v0.0.0-20211223182754-3ac035c7e7cb // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/ini.v1 v1.62.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
