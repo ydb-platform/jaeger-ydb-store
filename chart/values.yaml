@@ -2,25 +2,25 @@
 
 ydb: 
   # DB endpoint host:port to connect to
-  # endpoint: ""
+  endpoint:
 
   # Database path
-  # database: ""
+  database:
 
   # Folder to store data in
-  # folder: ""
+  folder:
 
   # Service account id for Yandex.Cloud authorization
-  # saId: ""
+  saId: ""
 
   # Service account key id for Yandex.Cloud authorization
-  # saKeyId: ""
+  saKeyId: ""
 
   # Service account private key for Yandex.Cloud authorization
-  # saPrivateKey: ""
+  saPrivateKey: ""
 
   # Use metadata to authorize requests
-  # useMetaAuth: true
+  useMetaAuth: true
 
   env:
     # DB connect timeout
@@ -37,6 +37,9 @@ ydb:
 
     # Max operation names to fetch for service
     # YDB_READ_OP_LIMIT: 5000
+
+    # Max service names to fetch
+    # YDB_READ_SVC_LIMIT: 1000
 
     # DB session pool size
     # YDB_POOL_SIZE: 100
@@ -84,15 +87,15 @@ image:
   query:
     pullPolicy: IfNotPresent
     repository: cr.yandex/yc/jaeger-ydb-query
-    tag: v1.5.1
+    tag: v1.6.0
   collector:
     pullPolicy: IfNotPresent
     repository: cr.yandex/yc/jaeger-ydb-collector
-    tag: v1.5.1
+    tag: v1.6.0
   watcher:
     pullPolicy: IfNotPresent
     repository: cr.yandex/yc/jaeger-ydb-watcher
-    tag: v1.5.1
+    tag: v1.6.0
   agent:
     pullPolicy: IfNotPresent
     repository: jaegertracing/jaeger-agent
