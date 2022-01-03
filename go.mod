@@ -17,8 +17,8 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/uber/jaeger-client-go v2.29.1+incompatible
 	github.com/uber/jaeger-lib v2.4.1+incompatible
-	github.com/ydb-platform/ydb-go-sdk/v3 v3.4.1
-	github.com/ydb-platform/ydb-go-yc v0.2.1
+	github.com/ydb-platform/ydb-go-sdk/v3 v3.6.2
+	github.com/ydb-platform/ydb-go-yc v0.4.2
 	go.uber.org/zap v1.18.1
 	google.golang.org/grpc v1.39.0
 )
@@ -52,7 +52,7 @@ require (
 	github.com/spf13/cast v1.3.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
-	github.com/yandex-cloud/go-genproto v0.0.0-20211012081957-400ccab0fe15 // indirect
+	github.com/yandex-cloud/go-genproto v0.0.0-20211115083454-9ca41db5ed9e // indirect
 	github.com/ydb-platform/ydb-go-genproto v0.0.0-20211103074319-526e57659e16 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect

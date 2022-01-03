@@ -1,5 +1,15 @@
 # Changes by version
 
+1.7.0 (2022-01-03)
+------------------
+
+* updated ydb-go-sdk from v3.4.1 to v3.6.2
+* updated ydb-go-yc from v0.2.1 to v0.4.2
+* fixed code with latest ydb-go-sdk
+* added integration tests instead docker with ydb
+* added issue templates
+* fixed some linter issues
+
 1.6.0 (2021-12-24)
 ------------------
 

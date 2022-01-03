@@ -36,7 +36,7 @@ func initDb(tb testing.TB) {
 		dbPath := schema.DbPath{Path: os.Getenv("YDB_PATH"), Folder: os.Getenv("YDB_FOLDER")}
 		require.NotEmpty(tb, os.Getenv("YDB_ADDRESS"))
 		conn, err := ydb.New(ctx,
-			ydb.WithConnectParams(ydb.EndpointDatabase(os.Getenv("YDB_ADDRESS"), dbPath.Path, false)),
+			ydb.WithConnectParams(ydb.EndpointDatabase(os.Getenv("YDB_ADDRESS"), dbPath.Path, os.Getenv("YDB_SECURE") == "1")),
 			ydb.WithSessionPoolSizeLimit(10),
 			ydb.WithAccessTokenCredentials(os.Getenv("YDB_TOKEN")),
 		)
@@ -114,7 +114,7 @@ func CreatePartitionTables(ctx context.Context, tc table.Client, parts ...schema
 		for name, tableOptions := range schema.PartitionTables {
 			fullPath := part.BuildFullTableName(dbPath.String(), name)
 			tbl := dbPath.Table(name)
-			tc.Do(ctx, func(ctx context.Context, session table.Session) error {
+			err = tc.Do(ctx, func(ctx context.Context, session table.Session) error {
 				return session.CreateTable(ctx, fullPath, tableOptions(3)...)
 			})
 			if err != nil {
