@@ -326,7 +326,7 @@ func (s *SpanReader) queryPartitionList(ctx context.Context) ([]schema.Partition
 		if !res.NextResultSet(ctx, "part_date", "part_num", "is_active") {
 			return ErrNothingResultSets
 		}
-		result = make([]schema.PartitionKey, 0, res.ResultSetCount())
+		result = make([]schema.PartitionKey, 0, res.CurrentResultSet().RowCount())
 		for res.NextRow() {
 			part := schema.PartitionKey{}
 			if err = res.ScanWithDefaults(&part.Date, &part.Num, &part.IsActive); err != nil {
@@ -450,7 +450,7 @@ func (s *SpanReader) spansFromPartition(ctx context.Context, traceID model.Trace
 		var span *model.Span
 		for i := uint64(0); i < numSpans/1000+1; i++ {
 			offset := i * resultLimit
-			if err = func() error { // for auto-call defer per each i
+			err = func() (err error) { // for auto-call defer per each i
 				_, res, err := session.Execute(
 					ctx,
 					txc,
@@ -494,7 +494,8 @@ func (s *SpanReader) spansFromPartition(ctx context.Context, traceID model.Trace
 					return fmt.Errorf("failed to read spans: %w", err)
 				}
 				return nil
-			}(); err != nil {
+			}()
+			if err != nil {
 				return err
 			}
 		}
@@ -677,7 +678,7 @@ func (s *SpanReader) execQuery(ctx context.Context, span opentracing.Span, query
 		if !res.NextResultSet(ctx, "trace_ids", "rev_start_time") {
 			return ErrNothingResultSets
 		}
-		result = make([]dbmodel.IndexResult, 0, res.ResultSetCount())
+		result = make([]dbmodel.IndexResult, 0, res.CurrentResultSet().RowCount())
 		for res.NextRow() {
 			qr := dbmodel.IndexResult{}
 			if err := res.ScanWithDefaults(&qr.Ids, &qr.RevTs); err != nil {
