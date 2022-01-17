@@ -1,5 +1,12 @@
 # YDB storage plugin for Jaeger
 
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/yandex-cloud/jaeger-ydb-store)](https://pkg.go.dev/github.com/yandex-cloud/jaeger-ydb-store)
+[![GoDoc](https://godoc.org/github.com/yandex-cloud/jaeger-ydb-store?status.svg)](https://godoc.org/github.com/yandex-cloud/jaeger-ydb-store)
+![tests](https://github.com/yandex-cloud/jaeger-ydb-store/workflows/tests/badge.svg?branch=master)
+![lint](https://github.com/yandex-cloud/jaeger-ydb-store/workflows/lint/badge.svg?branch=master)
+[![Go Report Card](https://goreportcard.com/badge/github.com/yandex-cloud/jaeger-ydb-store)](https://goreportcard.com/report/github.com/yandex-cloud/jaeger-ydb-store)
+[![codecov](https://codecov.io/gh/yandex-cloud/jaeger-ydb-store/branch/master/graph/badge.svg)](https://app.codecov.io/gh/yandex-cloud/jaeger-ydb-store)
+
 This is a storage backend using [Yandex.Database](https://cloud.yandex.ru/services/ydb) for [Jaeger](https://github.com/jaegertracing/jaeger)
 
 ## components
