@@ -17,7 +17,7 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/uber/jaeger-client-go v2.29.1+incompatible
 	github.com/uber/jaeger-lib v2.4.1+incompatible
-	github.com/ydb-platform/ydb-go-sdk/v3 v3.6.2
+	github.com/ydb-platform/ydb-go-sdk/v3 v3.7.0
 	github.com/ydb-platform/ydb-go-yc v0.4.2
 	go.uber.org/zap v1.18.1
 	google.golang.org/grpc v1.39.0
