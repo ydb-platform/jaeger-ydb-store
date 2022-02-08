@@ -14,7 +14,6 @@ import (
 	"github.com/spf13/viper"
 	localViper "github.com/yandex-cloud/jaeger-ydb-store/internal/viper"
 	"github.com/ydb-platform/ydb-go-sdk/v3"
-	"github.com/ydb-platform/ydb-go-sdk/v3/config"
 	"github.com/ydb-platform/ydb-go-sdk/v3/scheme"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 	"go.uber.org/zap"
@@ -140,6 +139,7 @@ func ydbConn(v *viper.Viper) (ydb.Connection, error) {
 	defer cancel()
 
 	return db.DialFromViper(ctx, v,
-		ydb.With(config.WithEndpoint(v.GetString(db.KeyYdbAddress)), config.WithDatabase(v.GetString(db.KeyYdbPath))),
+		ydb.WithEndpoint(v.GetString(db.KeyYdbAddress)),
+		ydb.WithDatabase(v.GetString(db.KeyYdbPath)),
 	)
 }
