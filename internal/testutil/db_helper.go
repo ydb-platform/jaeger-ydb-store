@@ -36,7 +36,9 @@ func initDb(tb testing.TB) {
 		dbPath := schema.DbPath{Path: os.Getenv("YDB_PATH"), Folder: os.Getenv("YDB_FOLDER")}
 		require.NotEmpty(tb, os.Getenv("YDB_ADDRESS"))
 		conn, err := ydb.New(ctx,
-			ydb.WithConnectParams(ydb.EndpointDatabase(os.Getenv("YDB_ADDRESS"), dbPath.Path, os.Getenv("YDB_SECURE") == "1")),
+			ydb.WithEndpoint(os.Getenv("YDB_ADDRESS")),
+			ydb.WithDatabase(dbPath.Path),
+			ydb.WithSecure(os.Getenv("YDB_SECURE") == "1"),
 			ydb.WithSessionPoolSizeLimit(10),
 			ydb.WithAccessTokenCredentials(os.Getenv("YDB_TOKEN")),
 		)

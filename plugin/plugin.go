@@ -131,7 +131,9 @@ func (p *YdbStorage) initDB(v *viper.Viper) {
 	conn, err := db.DialFromViper(ctx, v,
 		ydb.WithSessionPoolSizeLimit(p.opts.PoolSize),
 		ydb.WithSessionPoolKeepAliveTimeout(time.Second),
-		ydb.WithConnectParams(ydb.EndpointDatabase(p.opts.DbAddress, p.opts.DbPath.Path, false)),
+		ydb.WithEndpoint(p.opts.DbAddress),
+		ydb.WithDatabase(p.opts.DbPath.Path),
+		ydb.WithInsecure(),
 		ydb.WithTraceTable(tableClientMetrics(p.metricsFactory)),
 	)
 	if err != nil {
