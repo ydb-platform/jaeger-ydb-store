@@ -41,6 +41,8 @@ const (
 	KeyYDBPartitionSize      = "ydb.partition-size"
 	KeyYDBFeatureSplitByLoad = "ydb.feature.split-by-load"
 	KeyYDBFeatureCompression = "ydb.feature.compression"
+
+	KeyYdbLogScope = "ydb.log.scope"
 )
 const (
 	KeyIAMEndpoint = "iam.endpoint"

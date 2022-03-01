@@ -3,8 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	ydbZap "github.com/ydb-platform/ydb-go-sdk-zap"
-	"github.com/ydb-platform/ydb-go-sdk/v3/trace"
 	"log"
 	"os"
 	"os/signal"
@@ -80,13 +78,7 @@ func main() {
 
 			shutdown := make(chan os.Signal, 1)
 			signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM)
-			conn, err := ydbConn(
-				viper.GetViper(),
-				ydbZap.WithTraces(
-					logger,
-					trace.DetailsAll,
-				),
-			)
+			conn, err := ydbConn(viper.GetViper(), logger)
 			if err != nil {
 				return fmt.Errorf("failed to create table client: %w", err)
 			}
@@ -109,13 +101,7 @@ func main() {
 				Path:   viper.GetString(db.KeyYdbPath),
 				Folder: viper.GetString(db.KeyYdbFolder),
 			}
-			conn, err := ydbConn(
-				viper.GetViper(),
-				ydbZap.WithTraces(
-					logger,
-					trace.DetailsAll,
-				),
-			)
+			conn, err := ydbConn(viper.GetViper(), logger)
 			if err != nil {
 				return fmt.Errorf("failed to create table client: %w", err)
 			}
@@ -148,15 +134,15 @@ func main() {
 	}
 }
 
-func ydbConn(v *viper.Viper, opts ...ydb.Option) (ydb.Connection, error) {
+func ydbConn(v *viper.Viper, l *zap.Logger) (ydb.Connection, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
-	opts = append(
-		opts,
+	return db.DialFromViper(
+		ctx,
+		v,
+		l,
 		ydb.WithEndpoint(v.GetString(db.KeyYdbAddress)),
 		ydb.WithDatabase(v.GetString(db.KeyYdbPath)),
 	)
-
-	return db.DialFromViper(ctx, v, opts...)
 }

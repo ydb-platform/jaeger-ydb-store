@@ -2,8 +2,6 @@ package plugin
 
 import (
 	"context"
-	ydbZap "github.com/ydb-platform/ydb-go-sdk-zap"
-	"github.com/ydb-platform/ydb-go-sdk/v3/trace"
 	"time"
 
 	"github.com/jaegertracing/jaeger/storage/dependencystore"
@@ -97,13 +95,7 @@ func (p *YdbStorage) InitFromViper(v *viper.Viper) {
 	if err != nil {
 		panic(err)
 	}
-	p.initDB(
-		v,
-		ydbZap.WithTraces(
-			p.logger,
-			trace.DetailsAll,
-		),
-	)
+	p.initDB(v)
 	p.initWriters()
 	p.initReaders()
 }
@@ -132,20 +124,20 @@ func (*YdbStorage) DependencyReader() dependencystore.Reader {
 	return ydbDepStore.DependencyStore{}
 }
 
-func (p *YdbStorage) initDB(v *viper.Viper, opts ...ydb.Option) {
+func (p *YdbStorage) initDB(v *viper.Viper) {
 	ctx, cancel := context.WithTimeout(context.Background(), p.opts.ConnectTimeout)
 	defer cancel()
 
-	opts = append(
-		opts,
+	conn, err := db.DialFromViper(
+		ctx,
+		v,
+		p.logger,
 		ydb.WithEndpoint(p.opts.DbAddress),
 		ydb.WithDatabase(p.opts.DbPath.Path),
 		ydb.WithSessionPoolSizeLimit(p.opts.PoolSize),
 		ydb.WithSessionPoolKeepAliveTimeout(time.Second),
 		ydb.WithTraceTable(tableClientMetrics(p.metricsFactory)),
 	)
-
-	conn, err := db.DialFromViper(ctx, v, opts...)
 	if err != nil {
 		p.logger.Fatal("db init failed", zap.Error(err))
 	}
