@@ -1,5 +1,11 @@
 # Changes by version
 
+1.8.0 (2022-03-02)
+------------------
+
+* updated ydb-go-sdk to v3.11.11
+* add ydb sdk logger
+
 1.7.0 (2022-01-03)
 ------------------
 
