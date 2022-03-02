@@ -128,7 +128,10 @@ func (p *YdbStorage) initDB(v *viper.Viper) {
 	ctx, cancel := context.WithTimeout(context.Background(), p.opts.ConnectTimeout)
 	defer cancel()
 
-	conn, err := db.DialFromViper(ctx, v,
+	conn, err := db.DialFromViper(
+		ctx,
+		v,
+		p.logger,
 		ydb.WithEndpoint(p.opts.DbAddress),
 		ydb.WithDatabase(p.opts.DbPath.Path),
 		ydb.WithSessionPoolSizeLimit(p.opts.PoolSize),

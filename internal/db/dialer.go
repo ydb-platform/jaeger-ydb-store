@@ -2,6 +2,9 @@ package db
 
 import (
 	"context"
+	ydbZap "github.com/ydb-platform/ydb-go-sdk-zap"
+	"github.com/ydb-platform/ydb-go-sdk/v3/trace"
+	"go.uber.org/zap"
 
 	"github.com/spf13/viper"
 	"github.com/ydb-platform/ydb-go-sdk/v3"
@@ -12,8 +15,23 @@ const (
 	defaultIAMEndpoint = "iam.api.cloud.yandex.net:443"
 )
 
-func options(v *viper.Viper, opts ...ydb.Option) []ydb.Option {
+func options(v *viper.Viper, l *zap.Logger, opts ...ydb.Option) []ydb.Option {
 	v.SetDefault(KeyIAMEndpoint, defaultIAMEndpoint)
+
+	if l != nil {
+		opts = append(
+			opts,
+			ydbZap.WithTraces(
+				l,
+				trace.MatchDetails(
+					viper.GetString(KeyYdbLogScope),
+					trace.WithDefaultDetails(
+						trace.DiscoveryEvents,
+					),
+				),
+			),
+		)
+	}
 
 	if v.GetString(KeyYdbToken) != "" {
 		return append(
@@ -48,6 +66,6 @@ func options(v *viper.Viper, opts ...ydb.Option) []ydb.Option {
 	)
 }
 
-func DialFromViper(ctx context.Context, v *viper.Viper, opts ...ydb.Option) (ydb.Connection, error) {
-	return ydb.New(ctx, options(v, opts...)...)
+func DialFromViper(ctx context.Context, v *viper.Viper, logger *zap.Logger, opts ...ydb.Option) (ydb.Connection, error) {
+	return ydb.New(ctx, options(v, logger, opts...)...)
 }
