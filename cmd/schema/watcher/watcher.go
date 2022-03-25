@@ -188,7 +188,7 @@ func (w *Watcher) dropTables(ctx context.Context, session table.Session, k schem
 		fullName := k.BuildFullTableName(w.opts.DBPath.String(), name)
 		err := session.DropTable(ctx, fullName)
 		if err != nil {
-			opErr := ydb.OperationErrorDescription(err)
+			opErr := ydb.OperationError(err)
 			switch {
 			// table or path already removed, ignore err
 			case opErr != nil && db.IssueContainsMessage(err, "EPathStateNotExist"):

@@ -13,8 +13,8 @@ func tableClientMetrics(factory metrics.Factory) trace.Table {
 	sc := ns.Gauge(metrics.Options{Name: "sessions"})
 	mx := new(sync.Mutex)
 	return trace.Table{
-		OnSessionNew: func(trace.SessionNewStartInfo) func(trace.SessionNewDoneInfo) {
-			return func(doneInfo trace.SessionNewDoneInfo) {
+		OnSessionNew: func(trace.TableSessionNewStartInfo) func(trace.TableSessionNewDoneInfo) {
+			return func(doneInfo trace.TableSessionNewDoneInfo) {
 				mx.Lock()
 				defer mx.Unlock()
 				if doneInfo.Error == nil {
@@ -23,8 +23,8 @@ func tableClientMetrics(factory metrics.Factory) trace.Table {
 				}
 			}
 		},
-		OnSessionDelete: func(info trace.SessionDeleteStartInfo) func(trace.SessionDeleteDoneInfo) {
-			return func(_ trace.SessionDeleteDoneInfo) {
+		OnSessionDelete: func(info trace.TableSessionDeleteStartInfo) func(trace.TableSessionDeleteDoneInfo) {
+			return func(_ trace.TableSessionDeleteDoneInfo) {
 				mx.Lock()
 				defer mx.Unlock()
 				delete(m, info.Session.ID())
