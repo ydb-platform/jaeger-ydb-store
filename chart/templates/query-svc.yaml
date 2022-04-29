@@ -1,3 +1,4 @@
+{{- if .Values.query.enabled -}}
 {{- with .Values.service.query }}
 apiVersion: v1
 kind: Service
@@ -35,4 +36,5 @@ spec:
   selector:
     {{- include "jaeger-ydb-store.selectorLabels" $ | nindent 4 }}
     {{- include "jaeger-ydb-store.querySelectorLabels" $ | nindent 4 }}
+{{- end }}
 {{- end }}

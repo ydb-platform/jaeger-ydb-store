@@ -1,3 +1,4 @@
+{{- if .Values.collector.enabled -}}
 {{- with .Values.service.collector }}
 apiVersion: v1
 kind: Service
@@ -35,4 +36,5 @@ spec:
   selector:
     {{- include "jaeger-ydb-store.selectorLabels" $ | nindent 4 }}
     {{- include "jaeger-ydb-store.collectorSelectorLabels" $ | nindent 4 }}
+{{- end }}
 {{- end }}

@@ -1,6 +1,6 @@
 # Default values for jaeger-ydb-store.
 
-ydb: 
+ydb:
   # DB endpoint host:port to connect to
   endpoint:
 
@@ -106,6 +106,7 @@ nameOverride: ""
 fullnameOverride: ""
 
 collector:
+  enabled: true
   replicas: 3
   affinity: {}
   nodeSelector: {}
@@ -115,6 +116,7 @@ collector:
   podAnnotations: {}
 
 query:
+  enabled: true
   replicas: 3
   affinity: {}
   nodeSelector: {}
@@ -124,6 +126,7 @@ query:
   podAnnotations: {}
 
 watcher:
+  enabled: true
   replicas: 2
   affinity: {}
   nodeSelector: {}
