@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"context"
+	"github.com/ydb-platform/ydb-go-sdk/v3/sugar"
 	"time"
 
 	"github.com/jaegertracing/jaeger/storage/dependencystore"
@@ -132,8 +133,7 @@ func (p *YdbStorage) initDB(v *viper.Viper) {
 		ctx,
 		v,
 		p.logger,
-		ydb.WithEndpoint(p.opts.DbAddress),
-		ydb.WithDatabase(p.opts.DbPath.Path),
+		sugar.DSN(p.opts.DbAddress, p.opts.DbPath.Path, true),
 		ydb.WithSessionPoolSizeLimit(p.opts.PoolSize),
 		ydb.WithSessionPoolKeepAliveTimeout(time.Second),
 		ydb.WithTraceTable(tableClientMetrics(p.metricsFactory)),

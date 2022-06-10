@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/ydb-platform/ydb-go-sdk/v3/sugar"
 	"log"
 	"os"
 	"os/signal"
@@ -138,11 +139,5 @@ func ydbConn(v *viper.Viper, l *zap.Logger) (ydb.Connection, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
-	return db.DialFromViper(
-		ctx,
-		v,
-		l,
-		ydb.WithEndpoint(v.GetString(db.KeyYdbAddress)),
-		ydb.WithDatabase(v.GetString(db.KeyYdbPath)),
-	)
+	return db.DialFromViper(ctx, v, l, sugar.DSN(v.GetString(db.KeyYdbAddress), v.GetString(db.KeyYdbPath), false))
 }
