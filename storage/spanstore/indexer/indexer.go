@@ -18,9 +18,7 @@ const (
 	tblServiceOperationIndex = "idx_service_op"
 )
 
-var (
-	ErrOverflow = errors.New("indexer buffer overflow")
-)
+var ErrOverflow = errors.New("indexer buffer overflow")
 
 type Indexer struct {
 	opts   Options

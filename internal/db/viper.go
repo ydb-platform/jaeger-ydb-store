@@ -44,6 +44,7 @@ const (
 
 	KeyYdbLogScope = "ydb.log.scope"
 )
+
 const (
 	KeyIAMEndpoint = "iam.endpoint"
 )

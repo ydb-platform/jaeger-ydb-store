@@ -2,13 +2,13 @@ package db
 
 import (
 	"context"
-	ydbZap "github.com/ydb-platform/ydb-go-sdk-zap"
-	"github.com/ydb-platform/ydb-go-sdk/v3/trace"
-	"go.uber.org/zap"
 
 	"github.com/spf13/viper"
-	"github.com/ydb-platform/ydb-go-sdk/v3"
+	ydbZap "github.com/ydb-platform/ydb-go-sdk-zap"
+	ydb "github.com/ydb-platform/ydb-go-sdk/v3"
+	"github.com/ydb-platform/ydb-go-sdk/v3/trace"
 	yc "github.com/ydb-platform/ydb-go-yc"
+	"go.uber.org/zap"
 )
 
 const (

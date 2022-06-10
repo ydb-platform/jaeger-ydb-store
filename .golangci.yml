@@ -67,7 +67,7 @@ linters-settings:
   goimports:
     # put imports beginning with prefix after 3rd-party packages;
     # it's a comma-separated list of prefixes
-    local-prefixes: github.com/ydb-platform/ydb-go-sdk/v3
+    local-prefixes: github.com/yandex-cloud/jaeger-ydb-store
   goconst:
     # minimal length of string constant, 3 by default
     min-len: 2
@@ -145,9 +145,9 @@ linters:
 #    - godot
 #    - godox// TODO: fix issues
     - gofmt # On why gofmt when goimports is enabled - https://github.com/golang/go/issues/21476
-#    - gofumpt // TODO: fix issues
+    - gofumpt
     - goheader
-#    - goimports // TODO: fix issues
+    - goimports
 #    - gomnd
 #    - gomoddirectives
 #    - gomodguard

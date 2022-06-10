@@ -84,6 +84,7 @@ func (w *indexWriter) writePartition(part schema.PartitionKey, items []indexData
 	rows := make([]types.Value, 0, len(items))
 	for _, item := range items {
 		brr.Next()
+		// nolint: typecheck, nolintlint
 		buf := item.traceIds.ToBytes()
 		fields := item.idx.StructFields(brr.Next())
 		fields = append(fields,

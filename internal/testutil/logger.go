@@ -1,8 +1,9 @@
 package testutil
 
 import (
-	"go.uber.org/zap"
 	"os"
+
+	"go.uber.org/zap"
 )
 
 func Zap() *zap.Logger {

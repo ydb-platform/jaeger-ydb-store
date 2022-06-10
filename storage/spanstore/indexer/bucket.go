@@ -4,9 +4,7 @@ import (
 	"time"
 )
 
-var (
-	r = newLockedRand(time.Now().UnixNano())
-)
+var r = newLockedRand(time.Now().UnixNano())
 
 type bucketRR struct {
 	max uint8

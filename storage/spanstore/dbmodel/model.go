@@ -2,9 +2,10 @@ package dbmodel
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/jaegertracing/jaeger/model"
-	"time"
 )
 
 // Span represents db-serializable model

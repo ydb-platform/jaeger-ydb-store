@@ -2,17 +2,16 @@ package batch
 
 import (
 	"errors"
-	"github.com/uber/jaeger-lib/metrics"
 	"time"
+
+	"github.com/uber/jaeger-lib/metrics"
 )
 
 const (
 	defaultBufferSize = 2000
 )
 
-var (
-	ErrOverflow = errors.New("writer buffer overflow")
-)
+var ErrOverflow = errors.New("writer buffer overflow")
 
 // Queue represents queue of message batches
 type Queue struct {

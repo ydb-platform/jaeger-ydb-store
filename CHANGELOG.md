@@ -7,6 +7,7 @@
 * updated ydb-go-sdk-zap to v0.10.1
 * updated ydb-go-yc to v0.9.0
 * updated grpc to v1.45.0
+* added gofumpt and goimports linters to ckeck source code and fixed issues from them
 
 1.8.1 (2022-03-25)
 ------------------

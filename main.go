@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/hashicorp/go-hclog"
+	hclog "github.com/hashicorp/go-hclog"
 	jaegerGrpc "github.com/jaegertracing/jaeger/plugin/storage/grpc"
 	"github.com/jaegertracing/jaeger/plugin/storage/grpc/shared"
 	"github.com/prometheus/client_golang/prometheus"
@@ -19,9 +19,7 @@ import (
 	"github.com/yandex-cloud/jaeger-ydb-store/plugin"
 )
 
-var (
-	logger hclog.Logger
-)
+var logger hclog.Logger
 
 func init() {
 	viper.SetDefault("plugin_http_listen_address", ":15000")

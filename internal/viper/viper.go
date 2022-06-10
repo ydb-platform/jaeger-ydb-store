@@ -11,13 +11,13 @@ import (
 
 // ConfigureViperFromFlag reads --config flag and attempts to setup v.
 func ConfigureViperFromFlag(v *viper.Viper) {
-	var cmd = pflag.NewFlagSet(os.Args[0], pflag.ExitOnError)
-	var path = cmd.String("config", "", "full path to configuration file")
+	cmd := pflag.NewFlagSet(os.Args[0], pflag.ExitOnError)
+	path := cmd.String("config", "", "full path to configuration file")
 	// Ignore errors; cmd is set for ExitOnError.
 	_ = cmd.Parse(os.Args[1:])
 
 	if len(*path) > 0 {
-		var extension = filepath.Ext(*path)
+		extension := filepath.Ext(*path)
 		if len(extension) == 0 {
 			log.Fatal("Cannot find file extension in path", *path)
 		}

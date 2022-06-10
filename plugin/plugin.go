@@ -2,7 +2,6 @@ package plugin
 
 import (
 	"context"
-	"github.com/ydb-platform/ydb-go-sdk/v3/sugar"
 	"time"
 
 	"github.com/jaegertracing/jaeger/storage/dependencystore"
@@ -11,7 +10,8 @@ import (
 	"github.com/spf13/viper"
 	"github.com/uber/jaeger-lib/metrics"
 	jgrProm "github.com/uber/jaeger-lib/metrics/prometheus"
-	"github.com/ydb-platform/ydb-go-sdk/v3"
+	ydb "github.com/ydb-platform/ydb-go-sdk/v3"
+	"github.com/ydb-platform/ydb-go-sdk/v3/sugar"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 	"go.uber.org/zap"
 

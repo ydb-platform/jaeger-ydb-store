@@ -9,7 +9,7 @@ import (
 
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/jaegertracing/jaeger/storage/spanstore"
-	"github.com/opentracing/opentracing-go"
+	opentracing "github.com/opentracing/opentracing-go"
 	ottag "github.com/opentracing/opentracing-go/ext"
 	otlog "github.com/opentracing/opentracing-go/log"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
@@ -360,6 +360,7 @@ func (s *SpanReader) readTraceFromPartitions(ctx context.Context, parts []schema
 	result := &model.Trace{}
 	var resultErr error
 	runPartitionOperation(ctx, parts, func(ctx context.Context, key schema.PartitionKey) {
+		// nolint: typecheck, nolintlint
 		spans, err := s.spansFromPartition(ctx, traceID, key)
 		mx.Lock()
 		defer mx.Unlock()
