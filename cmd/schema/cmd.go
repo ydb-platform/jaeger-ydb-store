@@ -12,14 +12,15 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	localViper "github.com/yandex-cloud/jaeger-ydb-store/internal/viper"
-	"github.com/ydb-platform/ydb-go-sdk/v3"
+	ydb "github.com/ydb-platform/ydb-go-sdk/v3"
 	"github.com/ydb-platform/ydb-go-sdk/v3/scheme"
+	"github.com/ydb-platform/ydb-go-sdk/v3/sugar"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 	"go.uber.org/zap"
 
 	"github.com/yandex-cloud/jaeger-ydb-store/cmd/schema/watcher"
 	"github.com/yandex-cloud/jaeger-ydb-store/internal/db"
+	localViper "github.com/yandex-cloud/jaeger-ydb-store/internal/viper"
 	"github.com/yandex-cloud/jaeger-ydb-store/schema"
 )
 
@@ -138,11 +139,5 @@ func ydbConn(v *viper.Viper, l *zap.Logger) (ydb.Connection, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
-	return db.DialFromViper(
-		ctx,
-		v,
-		l,
-		ydb.WithEndpoint(v.GetString(db.KeyYdbAddress)),
-		ydb.WithDatabase(v.GetString(db.KeyYdbPath)),
-	)
+	return db.DialFromViper(ctx, v, l, sugar.DSN(v.GetString(db.KeyYdbAddress), v.GetString(db.KeyYdbPath), false))
 }

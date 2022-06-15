@@ -1,9 +1,10 @@
 package dbmodel
 
 import (
+	"testing"
+
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestIntersectTraceIDs(t *testing.T) {

@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/uber/jaeger-lib/metrics"
+
 	"github.com/yandex-cloud/jaeger-ydb-store/internal/testutil"
 	"github.com/yandex-cloud/jaeger-ydb-store/schema"
 	"github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/reader"

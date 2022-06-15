@@ -1,8 +1,9 @@
 package metrics
 
 import (
-	"github.com/uber/jaeger-lib/metrics"
 	"time"
+
+	"github.com/uber/jaeger-lib/metrics"
 )
 
 type WriteMetrics struct {

@@ -10,7 +10,8 @@ import (
 	"github.com/spf13/viper"
 	"github.com/uber/jaeger-lib/metrics"
 	jgrProm "github.com/uber/jaeger-lib/metrics/prometheus"
-	"github.com/ydb-platform/ydb-go-sdk/v3"
+	ydb "github.com/ydb-platform/ydb-go-sdk/v3"
+	"github.com/ydb-platform/ydb-go-sdk/v3/sugar"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 	"go.uber.org/zap"
 
@@ -132,8 +133,7 @@ func (p *YdbStorage) initDB(v *viper.Viper) {
 		ctx,
 		v,
 		p.logger,
-		ydb.WithEndpoint(p.opts.DbAddress),
-		ydb.WithDatabase(p.opts.DbPath.Path),
+		sugar.DSN(p.opts.DbAddress, p.opts.DbPath.Path, true),
 		ydb.WithSessionPoolSizeLimit(p.opts.PoolSize),
 		ydb.WithSessionPoolKeepAliveTimeout(time.Second),
 		ydb.WithTraceTable(tableClientMetrics(p.metricsFactory)),

@@ -1,10 +1,11 @@
 package dbmodel
 
 import (
-	"github.com/jaegertracing/jaeger/model"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/jaegertracing/jaeger/model"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/yandex-cloud/jaeger-ydb-store/internal/testutil"
 )

@@ -9,11 +9,10 @@ import (
 
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/jaegertracing/jaeger/storage/spanstore"
-	"github.com/opentracing/opentracing-go"
+	opentracing "github.com/opentracing/opentracing-go"
 	ottag "github.com/opentracing/opentracing-go/ext"
 	otlog "github.com/opentracing/opentracing-go/log"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
-	"github.com/ydb-platform/ydb-go-sdk/v3/table/options"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table/types"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
@@ -315,7 +314,6 @@ func (s *SpanReader) queryPartitionList(ctx context.Context) ([]schema.Partition
 			txc,
 			schema.BuildQuery(s.opts.DbPath, schema.QueryActiveParts),
 			nil,
-			options.WithQueryCachePolicy(options.WithQueryCachePolicyKeepInCache()),
 		)
 		if err != nil {
 			return err
@@ -362,6 +360,7 @@ func (s *SpanReader) readTraceFromPartitions(ctx context.Context, parts []schema
 	result := &model.Trace{}
 	var resultErr error
 	runPartitionOperation(ctx, parts, func(ctx context.Context, key schema.PartitionKey) {
+		// nolint: typecheck, nolintlint
 		spans, err := s.spansFromPartition(ctx, traceID, key)
 		mx.Lock()
 		defer mx.Unlock()
@@ -415,7 +414,6 @@ func (s *SpanReader) spansFromPartition(ctx context.Context, traceID model.Trace
 				table.ValueParam("$trace_id_high", types.Uint64Value(traceID.High)),
 				table.ValueParam("$trace_id_low", types.Uint64Value(traceID.Low)),
 			),
-			options.WithQueryCachePolicy(options.WithQueryCachePolicyKeepInCache()),
 		)
 		if err != nil {
 			return err

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	lru "github.com/hashicorp/golang-lru"
-	"github.com/ydb-platform/ydb-go-sdk/v3"
+	ydb "github.com/ydb-platform/ydb-go-sdk/v3"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 	"go.uber.org/zap"
 
@@ -18,12 +18,7 @@ const (
 	operationTimeout = time.Minute
 )
 
-var (
-	txc = table.TxControl(
-		table.BeginTx(table.WithSerializableReadWrite()),
-		table.CommitTx(),
-	)
-)
+var txc = table.DefaultTxControl()
 
 type Options struct {
 	Expiration time.Duration

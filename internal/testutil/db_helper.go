@@ -10,7 +10,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/ydb-platform/ydb-go-sdk/v3"
+	ydb "github.com/ydb-platform/ydb-go-sdk/v3"
+	"github.com/ydb-platform/ydb-go-sdk/v3/sugar"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 
 	"github.com/yandex-cloud/jaeger-ydb-store/schema"
@@ -35,10 +36,8 @@ func initDb(tb testing.TB) {
 		defer cancel()
 		dbPath := schema.DbPath{Path: os.Getenv("YDB_PATH"), Folder: os.Getenv("YDB_FOLDER")}
 		require.NotEmpty(tb, os.Getenv("YDB_ADDRESS"))
-		conn, err := ydb.New(ctx,
-			ydb.WithEndpoint(os.Getenv("YDB_ADDRESS")),
-			ydb.WithDatabase(dbPath.Path),
-			ydb.WithSecure(os.Getenv("YDB_SECURE") == "1"),
+		conn, err := ydb.Open(ctx,
+			sugar.DSN(os.Getenv("YDB_ADDRESS"), dbPath.Path, os.Getenv("YDB_SECURE") == "1"),
 			ydb.WithSessionPoolSizeLimit(10),
 			ydb.WithAccessTokenCredentials(os.Getenv("YDB_TOKEN")),
 		)
