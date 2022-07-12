@@ -4,7 +4,9 @@ import (
 	"context"
 	"strings"
 
+	"contrib.go.opencensus.io/exporter/prometheus"
 	"github.com/spf13/viper"
+	"go.opencensus.io/stats/view"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
@@ -36,6 +38,15 @@ func createTracesExporter(_ context.Context, set component.ExporterCreateSetting
 
 	ydbPlugin := plugin.NewYdbStorage()
 	ydbPlugin.InitFromViper(v)
+
+	pe, err := prometheus.NewExporter(prometheus.Options{
+		Registry: ydbPlugin.Registry(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	view.RegisterExporter(pe)
+
 	exp := &traceExporter{w: ydbPlugin.SpanWriter()}
 	return exporterhelper.NewTracesExporter(
 		cfg,
