@@ -5,13 +5,12 @@ import (
 	"net/http"
 	"strings"
 
-	"contrib.go.opencensus.io/exporter/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/viper"
-	"go.opencensus.io/stats/view"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
+	"go.uber.org/zap"
 
 	"github.com/yandex-cloud/jaeger-ydb-store/plugin"
 )
@@ -45,16 +44,11 @@ func createTracesExporter(_ context.Context, set component.ExporterCreateSetting
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.HandlerFor(ydbPlugin.Registry(), promhttp.HandlerOpts{}))
 	go func() {
-		_ = http.ListenAndServe(":9093", mux)
+		err := http.ListenAndServe(":9091", mux)
+		if err != nil && err != http.ErrServerClosed {
+			set.Logger.Error("failed to serve ydb metrics", zap.Error(err))
+		}
 	}()
-
-	pe, err := prometheus.NewExporter(prometheus.Options{
-		Registry: ydbPlugin.Registry(),
-	})
-	if err != nil {
-		return nil, err
-	}
-	view.RegisterExporter(pe)
 
 	exp := &traceExporter{w: ydbPlugin.SpanWriter()}
 	return exporterhelper.NewTracesExporter(
