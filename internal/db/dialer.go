@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+
 	ydbZap "github.com/ydb-platform/ydb-go-sdk-zap"
 	"github.com/ydb-platform/ydb-go-sdk/v3/trace"
 	"go.uber.org/zap"
@@ -19,7 +20,7 @@ func options(v *viper.Viper, l *zap.Logger, opts ...ydb.Option) []ydb.Option {
 	v.SetDefault(KeyIAMEndpoint, defaultIAMEndpoint)
 
 	if l != nil {
-		opts = append(
+		x := append(
 			opts,
 			ydbZap.WithTraces(
 				l,
@@ -31,6 +32,7 @@ func options(v *viper.Viper, l *zap.Logger, opts ...ydb.Option) []ydb.Option {
 				),
 			),
 		)
+		_ = x
 	}
 
 	if v.GetString(KeyYdbToken) != "" {
