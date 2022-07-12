@@ -43,10 +43,9 @@ func createTracesExporter(_ context.Context, set component.ExporterCreateSetting
 
 	// TODO: make it not a hack
 	mux := http.NewServeMux()
-	promhttp.Handler()
 	mux.Handle("/metrics", promhttp.HandlerFor(ydbPlugin.Registry(), promhttp.HandlerOpts{}))
 	go func() {
-		_ = http.ListenAndServe(":9092", mux)
+		_ = http.ListenAndServe(":9093", mux)
 	}()
 
 	pe, err := prometheus.NewExporter(prometheus.Options{
