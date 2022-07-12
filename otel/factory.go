@@ -2,9 +2,11 @@ package otel
 
 import (
 	"context"
+	"net/http"
 	"strings"
 
 	"contrib.go.opencensus.io/exporter/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/viper"
 	"go.opencensus.io/stats/view"
 	"go.opentelemetry.io/collector/component"
@@ -38,6 +40,14 @@ func createTracesExporter(_ context.Context, set component.ExporterCreateSetting
 
 	ydbPlugin := plugin.NewYdbStorage()
 	ydbPlugin.InitFromViper(v)
+
+	// TODO: make it not a hack
+	mux := http.NewServeMux()
+	promhttp.Handler()
+	mux.Handle("/metrics", promhttp.HandlerFor(ydbPlugin.Registry(), promhttp.HandlerOpts{}))
+	go func() {
+		_ = http.ListenAndServe(":9092", mux)
+	}()
 
 	pe, err := prometheus.NewExporter(prometheus.Options{
 		Registry: ydbPlugin.Registry(),
