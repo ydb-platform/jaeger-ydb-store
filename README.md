@@ -7,7 +7,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/yandex-cloud/jaeger-ydb-store)](https://goreportcard.com/report/github.com/yandex-cloud/jaeger-ydb-store)
 [![codecov](https://codecov.io/gh/yandex-cloud/jaeger-ydb-store/branch/master/graph/badge.svg)](https://app.codecov.io/gh/yandex-cloud/jaeger-ydb-store)
 
-This is a storage backend using [Yandex.Database](https://cloud.yandex.ru/services/ydb) for [Jaeger](https://github.com/jaegertracing/jaeger)
+This is a storage backend using [YDB](https://ydb.tech/) for [Jaeger](https://github.com/jaegertracing/jaeger)
 
 ## components
 
