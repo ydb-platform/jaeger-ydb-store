@@ -59,9 +59,9 @@ require (
 	github.com/ydb-platform/ydb-go-yc-metadata v0.5.2 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
-	golang.org/x/net v0.0.0-20210614182718-04defd469f4e // indirect
-	golang.org/x/sys v0.0.0-20210615035016-665e8c7367d1 // indirect
-	golang.org/x/text v0.3.6 // indirect
+	golang.org/x/net v0.7.0 // indirect
+	golang.org/x/sys v0.5.0 // indirect
+	golang.org/x/text v0.7.0 // indirect
 	google.golang.org/genproto v0.0.0-20210602131652-f16073e35f0c // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/ini.v1 v1.62.0 // indirect
