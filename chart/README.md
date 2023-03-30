@@ -11,7 +11,7 @@ endpoint: grpcs://lb.etns9ff54e1j4d7.ydb.mdb.yandexcloud.net:2135/?database=/ru-
 ``` 
 
 ### Parameters
-This is necessary parameters, all other options described in [YDB storage plugin for Jaeger documentation](https://github.com/yandex-cloud/jaeger-ydb-store#environment-variables) and can be overriden using `ydb.env.{ENV_VARIABLE}`
+This is necessary parameters, all other options described in [YDB storage plugin for Jaeger documentation](https://github.com/ydb-platform/jaeger-ydb-store#environment-variables) and can be overriden using `ydb.env.{ENV_VARIABLE}`
 
 Name | Type | Default | Description
 --- | --- | --- | ---
@@ -56,7 +56,7 @@ Alternatively, a YAML file that specifies the values for the parameters can be p
 ```bash
 $ helm install jaeger jaeger-ydb-store/jaeger-ydb-store --values values.yaml
 ```
-You can get default values.yaml from [chart repository](https://github.com/yandex-cloud/jaeger-ydb-store/chart/values.yaml).
+You can get default values.yaml from [chart repository](https://github.com/ydb-platform/jaeger-ydb-store/chart/values.yaml).
 
 By default, the chart deploys the following:
 

@@ -18,9 +18,9 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/yandex-cloud/jaeger-ydb-store/schema"
-	"github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/dbmodel"
-	"github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/queries"
+	"github.com/ydb-platform/jaeger-ydb-store/schema"
+	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/dbmodel"
+	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/queries"
 )
 
 const (

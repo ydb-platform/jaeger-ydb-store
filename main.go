@@ -15,8 +15,8 @@ import (
 	"github.com/spf13/viper"
 	jaegerCfg "github.com/uber/jaeger-client-go/config"
 
-	localViper "github.com/yandex-cloud/jaeger-ydb-store/internal/viper"
-	"github.com/yandex-cloud/jaeger-ydb-store/plugin"
+	localViper "github.com/ydb-platform/jaeger-ydb-store/internal/viper"
+	"github.com/ydb-platform/jaeger-ydb-store/plugin"
 )
 
 var logger hclog.Logger

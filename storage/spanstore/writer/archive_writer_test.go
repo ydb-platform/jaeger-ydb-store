@@ -11,9 +11,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/uber/jaeger-lib/metrics"
 
-	"github.com/yandex-cloud/jaeger-ydb-store/internal/testutil"
-	"github.com/yandex-cloud/jaeger-ydb-store/schema"
-	"github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/reader"
+	"github.com/ydb-platform/jaeger-ydb-store/internal/testutil"
+	"github.com/ydb-platform/jaeger-ydb-store/schema"
+	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/reader"
 )
 
 func TestArchiveSpanWriter_WriteSpan(t *testing.T) {

@@ -6,7 +6,7 @@ import (
 
 	"github.com/jaegertracing/jaeger/model"
 
-	"github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/indexer/index"
+	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/indexer/index"
 )
 
 type indexTTLMap struct {

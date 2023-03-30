@@ -12,9 +12,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/uber/jaeger-lib/metrics"
 
-	"github.com/yandex-cloud/jaeger-ydb-store/internal/testutil"
-	"github.com/yandex-cloud/jaeger-ydb-store/schema"
-	ydbWriter "github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/writer"
+	"github.com/ydb-platform/jaeger-ydb-store/internal/testutil"
+	"github.com/ydb-platform/jaeger-ydb-store/schema"
+	ydbWriter "github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/writer"
 )
 
 func TestArchiveSpanReader_GetTrace(t *testing.T) {

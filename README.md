@@ -1,10 +1,10 @@
 # YDB storage plugin for Jaeger
 
-[![PkgGoDev](https://pkg.go.dev/badge/github.com/yandex-cloud/jaeger-ydb-store)](https://pkg.go.dev/github.com/yandex-cloud/jaeger-ydb-store)
-[![GoDoc](https://godoc.org/github.com/yandex-cloud/jaeger-ydb-store?status.svg)](https://godoc.org/github.com/yandex-cloud/jaeger-ydb-store)
-![tests](https://github.com/yandex-cloud/jaeger-ydb-store/workflows/tests/badge.svg?branch=master)
-![lint](https://github.com/yandex-cloud/jaeger-ydb-store/workflows/lint/badge.svg?branch=master)
-[![Go Report Card](https://goreportcard.com/badge/github.com/yandex-cloud/jaeger-ydb-store)](https://goreportcard.com/report/github.com/yandex-cloud/jaeger-ydb-store)
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/ydb-platform/jaeger-ydb-store)](https://pkg.go.dev/github.com/ydb-platform/jaeger-ydb-store)
+[![GoDoc](https://godoc.org/github.com/ydb-platform/jaeger-ydb-store?status.svg)](https://godoc.org/github.com/ydb-platform/jaeger-ydb-store)
+![tests](https://github.com/ydb-platform/jaeger-ydb-store/workflows/tests/badge.svg?branch=master)
+![lint](https://github.com/ydb-platform/jaeger-ydb-store/workflows/lint/badge.svg?branch=master)
+[![Go Report Card](https://goreportcard.com/badge/github.com/ydb-platform/jaeger-ydb-store)](https://goreportcard.com/report/github.com/ydb-platform/jaeger-ydb-store)
 [![codecov](https://codecov.io/gh/yandex-cloud/jaeger-ydb-store/branch/master/graph/badge.svg)](https://app.codecov.io/gh/yandex-cloud/jaeger-ydb-store)
 
 This is a storage backend using [YDB](https://ydb.tech/) for [Jaeger](https://github.com/jaegertracing/jaeger)

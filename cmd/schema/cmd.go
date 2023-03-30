@@ -18,10 +18,10 @@ import (
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 	"go.uber.org/zap"
 
-	"github.com/yandex-cloud/jaeger-ydb-store/cmd/schema/watcher"
-	"github.com/yandex-cloud/jaeger-ydb-store/internal/db"
-	localViper "github.com/yandex-cloud/jaeger-ydb-store/internal/viper"
-	"github.com/yandex-cloud/jaeger-ydb-store/schema"
+	"github.com/ydb-platform/jaeger-ydb-store/cmd/schema/watcher"
+	"github.com/ydb-platform/jaeger-ydb-store/internal/db"
+	localViper "github.com/ydb-platform/jaeger-ydb-store/internal/viper"
+	"github.com/ydb-platform/jaeger-ydb-store/schema"
 )
 
 func init() {

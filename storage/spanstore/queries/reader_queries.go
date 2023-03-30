@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/yandex-cloud/jaeger-ydb-store/schema"
+	"github.com/ydb-platform/jaeger-ydb-store/schema"
 )
 
 const (

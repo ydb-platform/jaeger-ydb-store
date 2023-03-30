@@ -1,4 +1,4 @@
-module github.com/yandex-cloud/jaeger-ydb-store
+module github.com/ydb-platform/jaeger-ydb-store
 
 go 1.17
 

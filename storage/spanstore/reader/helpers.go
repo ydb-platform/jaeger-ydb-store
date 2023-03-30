@@ -5,8 +5,8 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/yandex-cloud/jaeger-ydb-store/schema"
-	"github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/dbmodel"
+	"github.com/ydb-platform/jaeger-ydb-store/schema"
+	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/dbmodel"
 )
 
 type bucketOperation func(ctx context.Context, bucket uint8)

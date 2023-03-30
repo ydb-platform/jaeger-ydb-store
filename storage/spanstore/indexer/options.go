@@ -3,8 +3,8 @@ package indexer
 import (
 	"time"
 
-	"github.com/yandex-cloud/jaeger-ydb-store/schema"
-	"github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/batch"
+	"github.com/ydb-platform/jaeger-ydb-store/schema"
+	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/batch"
 )
 
 type Options struct {

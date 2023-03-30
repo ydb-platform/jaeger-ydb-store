@@ -10,8 +10,8 @@ import (
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 	"go.uber.org/zap"
 
-	"github.com/yandex-cloud/jaeger-ydb-store/internal/db"
-	"github.com/yandex-cloud/jaeger-ydb-store/schema"
+	"github.com/ydb-platform/jaeger-ydb-store/internal/db"
+	"github.com/ydb-platform/jaeger-ydb-store/schema"
 )
 
 const (

@@ -10,9 +10,9 @@ import (
 	"github.com/ydb-platform/ydb-go-sdk/v3/table/types"
 	"go.uber.org/zap"
 
-	"github.com/yandex-cloud/jaeger-ydb-store/schema"
-	"github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/dbmodel"
-	wmetrics "github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/writer/metrics"
+	"github.com/ydb-platform/jaeger-ydb-store/schema"
+	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/dbmodel"
+	wmetrics "github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/writer/metrics"
 )
 
 const (

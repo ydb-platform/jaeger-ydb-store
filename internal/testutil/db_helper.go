@@ -14,7 +14,7 @@ import (
 	"github.com/ydb-platform/ydb-go-sdk/v3/sugar"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 
-	"github.com/yandex-cloud/jaeger-ydb-store/schema"
+	"github.com/ydb-platform/jaeger-ydb-store/schema"
 )
 
 var (

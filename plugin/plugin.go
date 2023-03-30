@@ -15,12 +15,12 @@ import (
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 	"go.uber.org/zap"
 
-	"github.com/yandex-cloud/jaeger-ydb-store/internal/db"
-	"github.com/yandex-cloud/jaeger-ydb-store/schema"
-	"github.com/yandex-cloud/jaeger-ydb-store/storage/config"
-	ydbDepStore "github.com/yandex-cloud/jaeger-ydb-store/storage/dependencystore"
-	"github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/reader"
-	"github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/writer"
+	"github.com/ydb-platform/jaeger-ydb-store/internal/db"
+	"github.com/ydb-platform/jaeger-ydb-store/schema"
+	"github.com/ydb-platform/jaeger-ydb-store/storage/config"
+	ydbDepStore "github.com/ydb-platform/jaeger-ydb-store/storage/dependencystore"
+	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/reader"
+	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/writer"
 )
 
 type YdbStorage struct {
