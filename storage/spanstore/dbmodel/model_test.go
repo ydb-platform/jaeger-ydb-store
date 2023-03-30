@@ -7,7 +7,7 @@ import (
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/yandex-cloud/jaeger-ydb-store/internal/testutil"
+	"github.com/ydb-platform/jaeger-ydb-store/internal/testutil"
 )
 
 func TestEncDec(t *testing.T) {

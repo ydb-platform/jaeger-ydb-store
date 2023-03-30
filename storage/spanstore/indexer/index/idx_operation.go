@@ -4,7 +4,7 @@ import (
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table/types"
 
-	"github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/dbmodel"
+	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/dbmodel"
 )
 
 type serviceOperationIndex struct {

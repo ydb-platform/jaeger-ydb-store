@@ -5,7 +5,7 @@ import (
 	"github.com/ydb-platform/ydb-go-sdk/v3/table/options"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table/types"
 
-	"github.com/yandex-cloud/jaeger-ydb-store/internal/db"
+	"github.com/ydb-platform/jaeger-ydb-store/internal/db"
 )
 
 // Definition is a list of create table options

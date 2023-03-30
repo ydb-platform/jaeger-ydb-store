@@ -11,8 +11,8 @@ import (
 	"github.com/ydb-platform/ydb-go-sdk/v3/table/types"
 	"go.uber.org/zap"
 
-	"github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/batch"
-	"github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/indexer"
+	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/batch"
+	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/indexer"
 )
 
 // SpanWriter handles all span/indexer writes to YDB

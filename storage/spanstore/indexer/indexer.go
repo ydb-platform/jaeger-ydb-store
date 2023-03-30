@@ -8,7 +8,7 @@ import (
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 	"go.uber.org/zap"
 
-	"github.com/yandex-cloud/jaeger-ydb-store/storage/spanstore/indexer/index"
+	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/indexer/index"
 )
 
 const (

@@ -3,7 +3,7 @@ package watcher
 import (
 	"github.com/spf13/viper"
 
-	"github.com/yandex-cloud/jaeger-ydb-store/schema"
+	"github.com/ydb-platform/jaeger-ydb-store/schema"
 )
 
 type partDefinition struct {

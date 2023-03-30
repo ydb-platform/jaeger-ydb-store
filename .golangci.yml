@@ -67,7 +67,7 @@ linters-settings:
   goimports:
     # put imports beginning with prefix after 3rd-party packages;
     # it's a comma-separated list of prefixes
-    local-prefixes: github.com/yandex-cloud/jaeger-ydb-store
+    local-prefixes: github.com/ydb-platform/jaeger-ydb-store
   goconst:
     # minimal length of string constant, 3 by default
     min-len: 2
