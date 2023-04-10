@@ -18,7 +18,7 @@ require (
 	github.com/uber/jaeger-client-go v2.29.1+incompatible
 	github.com/uber/jaeger-lib v2.4.1+incompatible
 	github.com/ydb-platform/ydb-go-genproto v0.0.0-20221215182650-986f9d10542f
-	github.com/ydb-platform/ydb-go-sdk-zap v0.10.1
+	github.com/ydb-platform/ydb-go-sdk-zap v0.14.3
 	github.com/ydb-platform/ydb-go-sdk/v3 v3.43.0
 	github.com/ydb-platform/ydb-go-yc v0.9.0
 	go.uber.org/zap v1.20.0
