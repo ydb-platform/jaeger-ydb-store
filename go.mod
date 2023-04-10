@@ -20,7 +20,7 @@ require (
 	github.com/ydb-platform/ydb-go-genproto v0.0.0-20221215182650-986f9d10542f
 	github.com/ydb-platform/ydb-go-sdk-zap v0.14.3
 	github.com/ydb-platform/ydb-go-sdk/v3 v3.43.0
-	github.com/ydb-platform/ydb-go-yc v0.9.0
+	github.com/ydb-platform/ydb-go-yc v0.10.2
 	go.uber.org/zap v1.20.0
 	google.golang.org/grpc v1.49.0
 )
@@ -39,7 +39,7 @@ require (
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/hashicorp/yamux v0.0.0-20190923154419-df201c70410d // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
-	github.com/jonboulle/clockwork v0.2.2 // indirect
+	github.com/jonboulle/clockwork v0.3.0 // indirect
 	github.com/magiconair/properties v1.8.5 // indirect
 	github.com/mattn/go-colorable v0.1.6 // indirect
 	github.com/mattn/go-isatty v0.0.12 // indirect
