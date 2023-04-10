@@ -127,7 +127,6 @@ linters:
   disable-all: true
   enable:
 #    - cyclop
-    - deadcode
     - depguard
     - dogsled
 #    - dupl
@@ -174,7 +173,6 @@ linters:
 #    - revive // TODO: fix issues
     - staticcheck
 #    - stylecheck // TODO: fix issues
-    - structcheck
 #    - tagliatelle
 #    - testpackage
 #    - thelper
@@ -184,7 +182,6 @@ linters:
     - unparam
     - unused
 #    - varnamelen
-    - varcheck
     - whitespace
 #    - wrapcheck
 #    - wsl
@@ -195,6 +192,14 @@ issues:
   # it can be disabled by `exclude-use-default: false`. To list all
   # excluded by default patterns execute `golangci-lint run --help`
   # exclude:
+
+  # List of regexps of issue texts to exclude.
+  #
+  # But independently of this option we use default exclude patterns,
+  # it can be disabled by `exclude-use-default: false`.
+  # To list all excluded by default patterns execute `golangci-lint run --help`
+  #
+  # Default: []
 
   # Independently from option `exclude` we use default exclude patterns,
   # it can be disabled by this option. To list all
@@ -215,14 +220,3 @@ issues:
   # of integration: much better don't allow issues in new code.
   # Default is false.
   new: false
-
-  # Show only new issues created after git revision `REV`
-  # new-from-rev: REV
-
-  # Show only new issues created in git patch with set file path.
-  # new-from-patch: path/to/patch/file
-
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - unused

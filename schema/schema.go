@@ -9,8 +9,10 @@ import (
 )
 
 // Definition is a list of create table options
-type Definition func() []options.CreateTableOption
-type PartitionedDefinition func(partitionCount uint64) []options.CreateTableOption
+type (
+	Definition            func() []options.CreateTableOption
+	PartitionedDefinition func(partitionCount uint64) []options.CreateTableOption
+)
 
 var (
 	// Tables are global tables
