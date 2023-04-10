@@ -14,15 +14,15 @@ require (
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.8.1
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.1
 	github.com/uber/jaeger-client-go v2.29.1+incompatible
 	github.com/uber/jaeger-lib v2.4.1+incompatible
-	github.com/ydb-platform/ydb-go-genproto v0.0.0-20220531094121-36ca6bddb9f7
+	github.com/ydb-platform/ydb-go-genproto v0.0.0-20221215182650-986f9d10542f
 	github.com/ydb-platform/ydb-go-sdk-zap v0.10.1
-	github.com/ydb-platform/ydb-go-sdk/v3 v3.26.10
+	github.com/ydb-platform/ydb-go-sdk/v3 v3.43.0
 	github.com/ydb-platform/ydb-go-yc v0.9.0
 	go.uber.org/zap v1.20.0
-	google.golang.org/grpc v1.45.0
+	google.golang.org/grpc v1.49.0
 )
 
 require (
@@ -32,6 +32,8 @@ require (
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
+	github.com/golang-jwt/jwt/v4 v4.4.1 // indirect
+	github.com/google/uuid v1.3.0 // indirect
 	github.com/grpc-ecosystem/grpc-opentracing v0.0.0-20180507213350-8e809c8a8645 // indirect
 	github.com/hashicorp/go-plugin v1.4.2 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
@@ -59,9 +61,10 @@ require (
 	github.com/ydb-platform/ydb-go-yc-metadata v0.5.2 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
-	golang.org/x/net v0.0.0-20210614182718-04defd469f4e // indirect
-	golang.org/x/sys v0.0.0-20210615035016-665e8c7367d1 // indirect
-	golang.org/x/text v0.3.6 // indirect
+	golang.org/x/net v0.7.0 // indirect
+	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4 // indirect
+	golang.org/x/sys v0.5.0 // indirect
+	golang.org/x/text v0.7.0 // indirect
 	google.golang.org/genproto v0.0.0-20210602131652-f16073e35f0c // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/ini.v1 v1.62.0 // indirect
