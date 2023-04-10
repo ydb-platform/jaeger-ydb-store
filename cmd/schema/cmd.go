@@ -135,7 +135,7 @@ func main() {
 	}
 }
 
-func ydbConn(v *viper.Viper, l *zap.Logger) (ydb.Connection, error) {
+func ydbConn(v *viper.Viper, l *zap.Logger) (*ydb.Driver, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 

@@ -12,8 +12,11 @@ jobs:
   integration:
     strategy:
       matrix:
-        go-version: [1.17.x]
+        go-version: [1.20.x]
         os: [ubuntu-latest]
+    concurrency:
+      group: integration-${{ github.ref }}-${{ matrix.os }}-${{ matrix.go-version }}
+      cancel-in-progress: true
     services:
       ydb:
         image: cr.yandex/yc/yandex-docker-local-ydb:latest

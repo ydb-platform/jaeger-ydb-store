@@ -66,6 +66,6 @@ func options(v *viper.Viper, l *zap.Logger, opts ...ydb.Option) []ydb.Option {
 	)
 }
 
-func DialFromViper(ctx context.Context, v *viper.Viper, logger *zap.Logger, dsn string, opts ...ydb.Option) (ydb.Connection, error) {
+func DialFromViper(ctx context.Context, v *viper.Viper, logger *zap.Logger, dsn string, opts ...ydb.Option) (*ydb.Driver, error) {
 	return ydb.Open(ctx, dsn, options(v, logger, opts...)...)
 }

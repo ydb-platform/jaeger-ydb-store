@@ -89,7 +89,7 @@ func (w *indexWriter) writePartition(part schema.PartitionKey, items []indexData
 		fields := item.idx.StructFields(brr.Next())
 		fields = append(fields,
 			types.StructFieldValue("uniq", types.Uint32Value(w.idxRand.Uint32())),
-			types.StructFieldValue("trace_ids", types.StringValue(buf)),
+			types.StructFieldValue("trace_ids", types.BytesValue(buf)),
 		)
 		rows = append(rows, types.StructValue(fields...))
 	}
