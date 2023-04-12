@@ -10,6 +10,9 @@ ydb:
   # Folder to store data in
   folder:
 
+  # Service account key for Yandex.Cloud authorization in JSON
+  saKeyJson: ""
+
   # Service account id for Yandex.Cloud authorization
   saId: ""
 

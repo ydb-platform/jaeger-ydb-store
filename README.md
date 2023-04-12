@@ -34,9 +34,10 @@ Name | Type | Default | Description
 --- | --- | --- | ---
 `YDB_ADDRESS` | `string` | | db endpoint host:port to connect to
 `YDB_SA_META_AUTH` | `bool` | `false` | use metadata to authorize requests ([documentation](https://cloud.yandex.com/docs/compute/operations/vm-connect/auth-inside-vm#auth-inside-vm))
-`YDB_SA_ID` | `string` | | service account id for Yandex.Cloud authorization (doc on service accounts: https://cloud.yandex.com/docs/iam/concepts/users/service-accounts)
-`YDB_SA_KEY_ID` | `string` | | service account key id for Yandex.Cloud authorization
-`YDB_SA_PRIVATE_KEY_FILE` | `string` | | path to service account private key for Yandex.Cloud authorization
+`YDB_SA_KEY_JSON` | `string` | | service account key for Yandex.Cloud authorization (doc on service accounts: https://cloud.yandex.com/docs/iam/concepts/users/service-accounts) in `JSON`. This variable replaces `YDB_SA_ID`, `YDB_SA_KEY_ID` and `YDB_SA_PRIVATE_KEY_FILE`   
+`YDB_SA_ID` | `string` | | deprecated - use `YDB_SA_KEY_JSON` variable. Service account id for Yandex.Cloud authorization (doc on service accounts: https://cloud.yandex.com/docs/iam/concepts/users/service-accounts)
+`YDB_SA_KEY_ID` | `string` | | deprecated - use `YDB_SA_KEY_JSON` variable. service account key id for Yandex.Cloud authorization
+`YDB_SA_PRIVATE_KEY_FILE` | `string` | | deprecated - use `YDB_SA_KEY_JSON` variable. path to service account private key for Yandex.Cloud authorization
 `YDB_PATH` | `string` | | database path
 `YDB_FOLDER` | `string` | | folder to store data in)
 `YDB_CONNECT_TIMEOUT` | `duration` | `10s` | db connect timeout
