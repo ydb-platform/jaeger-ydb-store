@@ -1,5 +1,10 @@
 # Changes by version
 
+1.9.0 (2023-04-12)
+------------------
+
+* added YDB_SA_KEY_JSON environment variable
+
 1.8.2 (2022-06-10)
 ------------------
 
