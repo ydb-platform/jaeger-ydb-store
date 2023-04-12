@@ -174,7 +174,7 @@ func (w *Watcher) dropOldTables() {
 				}
 			}
 		}
-		return nil
+		return res.Err()
 	})
 }
 

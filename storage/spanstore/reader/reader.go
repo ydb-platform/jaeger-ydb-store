@@ -125,10 +125,7 @@ func (s *SpanReader) GetServices(ctx context.Context) ([]string, error) {
 				result = append(result, v)
 			}
 		}
-		if err = res.Err(); err != nil {
-			return err
-		}
-		return nil
+		return res.Err()
 	})
 	if err != nil {
 		return nil, err
@@ -179,10 +176,7 @@ func (s *SpanReader) GetOperations(ctx context.Context, query spanstore.Operatio
 				result = append(result, v)
 			}
 		}
-		if res.Err() != nil {
-			return res.Err()
-		}
-		return nil
+		return res.Err()
 	})
 	if err != nil {
 		return nil, err
@@ -332,7 +326,7 @@ func (s *SpanReader) queryPartitionList(ctx context.Context) ([]schema.Partition
 			}
 			result = append(result, part)
 		}
-		return nil
+		return res.Err()
 	})
 	if err != nil {
 		return nil, err
@@ -426,7 +420,7 @@ func (s *SpanReader) spansFromPartition(ctx context.Context, traceID model.Trace
 				return fmt.Errorf("failed to read spancount result: %w", err)
 			}
 		}
-		return nil
+		return res.Err()
 	})
 	if err != nil {
 		return nil, err
@@ -684,10 +678,7 @@ func (s *SpanReader) execQuery(ctx context.Context, span opentracing.Span, query
 			}
 			result = append(result, qr)
 		}
-		if err = res.Err(); err != nil {
-			return err
-		}
-		return nil
+		return res.Err()
 	})
 	if err != nil {
 		span.LogFields(otlog.String("query", query))
