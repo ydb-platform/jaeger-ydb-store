@@ -1,5 +1,12 @@
 # Changes by version
 
+1.9.0 (2023-04-12)
+------------------
+
+* added YDB_SA_KEY_JSON environment variable
+* switched package name from github.com/yandex-cloud/jaeger-ydb-store to github.com/ydb-platform/jaeger-ydb-store
+* updated ydb-go-sdk to v3.44.3
+
 1.8.2 (2022-06-10)
 ------------------
 
