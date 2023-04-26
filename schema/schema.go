@@ -37,8 +37,8 @@ var (
 func Traces(numPartitions uint64) []options.CreateTableOption {
 	return append(
 		ArchiveTraces(),
-		options.WithProfile(
-			options.WithPartitioningPolicy(options.WithPartitioningPolicyUniformPartitions(numPartitions)),
+		options.WithPartitions(
+			options.WithUniformPartitions(numPartitions),
 		),
 		options.WithPartitioningSettingsObject(partitioningSettings(numPartitions)),
 	)
@@ -78,8 +78,8 @@ func ServiceOperationIndex(numPartitions uint64) []options.CreateTableOption {
 		options.WithColumn("uniq", types.Optional(types.TypeUint32)),
 		options.WithColumn("trace_ids", types.Optional(types.TypeString)),
 		options.WithPrimaryKeyColumn("idx_hash", "rev_start_time", "uniq"),
-		options.WithProfile(
-			options.WithPartitioningPolicy(options.WithPartitioningPolicyUniformPartitions(numPartitions)),
+		options.WithPartitions(
+			options.WithUniformPartitions(numPartitions),
 		),
 		options.WithPartitioningSettingsObject(partitioningSettings(numPartitions)),
 	}
@@ -93,8 +93,8 @@ func ServiceNameIndex(numPartitions uint64) []options.CreateTableOption {
 		options.WithColumn("uniq", types.Optional(types.TypeUint32)),
 		options.WithColumn("trace_ids", types.Optional(types.TypeString)),
 		options.WithPrimaryKeyColumn("idx_hash", "rev_start_time", "uniq"),
-		options.WithProfile(
-			options.WithPartitioningPolicy(options.WithPartitioningPolicyUniformPartitions(numPartitions)),
+		options.WithPartitions(
+			options.WithUniformPartitions(numPartitions),
 		),
 		options.WithPartitioningSettingsObject(partitioningSettings(numPartitions)),
 	}
@@ -109,8 +109,8 @@ func DurationIndex(numPartitions uint64) []options.CreateTableOption {
 		options.WithColumn("uniq", types.Optional(types.TypeUint32)),
 		options.WithColumn("trace_ids", types.Optional(types.TypeString)),
 		options.WithPrimaryKeyColumn("idx_hash", "duration", "rev_start_time", "uniq"),
-		options.WithProfile(
-			options.WithPartitioningPolicy(options.WithPartitioningPolicyUniformPartitions(numPartitions)),
+		options.WithPartitions(
+			options.WithUniformPartitions(numPartitions),
 		),
 		options.WithPartitioningSettingsObject(partitioningSettings(numPartitions)),
 	}
@@ -125,8 +125,8 @@ func TagIndexV2(numPartitions uint64) []options.CreateTableOption {
 		options.WithColumn("uniq", types.Optional(types.TypeUint32)),
 		options.WithColumn("trace_ids", types.Optional(types.TypeString)),
 		options.WithPrimaryKeyColumn("idx_hash", "rev_start_time", "op_hash", "uniq"),
-		options.WithProfile(
-			options.WithPartitioningPolicy(options.WithPartitioningPolicyUniformPartitions(numPartitions)),
+		options.WithPartitions(
+			options.WithUniformPartitions(numPartitions),
 		),
 		options.WithPartitioningSettingsObject(partitioningSettings(numPartitions)),
 	}
