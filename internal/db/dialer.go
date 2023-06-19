@@ -2,6 +2,13 @@ package db
 
 import (
 	"context"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/json"
+	"encoding/pem"
+	"errors"
+	"fmt"
+	"os"
 
 	"github.com/spf13/viper"
 	ydbZap "github.com/ydb-platform/ydb-go-sdk-zap"
@@ -14,6 +21,83 @@ import (
 const (
 	defaultIAMEndpoint = "iam.api.cloud.yandex.net:443"
 )
+
+func parsePrivateKey(raw []byte) (*rsa.PrivateKey, error) {
+	block, _ := pem.Decode(raw)
+	if block == nil {
+		return nil, errors.New("key cannot be parsed")
+	}
+	key, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	if err == nil {
+		return key, err
+	}
+
+	x, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+	if key, ok := x.(*rsa.PrivateKey); ok {
+		return key, nil
+	}
+	return nil, errors.New("key cannot be parsed")
+}
+
+type envGetter interface {
+	GetString(key string) string
+}
+
+type iamStaticKey struct {
+	saId         string
+	saKeyId      string
+	saPrivateKey *rsa.PrivateKey
+}
+
+func (isk *iamStaticKey) getFromEnvGetter(e envGetter) error {
+	switch {
+	case e.GetString(keyYdbSaKeyJson) != "":
+
+		iamStaticKeyFromJson := struct {
+			saId            string
+			saKeyId         string
+			saPrivateKeyRaw string
+		}{}
+		err := json.Unmarshal([]byte(e.GetString(keyYdbSaKeyJson)), &iamStaticKeyFromJson)
+		if err != nil {
+			return fmt.Errorf("getFromEnvGetter: %w", err)
+		}
+		isk.saId = iamStaticKeyFromJson.saId
+		isk.saKeyId = iamStaticKeyFromJson.saKeyId
+
+		saPrivateKey, err := parsePrivateKey([]byte(iamStaticKeyFromJson.saPrivateKeyRaw))
+		if err != nil {
+			return fmt.Errorf("getFromEnvGetter: %w", err)
+		}
+		isk.saPrivateKey = saPrivateKey
+
+	case e.GetString(KeyYdbSaPrivateKeyFile) != "" &&
+		e.GetString(KeyYdbSaId) != "" &&
+		e.GetString(KeyYdbSaKeyID) != "":
+
+		isk.saId = e.GetString(KeyYdbSaId)
+		isk.saKeyId = e.GetString(KeyYdbSaKeyID)
+
+		saPrivateKeyRaw, err := os.ReadFile(e.GetString(KeyYdbSaPrivateKeyFile))
+		if err != nil {
+			return fmt.Errorf("getFromEnvGetter: %w", err)
+		}
+
+		saPrivateKey, err := parsePrivateKey(saPrivateKeyRaw)
+		if err != nil {
+			return fmt.Errorf("getFromEnvGetter: %w", err)
+		}
+		isk.saPrivateKey = saPrivateKey
+
+	default:
+		return errors.New("getFromEnvGetter: iam static key not found")
+	}
+
+	return nil
+}
 
 func options(v *viper.Viper, l *zap.Logger, opts ...ydb.Option) []ydb.Option {
 	v.SetDefault(KeyIAMEndpoint, defaultIAMEndpoint)
@@ -53,14 +137,17 @@ func options(v *viper.Viper, l *zap.Logger, opts ...ydb.Option) []ydb.Option {
 			yc.WithMetadataCredentials(),
 		)
 	}
+	isk := iamStaticKey{}
+
+	_ = isk.getFromEnvGetter(v)
 
 	return append(
 		opts,
 		yc.WithAuthClientCredentials(
 			yc.WithEndpoint(v.GetString(KeyIAMEndpoint)),
-			yc.WithKeyID(v.GetString(KeyYdbSaKeyID)),
-			yc.WithIssuer(v.GetString(KeyYdbSaId)),
-			yc.WithPrivateKeyFile(v.GetString(KeyYdbSaPrivateKeyFile)),
+			yc.WithKeyID(isk.saKeyId),
+			yc.WithIssuer(isk.saId),
+			yc.WithPrivateKey(isk.saPrivateKey),
 			yc.WithSystemCertPool(),
 		),
 	)
