@@ -65,20 +65,26 @@ type iamStaticKey struct {
 func (isk *iamStaticKey) getFromEnvGetter(eg envGetter, fr fileReader) error {
 	switch {
 	case eg.GetString(keyYdbSaKeyJson) != "":
-
 		iamStaticKeyFromJson := struct {
-			saId            string
-			saKeyId         string
-			saPrivateKeyRaw string
+			SaId            string `json:"id"`
+			SaKeyId         string `json:"service_account_id"`
+			SaPrivateKeyRaw string `json:"private_key"`
 		}{}
 		err := json.Unmarshal([]byte(eg.GetString(keyYdbSaKeyJson)), &iamStaticKeyFromJson)
 		if err != nil {
 			return fmt.Errorf("getFromEnvGetter: %w", err)
 		}
-		isk.SaId = iamStaticKeyFromJson.saId
-		isk.SaKeyId = iamStaticKeyFromJson.saKeyId
 
-		saPrivateKey, err := parsePrivateKey([]byte(iamStaticKeyFromJson.saPrivateKeyRaw))
+		if iamStaticKeyFromJson.SaId == "" ||
+			iamStaticKeyFromJson.SaKeyId == "" ||
+			iamStaticKeyFromJson.SaPrivateKeyRaw == "" {
+			return errors.New("wrong json data")
+		}
+
+		isk.SaId = iamStaticKeyFromJson.SaId
+		isk.SaKeyId = iamStaticKeyFromJson.SaKeyId
+
+		saPrivateKey, err := parsePrivateKey([]byte(iamStaticKeyFromJson.SaPrivateKeyRaw))
 		if err != nil {
 			return fmt.Errorf("getFromEnvGetter: %w", err)
 		}
