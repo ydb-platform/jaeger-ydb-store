@@ -101,6 +101,12 @@ func Test_iamStaticKey_getFromEnvGetter(t *testing.T) {
 				HaveError:       false,
 			},
 		}, {
+			"neither deprecated not json",
+			input{},
+			expect{
+				HaveError: true,
+			},
+		}, {
 			"bad private key",
 			input{
 				Envs: [][2]string{
