@@ -1,36 +1,12 @@
 package db
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_iamStaticKey_getFromEnvGetter(t *testing.T) {
-
-	t.Run("smoke", func(t *testing.T) {
-		privateKeyRaw := []byte("-----BEGIN RSA PRIVATE KEY-----\nMCsCAQACBHbKUj0CAwEAAQIEVeGJhQIDANj7AgMAjCcCAwCOdwICTGsCAm+5\n-----END RSA PRIVATE KEY-----\n")
-		privateKey, _ := parsePrivateKey(privateKeyRaw)
-		expect := iamStaticKey{
-			SaId:         "biba_id",
-			SaKeyId:      "biba_key_id",
-			SaPrivateKey: privateKey,
-		}
-
-		egm := newEnvGetterMock()
-		egm.AddStrings(
-			[2]string{KeyYdbSaId, "biba_id"},
-			[2]string{KeyYdbSaKeyID, "biba_key_id"},
-			[2]string{KeyYdbSaPrivateKeyFile, "ydb.key"})
-
-		frm := newFileReaderMock()
-		frm.AddFile("ydb.key", privateKeyRaw)
-
-		ick := iamStaticKey{}
-		err := ick.getFromEnvGetter(egm, frm)
-		assert.NoError(t, err)
-		assert.Equal(t, expect, ick)
-	})
-
 	type input struct {
 		Envs     [][2]string
 		FileName string
@@ -49,7 +25,7 @@ func Test_iamStaticKey_getFromEnvGetter(t *testing.T) {
 		e    expect
 	}{
 		{
-			"smoke",
+			"simple deprecated format",
 			input{
 				Envs: [][2]string{
 					{KeyYdbSaId, "biba_id"},
@@ -62,6 +38,65 @@ func Test_iamStaticKey_getFromEnvGetter(t *testing.T) {
 			expect{
 				SaId:            "biba_id",
 				SaKeyId:         "biba_key_id",
+				SaPrivateKeyRaw: []byte("-----BEGIN RSA PRIVATE KEY-----\nMCsCAQACBHbKUj0CAwEAAQIEVeGJhQIDANj7AgMAjCcCAwCOdwICTGsCAm+5\n-----END RSA PRIVATE KEY-----\n"),
+				HaveError:       false,
+			},
+		}, {
+			"wrong deprecated format",
+			input{
+				Envs: [][2]string{
+					{KeyYdbSaId, "biba_id"},
+					{KeyYdbSaPrivateKeyFile, "ydb.key"},
+				},
+			},
+			expect{
+				HaveError: true,
+			},
+		}, {
+			"simple json format",
+			input{
+				Envs: [][2]string{
+					{keyYdbSaKeyJson, `{"id": "biba_id",
+										"service_account_id": "biba_key_id",
+										"private_key": "-----BEGIN RSA PRIVATE KEY-----\nMCsCAQACBHbKUj0CAwEAAQIEVeGJhQIDANj7AgMAjCcCAwCOdwICTGsCAm+5\n-----END RSA PRIVATE KEY-----\n"}`},
+				},
+			},
+			expect{
+				SaId:            "biba_id",
+				SaKeyId:         "biba_key_id",
+				SaPrivateKeyRaw: []byte("-----BEGIN RSA PRIVATE KEY-----\nMCsCAQACBHbKUj0CAwEAAQIEVeGJhQIDANj7AgMAjCcCAwCOdwICTGsCAm+5\n-----END RSA PRIVATE KEY-----\n"),
+				HaveError:       false,
+			},
+		}, {
+			"wrong json format",
+			input{
+				Envs: [][2]string{
+					{keyYdbSaKeyJson, `{"id": "biba_id",
+										"service_account_id_wrong_field": "biba_key_id",
+										"private_key": "-----BEGIN RSA PRIVATE KEY-----\nMCsCAQACBHbKUj0CAwEAAQIEVeGJhQIDANj7AgMAjCcCAwCOdwICTGsCAm+5\n-----END RSA PRIVATE KEY-----\n"}`},
+				},
+			},
+			expect{
+				HaveError: true,
+			},
+		}, {
+			"conflict",
+			input{
+				Envs: [][2]string{
+					{KeyYdbSaId, "deprecated_biba_id"},
+					{KeyYdbSaKeyID, "deprecated_biba_key_id"},
+					{KeyYdbSaPrivateKeyFile, "ydb.key"},
+
+					{keyYdbSaKeyJson, `{"id": "json_biba_id",
+										"service_account_id": "json_biba_key_id",
+										"private_key": "-----BEGIN RSA PRIVATE KEY-----\nMCsCAQACBHbKUj0CAwEAAQIEVeGJhQIDANj7AgMAjCcCAwCOdwICTGsCAm+5\n-----END RSA PRIVATE KEY-----\n"}`},
+				},
+				FileName: "ydb.key",
+				FileData: []byte("-----BEGIN RSA PRIVATE KEY-----\nMCsCAQACBHbKUj0CAwEAAQIEVeGJhQIDANj7AgMAjCcCAwCOdwICTGsCAm+5\n-----END RSA PRIVATE KEY-----\n"),
+			},
+			expect{
+				SaId:            "json_biba_id",
+				SaKeyId:         "json_biba_key_id",
 				SaPrivateKeyRaw: []byte("-----BEGIN RSA PRIVATE KEY-----\nMCsCAQACBHbKUj0CAwEAAQIEVeGJhQIDANj7AgMAjCcCAwCOdwICTGsCAm+5\n-----END RSA PRIVATE KEY-----\n"),
 				HaveError:       false,
 			},
@@ -107,10 +142,11 @@ func Test_iamStaticKey_getFromEnvGetter(t *testing.T) {
 			if tc.e.HaveError {
 				assert.Error(t, err)
 				return
+			} else {
+				assert.NoError(t, err)
 			}
 
 			assert.Equal(t, ickExpect, ick)
 		})
 	}
-
 }
