@@ -46,22 +46,32 @@ type envGetter interface {
 	GetString(key string) string
 }
 
+type fileReader interface {
+	ReadFile(name string) ([]byte, error)
+}
+
+type osFileReader struct{}
+
+func (ofr osFileReader) ReadFile(name string) ([]byte, error) {
+	return os.ReadFile(name)
+}
+
 type iamStaticKey struct {
 	SaId         string
 	SaKeyId      string
 	SaPrivateKey *rsa.PrivateKey
 }
 
-func (isk *iamStaticKey) getFromEnvGetter(e envGetter) error {
+func (isk *iamStaticKey) getFromEnvGetter(eg envGetter, fr fileReader) error {
 	switch {
-	case e.GetString(keyYdbSaKeyJson) != "":
+	case eg.GetString(keyYdbSaKeyJson) != "":
 
 		iamStaticKeyFromJson := struct {
 			saId            string
 			saKeyId         string
 			saPrivateKeyRaw string
 		}{}
-		err := json.Unmarshal([]byte(e.GetString(keyYdbSaKeyJson)), &iamStaticKeyFromJson)
+		err := json.Unmarshal([]byte(eg.GetString(keyYdbSaKeyJson)), &iamStaticKeyFromJson)
 		if err != nil {
 			return fmt.Errorf("getFromEnvGetter: %w", err)
 		}
@@ -74,14 +84,14 @@ func (isk *iamStaticKey) getFromEnvGetter(e envGetter) error {
 		}
 		isk.SaPrivateKey = saPrivateKey
 
-	case e.GetString(KeyYdbSaPrivateKeyFile) != "" &&
-		e.GetString(KeyYdbSaId) != "" &&
-		e.GetString(KeyYdbSaKeyID) != "":
+	case eg.GetString(KeyYdbSaPrivateKeyFile) != "" &&
+		eg.GetString(KeyYdbSaId) != "" &&
+		eg.GetString(KeyYdbSaKeyID) != "":
 
-		isk.SaId = e.GetString(KeyYdbSaId)
-		isk.SaKeyId = e.GetString(KeyYdbSaKeyID)
+		isk.SaId = eg.GetString(KeyYdbSaId)
+		isk.SaKeyId = eg.GetString(KeyYdbSaKeyID)
 
-		saPrivateKeyRaw, err := os.ReadFile(e.GetString(KeyYdbSaPrivateKeyFile))
+		saPrivateKeyRaw, err := fr.ReadFile(eg.GetString(KeyYdbSaPrivateKeyFile))
 		if err != nil {
 			return fmt.Errorf("getFromEnvGetter: %w", err)
 		}
@@ -139,7 +149,7 @@ func options(v *viper.Viper, l *zap.Logger, opts ...ydb.Option) []ydb.Option {
 	}
 	isk := iamStaticKey{}
 
-	_ = isk.getFromEnvGetter(v)
+	_ = isk.getFromEnvGetter(v, osFileReader{})
 
 	return append(
 		opts,
