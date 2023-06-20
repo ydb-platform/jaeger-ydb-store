@@ -47,9 +47,9 @@ type envGetter interface {
 }
 
 type iamStaticKey struct {
-	saId         string
-	saKeyId      string
-	saPrivateKey *rsa.PrivateKey
+	SaId         string
+	SaKeyId      string
+	SaPrivateKey *rsa.PrivateKey
 }
 
 func (isk *iamStaticKey) getFromEnvGetter(e envGetter) error {
@@ -65,21 +65,21 @@ func (isk *iamStaticKey) getFromEnvGetter(e envGetter) error {
 		if err != nil {
 			return fmt.Errorf("getFromEnvGetter: %w", err)
 		}
-		isk.saId = iamStaticKeyFromJson.saId
-		isk.saKeyId = iamStaticKeyFromJson.saKeyId
+		isk.SaId = iamStaticKeyFromJson.saId
+		isk.SaKeyId = iamStaticKeyFromJson.saKeyId
 
 		saPrivateKey, err := parsePrivateKey([]byte(iamStaticKeyFromJson.saPrivateKeyRaw))
 		if err != nil {
 			return fmt.Errorf("getFromEnvGetter: %w", err)
 		}
-		isk.saPrivateKey = saPrivateKey
+		isk.SaPrivateKey = saPrivateKey
 
 	case e.GetString(KeyYdbSaPrivateKeyFile) != "" &&
 		e.GetString(KeyYdbSaId) != "" &&
 		e.GetString(KeyYdbSaKeyID) != "":
 
-		isk.saId = e.GetString(KeyYdbSaId)
-		isk.saKeyId = e.GetString(KeyYdbSaKeyID)
+		isk.SaId = e.GetString(KeyYdbSaId)
+		isk.SaKeyId = e.GetString(KeyYdbSaKeyID)
 
 		saPrivateKeyRaw, err := os.ReadFile(e.GetString(KeyYdbSaPrivateKeyFile))
 		if err != nil {
@@ -90,7 +90,7 @@ func (isk *iamStaticKey) getFromEnvGetter(e envGetter) error {
 		if err != nil {
 			return fmt.Errorf("getFromEnvGetter: %w", err)
 		}
-		isk.saPrivateKey = saPrivateKey
+		isk.SaPrivateKey = saPrivateKey
 
 	default:
 		return errors.New("getFromEnvGetter: iam static key not found")
@@ -145,9 +145,9 @@ func options(v *viper.Viper, l *zap.Logger, opts ...ydb.Option) []ydb.Option {
 		opts,
 		yc.WithAuthClientCredentials(
 			yc.WithEndpoint(v.GetString(KeyIAMEndpoint)),
-			yc.WithKeyID(isk.saKeyId),
-			yc.WithIssuer(isk.saId),
-			yc.WithPrivateKey(isk.saPrivateKey),
+			yc.WithKeyID(isk.SaKeyId),
+			yc.WithIssuer(isk.SaId),
+			yc.WithPrivateKey(isk.SaPrivateKey),
 			yc.WithSystemCertPool(),
 		),
 	)
