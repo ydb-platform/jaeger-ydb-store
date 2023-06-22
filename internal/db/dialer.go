@@ -2,17 +2,10 @@ package db
 
 import (
 	"context"
-	"crypto/rsa"
-	"crypto/x509"
-	"encoding/json"
-	"encoding/pem"
-	"errors"
-	"fmt"
-	"os"
 
 	"github.com/spf13/viper"
 	ydbZap "github.com/ydb-platform/ydb-go-sdk-zap"
-	ydb "github.com/ydb-platform/ydb-go-sdk/v3"
+	"github.com/ydb-platform/ydb-go-sdk/v3"
 	"github.com/ydb-platform/ydb-go-sdk/v3/trace"
 	yc "github.com/ydb-platform/ydb-go-yc"
 	"go.uber.org/zap"
@@ -21,99 +14,6 @@ import (
 const (
 	defaultIAMEndpoint = "iam.api.cloud.yandex.net:443"
 )
-
-func parsePrivateKey(raw []byte) (*rsa.PrivateKey, error) {
-	block, _ := pem.Decode(raw)
-	if block == nil {
-		return nil, errors.New("key cannot be parsed")
-	}
-	key, err := x509.ParsePKCS1PrivateKey(block.Bytes)
-	if err == nil {
-		return key, err
-	}
-
-	x, err := x509.ParsePKCS8PrivateKey(block.Bytes)
-	if err != nil {
-		return nil, err
-	}
-	if key, ok := x.(*rsa.PrivateKey); ok {
-		return key, nil
-	}
-	return nil, errors.New("key cannot be parsed")
-}
-
-type envGetter interface {
-	GetString(key string) string
-}
-
-type fileReader interface {
-	ReadFile(name string) ([]byte, error)
-}
-
-type osFileReader struct{}
-
-func (ofr osFileReader) ReadFile(name string) ([]byte, error) {
-	return os.ReadFile(name)
-}
-
-type iamStaticKey struct {
-	SaId         string
-	SaKeyId      string
-	SaPrivateKey *rsa.PrivateKey
-}
-
-func (isk *iamStaticKey) getFromEnvGetter(eg envGetter, fr fileReader) error {
-	switch {
-	case eg.GetString(keyYdbSaKeyJson) != "":
-		iamStaticKeyFromJson := struct {
-			SaId            string `json:"id"`
-			SaKeyId         string `json:"service_account_id"`
-			SaPrivateKeyRaw string `json:"private_key"`
-		}{}
-		err := json.Unmarshal([]byte(eg.GetString(keyYdbSaKeyJson)), &iamStaticKeyFromJson)
-		if err != nil {
-			return fmt.Errorf("getFromEnvGetter: %w", err)
-		}
-
-		if iamStaticKeyFromJson.SaId == "" ||
-			iamStaticKeyFromJson.SaKeyId == "" ||
-			iamStaticKeyFromJson.SaPrivateKeyRaw == "" {
-			return errors.New("wrong json data")
-		}
-
-		isk.SaId = iamStaticKeyFromJson.SaId
-		isk.SaKeyId = iamStaticKeyFromJson.SaKeyId
-
-		saPrivateKey, err := parsePrivateKey([]byte(iamStaticKeyFromJson.SaPrivateKeyRaw))
-		if err != nil {
-			return fmt.Errorf("getFromEnvGetter: %w", err)
-		}
-		isk.SaPrivateKey = saPrivateKey
-
-	case eg.GetString(KeyYdbSaPrivateKeyFile) != "" &&
-		eg.GetString(KeyYdbSaId) != "" &&
-		eg.GetString(KeyYdbSaKeyID) != "":
-
-		isk.SaId = eg.GetString(KeyYdbSaId)
-		isk.SaKeyId = eg.GetString(KeyYdbSaKeyID)
-
-		saPrivateKeyRaw, err := fr.ReadFile(eg.GetString(KeyYdbSaPrivateKeyFile))
-		if err != nil {
-			return fmt.Errorf("getFromEnvGetter: %w", err)
-		}
-
-		saPrivateKey, err := parsePrivateKey(saPrivateKeyRaw)
-		if err != nil {
-			return fmt.Errorf("getFromEnvGetter: %w", err)
-		}
-		isk.SaPrivateKey = saPrivateKey
-
-	default:
-		return errors.New("getFromEnvGetter: iam static key not found")
-	}
-
-	return nil
-}
 
 func options(v *viper.Viper, l *zap.Logger, opts ...ydb.Option) []ydb.Option {
 	v.SetDefault(KeyIAMEndpoint, defaultIAMEndpoint)
@@ -153,20 +53,34 @@ func options(v *viper.Viper, l *zap.Logger, opts ...ydb.Option) []ydb.Option {
 			yc.WithMetadataCredentials(),
 		)
 	}
-	isk := iamStaticKey{}
 
-	_ = isk.getFromEnvGetter(v, osFileReader{})
+	if v.GetString(keyYdbSaKeyJson) != "" {
+		return append(
+			opts,
+			yc.WithServiceAccountKeyCredentials(
+				v.GetString(keyYdbSaKeyJson),
+				yc.WithEndpoint(v.GetString(KeyIAMEndpoint)),
+				yc.WithSystemCertPool(),
+			),
+		)
+	}
 
-	return append(
-		opts,
-		yc.WithAuthClientCredentials(
-			yc.WithEndpoint(v.GetString(KeyIAMEndpoint)),
-			yc.WithKeyID(isk.SaKeyId),
-			yc.WithIssuer(isk.SaId),
-			yc.WithPrivateKey(isk.SaPrivateKey),
-			yc.WithSystemCertPool(),
-		),
-	)
+	if v.GetString(KeyYdbSaKeyID) != "" &&
+		v.GetString(KeyYdbSaId) != "" &&
+		v.GetString(KeyYdbSaPrivateKeyFile) != "" {
+		return append(
+			opts,
+			yc.WithAuthClientCredentials(
+				yc.WithEndpoint(v.GetString(KeyIAMEndpoint)),
+				yc.WithKeyID(v.GetString(KeyYdbSaKeyID)),
+				yc.WithIssuer(v.GetString(KeyYdbSaId)),
+				yc.WithPrivateKeyFile(v.GetString(KeyYdbSaPrivateKeyFile)),
+				yc.WithSystemCertPool(),
+			),
+		)
+	}
+
+	return opts
 }
 
 func DialFromViper(ctx context.Context, v *viper.Viper, logger *zap.Logger, dsn string, opts ...ydb.Option) (*ydb.Driver, error) {
