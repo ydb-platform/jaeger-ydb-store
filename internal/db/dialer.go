@@ -22,7 +22,6 @@ const (
 )
 
 type EnvGetter interface {
-	SetDefault(key string, value interface{})
 	GetString(key string) string
 }
 
