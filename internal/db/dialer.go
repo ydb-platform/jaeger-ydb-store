@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"github.com/spf13/viper"
 	ydbZap "github.com/ydb-platform/ydb-go-sdk-zap"
 	"github.com/ydb-platform/ydb-go-sdk/v3"
@@ -45,24 +46,28 @@ func parsePrivateKey(raw []byte) (*rsa.PrivateKey, error) {
 	return nil, errors.New("key cannot be parsed")
 }
 
-func withServiceAccountKeyJson(data string) []yc.ClientOption {
+func withServiceAccountKeyJson(data string) ([]yc.ClientOption, error) {
 	type keyFile struct {
 		ID               string `json:"id"`
 		ServiceAccountID string `json:"service_account_id"`
 		PrivateKey       string `json:"private_key"`
 	}
 	var info keyFile
-	_ = json.Unmarshal([]byte(data), &info)
-	privateKey, _ := parsePrivateKey([]byte(info.PrivateKey))
-
+	if err := json.Unmarshal([]byte(data), &info); err != nil {
+		return nil, fmt.Errorf("withServiceAccountKeyJson: %w", err)
+	}
+	privateKey, err := parsePrivateKey([]byte(info.PrivateKey))
+	if err != nil {
+		return nil, fmt.Errorf("withServiceAccountKeyJson: %w", err)
+	}
 	return []yc.ClientOption{
 		yc.WithIssuer(info.ServiceAccountID),
 		yc.WithKeyID(info.ID),
 		yc.WithPrivateKey(privateKey),
-	}
+	}, nil
 }
 
-func getCredentialsAndOpts(eg EnvGetter) (creds credentials.Credentials, opts []ydb.Option) {
+func getCredentialsAndOpts(eg EnvGetter) (creds credentials.Credentials, opts []ydb.Option, err error) {
 
 	if caFile := eg.GetString(KeyYdbCAFile); caFile != "" {
 		opts = append(opts, ydb.WithCertificatesFromFile(caFile))
@@ -78,20 +83,27 @@ func getCredentialsAndOpts(eg EnvGetter) (creds credentials.Credentials, opts []
 		opts = []ydb.Option{ydb.WithSecure(true)}
 
 	case eg.GetString(keyYdbSaKeyJson) != "":
-		creds, _ = yc.NewClient(
+		keyClientOption, err := withServiceAccountKeyJson(eg.GetString(keyYdbSaKeyJson))
+		if err != nil {
+			return nil, nil, fmt.Errorf("getCredentialsAndOpts: %w", err)
+		}
+		creds, err = yc.NewClient(
 			append(
-				withServiceAccountKeyJson(eg.GetString(keyYdbSaKeyJson)),
+				keyClientOption,
 				yc.WithEndpoint(KeyIAMEndpoint),
 				yc.WithSystemCertPool(),
 			)...,
 		)
+		if err != nil {
+			return nil, nil, fmt.Errorf("getCredentialsAndOpts: %w", err)
+		}
 		opts = append(opts, ydb.WithSecure(true))
 
 	case eg.GetString(KeyYdbSaKeyID) != "" &&
 		eg.GetString(KeyYdbSaId) != "" &&
 		eg.GetString(KeyYdbSaPrivateKeyFile) != "":
 
-		creds, _ = yc.NewClient(
+		creds, err = yc.NewClient(
 			yc.WithEndpoint(KeyIAMEndpoint),
 			yc.WithSystemCertPool(),
 
@@ -99,6 +111,9 @@ func getCredentialsAndOpts(eg EnvGetter) (creds credentials.Credentials, opts []
 			yc.WithKeyID(eg.GetString(KeyYdbSaKeyID)),
 			yc.WithPrivateKeyFile(eg.GetString(KeyYdbSaPrivateKeyFile)),
 		)
+		if err != nil {
+			return nil, nil, fmt.Errorf("getCredentialsAndOpts: %w", err)
+		}
 		opts = append(opts, ydb.WithSecure(true))
 
 	default:
@@ -106,10 +121,10 @@ func getCredentialsAndOpts(eg EnvGetter) (creds credentials.Credentials, opts []
 		opts = append(opts, ydb.WithInsecure())
 	}
 
-	return creds, opts
+	return creds, opts, err
 }
 
-func options(v *viper.Viper, l *zap.Logger, opts ...ydb.Option) []ydb.Option {
+func options(v *viper.Viper, l *zap.Logger, opts ...ydb.Option) ([]ydb.Option, error) {
 	v.SetDefault(KeyIAMEndpoint, defaultIAMEndpoint)
 
 	if l != nil {
@@ -127,14 +142,22 @@ func options(v *viper.Viper, l *zap.Logger, opts ...ydb.Option) []ydb.Option {
 		)
 	}
 
-	creds, extraOps := getCredentialsAndOpts(v)
+	creds, extraOps, err := getCredentialsAndOpts(v)
+	if err != nil {
+		return nil, fmt.Errorf("options: %w", err)
+	}
+
 	opts = append(opts, ydb.WithCredentials(creds))
 	opts = append(opts, extraOps...)
 
-	return opts
+	return opts, nil
 
 }
 
 func DialFromViper(ctx context.Context, v *viper.Viper, logger *zap.Logger, dsn string, opts ...ydb.Option) (*ydb.Driver, error) {
-	return ydb.Open(ctx, dsn, options(v, logger, opts...)...)
+	optsFromOptions, err := options(v, logger, opts...)
+	if err != nil {
+		return nil, fmt.Errorf("DialFromViper: %w", err)
+	}
+	return ydb.Open(ctx, dsn, optsFromOptions...)
 }
