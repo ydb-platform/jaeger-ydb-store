@@ -1,5 +1,7 @@
 package db
 
+import "errors"
+
 type envGetterMock struct {
 	storage map[string]string
 }
@@ -15,8 +17,21 @@ func (egm *envGetterMock) GetString(key string) string {
 	return result
 }
 
-func (egm *envGetterMock) AddStrings(args ...[2]string) {
-	for _, arg := range args {
-		egm.storage[arg[0]] = arg[1]
+func (egm *envGetterMock) GetBool(key string) bool {
+	result, _ := egm.storage[key]
+	switch result {
+	case "TRUE":
+		return true
+	case "FALSE":
+		return false
+	case "":
+		return false
+
+	default:
+		panic("can't recognize value")
 	}
+}
+
+func (egm *envGetterMock) AddString(arg [2]string) {
+	egm.storage[arg[0]] = arg[1]
 }
