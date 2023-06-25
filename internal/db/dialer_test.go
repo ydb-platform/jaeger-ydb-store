@@ -1,158 +1,272 @@
 package db
 
 import (
-	"testing"
-
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/ydb-platform/ydb-go-sdk/v3/credentials"
+	yc "github.com/ydb-platform/ydb-go-yc"
+	"testing"
 )
 
-func Test_iamStaticKey_getFromEnvGetter(t *testing.T) {
+func Test_getCredentialsAndOpts(t *testing.T) {
+	type file struct {
+		Name string
+		Data []byte
+	}
+
 	type input struct {
-		Envs     [][2]string
-		FileName string
-		FileData []byte
+		Envs  [][2]string
+		Files []file
 	}
 	type expect struct {
-		SaId            string
-		SaKeyId         string
-		SaPrivateKeyRaw []byte
-		HaveError       bool
+		Creds     credentials.Credentials
+		HaveError bool
+		Err       error
 	}
 
 	cases := []struct {
-		name string
-		i    input
-		e    expect
+		Name       string
+		InputData  input
+		ExpectData expect
 	}{
 		{
-			"simple deprecated format",
-			input{
-				Envs: [][2]string{
-					{KeyYdbSaId, "biba_id"},
-					{KeyYdbSaKeyID, "biba_key_id"},
-					{KeyYdbSaPrivateKeyFile, "ydb.key"},
-				},
-				FileName: "ydb.key",
-				FileData: []byte("-----BEGIN RSA PRIVATE KEY-----\nMCsCAQACBHbKUj0CAwEAAQIEVeGJhQIDANj7AgMAjCcCAwCOdwICTGsCAm+5\n-----END RSA PRIVATE KEY-----\n"),
-			},
-			expect{
-				SaId:            "biba_id",
-				SaKeyId:         "biba_key_id",
-				SaPrivateKeyRaw: []byte("-----BEGIN RSA PRIVATE KEY-----\nMCsCAQACBHbKUj0CAwEAAQIEVeGJhQIDANj7AgMAjCcCAwCOdwICTGsCAm+5\n-----END RSA PRIVATE KEY-----\n"),
-				HaveError:       false,
-			},
-		}, {
-			"wrong deprecated format",
-			input{
-				Envs: [][2]string{
-					{KeyYdbSaId, "biba_id"},
-					{KeyYdbSaPrivateKeyFile, "ydb.key"},
-				},
-			},
-			expect{
-				HaveError: true,
-			},
-		}, {
-			"simple json format",
-			input{
-				Envs: [][2]string{
-					{keyYdbSaKeyJson, `{"id": "biba_id",
-										"service_account_id": "biba_key_id",
-										"private_key": "-----BEGIN RSA PRIVATE KEY-----\nMCsCAQACBHbKUj0CAwEAAQIEVeGJhQIDANj7AgMAjCcCAwCOdwICTGsCAm+5\n-----END RSA PRIVATE KEY-----\n"}`},
-				},
-			},
-			expect{
-				SaId:            "biba_id",
-				SaKeyId:         "biba_key_id",
-				SaPrivateKeyRaw: []byte("-----BEGIN RSA PRIVATE KEY-----\nMCsCAQACBHbKUj0CAwEAAQIEVeGJhQIDANj7AgMAjCcCAwCOdwICTGsCAm+5\n-----END RSA PRIVATE KEY-----\n"),
-				HaveError:       false,
-			},
-		}, {
-			"wrong json format",
-			input{
-				Envs: [][2]string{
-					{keyYdbSaKeyJson, `{"id": "biba_id",
-										"service_account_id_wrong_field": "biba_key_id",
-										"private_key": "-----BEGIN RSA PRIVATE KEY-----\nMCsCAQACBHbKUj0CAwEAAQIEVeGJhQIDANj7AgMAjCcCAwCOdwICTGsCAm+5\n-----END RSA PRIVATE KEY-----\n"}`},
-				},
-			},
-			expect{
-				HaveError: true,
-			},
-		}, {
-			"conflict",
-			input{
-				Envs: [][2]string{
-					{KeyYdbSaId, "deprecated_biba_id"},
-					{KeyYdbSaKeyID, "deprecated_biba_key_id"},
-					{KeyYdbSaPrivateKeyFile, "ydb.key"},
+			Name: "simple: Token",
 
-					{keyYdbSaKeyJson, `{"id": "json_biba_id",
-										"service_account_id": "json_biba_key_id",
-										"private_key": "-----BEGIN RSA PRIVATE KEY-----\nMCsCAQACBHbKUj0CAwEAAQIEVeGJhQIDANj7AgMAjCcCAwCOdwICTGsCAm+5\n-----END RSA PRIVATE KEY-----\n"}`},
-				},
-				FileName: "ydb.key",
-				FileData: []byte("-----BEGIN RSA PRIVATE KEY-----\nMCsCAQACBHbKUj0CAwEAAQIEVeGJhQIDANj7AgMAjCcCAwCOdwICTGsCAm+5\n-----END RSA PRIVATE KEY-----\n"),
-			},
-			expect{
-				SaId:            "json_biba_id",
-				SaKeyId:         "json_biba_key_id",
-				SaPrivateKeyRaw: []byte("-----BEGIN RSA PRIVATE KEY-----\nMCsCAQACBHbKUj0CAwEAAQIEVeGJhQIDANj7AgMAjCcCAwCOdwICTGsCAm+5\n-----END RSA PRIVATE KEY-----\n"),
-				HaveError:       false,
-			},
-		}, {
-			"neither deprecated not json",
-			input{},
-			expect{
-				HaveError: true,
-			},
-		}, {
-			"bad private key",
-			input{
+			InputData: input{
 				Envs: [][2]string{
-					{KeyYdbSaId, "biba_id"},
-					{KeyYdbSaKeyID, "biba_key_id"},
-					{KeyYdbSaPrivateKeyFile, "ydb.key"},
+					{KeyYdbToken, "bibaToken"},
 				},
-				FileName: "ydb.key",
-				FileData: []byte("wrong key format"),
 			},
-			expect{
+			ExpectData: expect{
+				Creds:     credentials.NewAccessTokenCredentials("bibaToken"),
+				HaveError: false,
+			},
+		},
+
+		{
+			Name: "simple: SaKeyJson",
+
+			InputData: input{
+				Envs: [][2]string{
+					{keyYdbSaKeyJson, `
+						{
+						  "id": "biba_id",
+						  "service_account_id": "biba_sa_id",
+						  "private_key": "-----BEGIN RSA PRIVATE KEY-----\nMCsCAQACBQCIRD8xAgMBAAECBCB4TiUCAwD45wIDAIwnAgJ1ZwICTGsCAjBF\n-----END RSA PRIVATE KEY-----\n"
+						}`,
+					},
+				},
+			},
+			ExpectData: expect{
+				Creds: func() credentials.Credentials {
+					keyClientOption := yc.WithServiceKey(`
+						{
+						  "id": "biba_id",
+						  "service_account_id": "biba_sa_id",
+						  "private_key": "-----BEGIN RSA PRIVATE KEY-----\nMCsCAQACBQCIRD8xAgMBAAECBCB4TiUCAwD45wIDAIwnAgJ1ZwICTGsCAjBF\n-----END RSA PRIVATE KEY-----\n"
+						}`)
+					creds, err := yc.NewClient(
+						keyClientOption,
+						yc.WithEndpoint(defaultIAMEndpoint),
+						yc.WithSystemCertPool(),
+					)
+					require.NoError(t, err)
+					return creds
+				}(),
+				HaveError: false,
+			},
+		},
+
+		{
+			Name: "simple: deprecated key format",
+
+			InputData: input{
+				Envs: [][2]string{
+					{KeyYdbSaKeyID, "biba_id"},
+					{KeyYdbSaId, "biba_sa_id"},
+					{KeyYdbSaPrivateKeyFile, "/path/to/biba"},
+				},
+				Files: []file{
+					{
+						Name: "/path/to/biba",
+						Data: []byte("-----BEGIN RSA PRIVATE KEY-----\nMCsCAQACBQCIRD8xAgMBAAECBCB4TiUCAwD45wIDAIwnAgJ1ZwICTGsCAjBF\n-----END RSA PRIVATE KEY-----\n"),
+					},
+				},
+			},
+			ExpectData: expect{
+				Creds: func() credentials.Credentials {
+					privateKey, _ := parsePrivateKey([]byte("-----BEGIN RSA PRIVATE KEY-----\nMCsCAQACBQCIRD8xAgMBAAECBCB4TiUCAwD45wIDAIwnAgJ1ZwICTGsCAjBF\n-----END RSA PRIVATE KEY-----\n"))
+					creds, _ := yc.NewClient(
+						yc.WithEndpoint(defaultIAMEndpoint),
+						yc.WithSystemCertPool(),
+
+						yc.WithKeyID("biba_id"),
+						yc.WithIssuer("biba_sa_id"),
+						yc.WithPrivateKey(privateKey),
+					)
+					return creds
+				}(),
+				HaveError: false,
+			},
+		},
+
+		{
+			Name: "wrong file: deprecated key format",
+
+			InputData: input{
+				Envs: [][2]string{
+					{KeyYdbSaKeyID, "biba_id"},
+					{KeyYdbSaId, "biba_sa_id"},
+					{KeyYdbSaPrivateKeyFile, "/wrong/path/to/biba"},
+				},
+				Files: []file{
+					{
+						Name: "/path/to/biba",
+						Data: []byte("-----BEGIN RSA PRIVATE KEY-----\nMCsCAQACBQCIRD8xAgMBAAECBCB4TiUCAwD45wIDAIwnAgJ1ZwICTGsCAjBF\n-----END RSA PRIVATE KEY-----\n"),
+					},
+				},
+			},
+			ExpectData: expect{
 				HaveError: true,
+				Err:       errCannotOpenFile,
+			},
+		},
+
+		{
+			Name: "bad private key: deprecated key format",
+
+			InputData: input{
+				Envs: [][2]string{
+					{KeyYdbSaKeyID, "biba_id"},
+					{KeyYdbSaId, "biba_sa_id"},
+					{KeyYdbSaPrivateKeyFile, "/path/to/biba"},
+				},
+				Files: []file{
+					{
+						Name: "/path/to/biba",
+						Data: []byte("-----BEGIN RSA PRIVATE KEY-----\nbad key format\n-----END RSA PRIVATE KEY-----\n"),
+					},
+				},
+			},
+			ExpectData: expect{
+				HaveError: true,
+				Err:       errCannotParseKey,
+			},
+		},
+
+		{
+			Name: "conflict: deprecated key format, saKeyJson",
+
+			InputData: input{
+				Envs: [][2]string{
+					{keyYdbSaKeyJson, `
+						{
+						  "id": "biba_id",
+						  "service_account_id": "biba_sa_id",
+						  "private_key": "-----BEGIN RSA PRIVATE KEY-----\nMCsCAQACBQCIRD8xAgMBAAECBCB4TiUCAwD45wIDAIwnAgJ1ZwICTGsCAjBF\n-----END RSA PRIVATE KEY-----\n"
+						}`,
+					},
+					{KeyYdbSaKeyID, "biba_id"},
+					{KeyYdbSaId, "biba_sa_id"},
+					{KeyYdbSaPrivateKeyFile, "/path/to/biba"},
+				},
+				Files: []file{
+					{
+						Name: "/path/to/biba",
+						Data: []byte("-----BEGIN RSA PRIVATE KEY-----\nMCsCAQACBQCIRD8xAgMBAAECBCB4TiUCAwD45wIDAIwnAgJ1ZwICTGsCAjBF\n-----END RSA PRIVATE KEY-----\n"),
+					},
+				},
+			},
+			ExpectData: expect{
+				HaveError: true,
+				Err:       errConflictNewWithDeprecated,
+			},
+		},
+
+		{
+			Name: "no credentials",
+
+			InputData: input{},
+			ExpectData: expect{
+				HaveError: true,
+				Err:       errNoCredentialsAreSpecified,
+			},
+		},
+
+		{
+			Name: "priority check: token, saKeyJson",
+
+			InputData: input{
+				Envs: [][2]string{
+					{KeyYdbToken, "bibaToken"},
+					{keyYdbSaKeyJson, `
+						{
+						  "id": "biba_id",
+						  "service_account_id": "biba_sa_id",
+						  "private_key": "-----BEGIN RSA PRIVATE KEY-----\nMCsCAQACBQCIRD8xAgMBAAECBCB4TiUCAwD45wIDAIwnAgJ1ZwICTGsCAjBF\n-----END RSA PRIVATE KEY-----\n"
+						}`,
+					},
+				},
+			},
+			ExpectData: expect{
+				Creds:     credentials.NewAccessTokenCredentials("bibaToken"),
+				HaveError: false,
+			},
+		},
+
+		{
+			Name: "priority check: token, deprecated format key",
+
+			InputData: input{
+				Envs: [][2]string{
+					{KeyYdbToken, "bibaToken"},
+					{keyYdbSaKeyJson, `
+						{
+						  "id": "biba_id",
+						  "service_account_id": "biba_sa_id",
+						  "private_key": "-----BEGIN RSA PRIVATE KEY-----\nMCsCAQACBQCIRD8xAgMBAAECBCB4TiUCAwD45wIDAIwnAgJ1ZwICTGsCAjBF\n-----END RSA PRIVATE KEY-----\n"
+						}`,
+					},
+					{KeyYdbSaKeyID, "biba_id"},
+					{KeyYdbSaId, "biba_sa_id"},
+					{KeyYdbSaPrivateKeyFile, "/path/to/biba"},
+				},
+				Files: []file{
+					{
+						Name: "/path/to/biba",
+						Data: []byte("-----BEGIN RSA PRIVATE KEY-----\nMCsCAQACBQCIRD8xAgMBAAECBCB4TiUCAwD45wIDAIwnAgJ1ZwICTGsCAjBF\n-----END RSA PRIVATE KEY-----\n"),
+					},
+				},
+			},
+			ExpectData: expect{
+				Creds:     credentials.NewAccessTokenCredentials("bibaToken"),
+				HaveError: false,
 			},
 		},
 	}
 
 	for _, tc := range cases {
 		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			privateKeyExpect, err := parsePrivateKey(tc.e.SaPrivateKeyRaw)
-			if string(tc.e.SaPrivateKeyRaw) != "" {
-				assert.NoError(t, err)
-			}
-
-			ickExpect := iamStaticKey{
-				SaId:         tc.e.SaId,
-				SaKeyId:      tc.e.SaKeyId,
-				SaPrivateKey: privateKeyExpect,
-			}
-
+		t.Run(tc.Name, func(t *testing.T) {
 			egm := newEnvGetterMock()
-			egm.AddStrings(tc.i.Envs...)
+			egm.AddString([2]string{KeyIAMEndpoint, defaultIAMEndpoint})
+			for _, env := range tc.InputData.Envs {
+				egm.AddString(env)
+			}
 
 			frm := newFileReaderMock()
-			frm.AddFile(tc.i.FileName, tc.i.FileData)
-
-			ick := iamStaticKey{}
-			err = ick.getFromEnvGetter(egm, frm)
-			if tc.e.HaveError {
-				assert.Error(t, err)
-				return
-			} else {
-				assert.NoError(t, err)
+			for _, f := range tc.InputData.Files {
+				frm.AddFile(f.Name, f.Data)
 			}
 
-			assert.Equal(t, ickExpect, ick)
+			creds, _, err := getCredentialsAndOpts(egm, frm)
+			if !tc.ExpectData.HaveError {
+				assert.NoError(t, err)
+			} else {
+				assert.ErrorIs(t, err, tc.ExpectData.Err)
+			}
+
+			assert.Equal(t, tc.ExpectData.Creds, creds)
 		})
 	}
 }
