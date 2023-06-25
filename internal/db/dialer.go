@@ -7,6 +7,8 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"os"
+
 	"github.com/spf13/viper"
 	ydbZap "github.com/ydb-platform/ydb-go-sdk-zap"
 	"github.com/ydb-platform/ydb-go-sdk/v3"
@@ -14,7 +16,6 @@ import (
 	"github.com/ydb-platform/ydb-go-sdk/v3/trace"
 	yc "github.com/ydb-platform/ydb-go-yc"
 	"go.uber.org/zap"
-	"os"
 )
 
 const (
@@ -77,7 +78,6 @@ func readPrivateKeyFromFile(path string, fr FileReader) (*rsa.PrivateKey, error)
 }
 
 func getCredentialsAndOpts(eg EnvGetter, fr FileReader) (creds credentials.Credentials, opts []ydb.Option, err error) {
-
 	if caFile := eg.GetString(KeyYdbCAFile); caFile != "" {
 		opts = append(opts, ydb.WithCertificatesFromFile(caFile))
 	}
@@ -96,7 +96,6 @@ func getCredentialsAndOpts(eg EnvGetter, fr FileReader) (creds credentials.Crede
 		if eg.GetString(KeyYdbSaKeyID) != "" ||
 			eg.GetString(KeyYdbSaId) != "" ||
 			eg.GetString(KeyYdbSaPrivateKeyFile) != "" {
-
 			return nil, nil, fmt.Errorf("getCredentialsAndOpts: %w", errConflictNewWithDeprecated)
 		}
 
@@ -167,7 +166,6 @@ func options(v *viper.Viper, l *zap.Logger, opts ...ydb.Option) ([]ydb.Option, e
 	opts = append(opts, extraOps...)
 
 	return opts, nil
-
 }
 
 func DialFromViper(ctx context.Context, v *viper.Viper, logger *zap.Logger, dsn string, opts ...ydb.Option) (*ydb.Driver, error) {

@@ -1,11 +1,12 @@
 package db
 
 import (
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/ydb-platform/ydb-go-sdk/v3/credentials"
 	yc "github.com/ydb-platform/ydb-go-yc"
-	"testing"
 )
 
 func Test_getCredentialsAndOpts(t *testing.T) {
@@ -48,7 +49,8 @@ func Test_getCredentialsAndOpts(t *testing.T) {
 
 			InputData: input{
 				Envs: [][2]string{
-					{keyYdbSaKeyJson, `
+					{
+						keyYdbSaKeyJson, `
 						{
 						  "id": "biba_id",
 						  "service_account_id": "biba_sa_id",
@@ -159,7 +161,8 @@ func Test_getCredentialsAndOpts(t *testing.T) {
 
 			InputData: input{
 				Envs: [][2]string{
-					{keyYdbSaKeyJson, `
+					{
+						keyYdbSaKeyJson, `
 						{
 						  "id": "biba_id",
 						  "service_account_id": "biba_sa_id",
@@ -199,7 +202,8 @@ func Test_getCredentialsAndOpts(t *testing.T) {
 			InputData: input{
 				Envs: [][2]string{
 					{KeyYdbToken, "bibaToken"},
-					{keyYdbSaKeyJson, `
+					{
+						keyYdbSaKeyJson, `
 						{
 						  "id": "biba_id",
 						  "service_account_id": "biba_sa_id",
@@ -220,7 +224,8 @@ func Test_getCredentialsAndOpts(t *testing.T) {
 			InputData: input{
 				Envs: [][2]string{
 					{KeyYdbToken, "bibaToken"},
-					{keyYdbSaKeyJson, `
+					{
+						keyYdbSaKeyJson, `
 						{
 						  "id": "biba_id",
 						  "service_account_id": "biba_sa_id",
