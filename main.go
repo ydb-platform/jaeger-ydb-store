@@ -84,3 +84,5 @@ func initTracer() io.Closer {
 	}
 	return closer
 }
+
+// test
