@@ -83,6 +83,11 @@ func getCredentialsAndOpts(eg EnvGetter, fr FileReader) (creds credentials.Crede
 	}
 
 	switch {
+
+	case eg.GetBool(keyYdbAnonymous) == true:
+		creds = credentials.NewAnonymousCredentials()
+		opts = append(opts, ydb.WithInsecure())
+
 	case eg.GetString(KeyYdbToken) != "":
 		creds = credentials.NewAccessTokenCredentials(eg.GetString(KeyYdbToken))
 		opts = append(opts, ydb.WithInsecure())
