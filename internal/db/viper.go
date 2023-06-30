@@ -4,7 +4,10 @@ const (
 	KeyYdbAddress = "ydb.address"
 	KeyYdbPath    = "ydb.path"
 	KeyYdbFolder  = "ydb.folder"
-	KeyYdbToken   = "ydb.token"
+
+	keyYdbAnonymous = "ydb.anonymous"
+
+	KeyYdbToken = "ydb.token"
 
 	KeyYdbSaMetaAuth = "ydb.sa.meta-auth"
 
