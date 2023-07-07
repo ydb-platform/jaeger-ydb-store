@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/go-hclog"
-
 	"github.com/jaegertracing/jaeger/storage/dependencystore"
 	"github.com/jaegertracing/jaeger/storage/spanstore"
 	"github.com/prometheus/client_golang/prometheus"
@@ -48,8 +46,7 @@ func NewYdbStorage() *YdbStorage {
 }
 
 // InitFromViper pops settings from flags/env
-func (p *YdbStorage) InitFromViper(v *viper.Viper, globalLogger hclog.Logger) (err error) {
-	globalLogger.Warn("started initing YDB PLUGIN")
+func (p *YdbStorage) InitFromViper(v *viper.Viper) (err error) {
 	v.SetDefault(db.KeyYdbConnectTimeout, time.Second*10)
 	v.SetDefault(db.KeyYdbWriterBufferSize, 1000)
 	v.SetDefault(db.KeyYdbWriterBatchSize, 100)
