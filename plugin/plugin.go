@@ -3,8 +3,9 @@ package plugin
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/go-hclog"
 	"time"
+
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/jaegertracing/jaeger/storage/dependencystore"
 	"github.com/jaegertracing/jaeger/storage/spanstore"
