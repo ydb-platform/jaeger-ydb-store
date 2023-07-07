@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/pprof"
@@ -27,7 +28,7 @@ func init() {
 	viper.AutomaticEnv()
 
 	logger = hclog.New(&hclog.LoggerOptions{
-		Name:       "ydb",
+		Name:       "ydb-store-plugin",
 		JSONFormat: true,
 	})
 }
@@ -36,11 +37,21 @@ func main() {
 	localViper.ConfigureViperFromFlag(viper.GetViper())
 
 	ydbPlugin := plugin.NewYdbStorage()
-	ydbPlugin.InitFromViper(viper.GetViper())
+	err := ydbPlugin.InitFromViper(viper.GetViper(), logger)
+	if err != nil {
+		logger.Error(err.Error())
+		os.Exit(1)
+	}
 	go serveHttp(ydbPlugin.Registry())
 
-	closer := initTracer()
-	defer closer.Close()
+	closer, err := initTracer()
+	if err != nil {
+		logger.Error(err.Error())
+		os.Exit(1)
+	}
+	defer func() {
+		_ = closer.Close()
+	}()
 
 	logger.Warn("starting plugin")
 	jaegerGrpc.Serve(&shared.PluginServices{
@@ -71,16 +82,15 @@ func serveHttp(gatherer prometheus.Gatherer) {
 	}
 }
 
-func initTracer() io.Closer {
+func initTracer() (_ io.Closer, err error) {
 	cfg, err := jaegerCfg.FromEnv()
 	if err != nil {
-		logger.Error("cfg from env fail", "err", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("initTracer: %w", err)
 	}
+
 	closer, err := cfg.InitGlobalTracer("jaeger-ydb-query")
 	if err != nil {
-		logger.Error("tracer create failed", "err", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("initTracer: %w", err)
 	}
-	return closer
+	return closer, nil
 }

@@ -2,6 +2,8 @@ package plugin
 
 import (
 	"context"
+	"fmt"
+	"github.com/hashicorp/go-hclog"
 	"time"
 
 	"github.com/jaegertracing/jaeger/storage/dependencystore"
@@ -45,7 +47,8 @@ func NewYdbStorage() *YdbStorage {
 }
 
 // InitFromViper pops settings from flags/env
-func (p *YdbStorage) InitFromViper(v *viper.Viper) {
+func (p *YdbStorage) InitFromViper(v *viper.Viper, globalLogger hclog.Logger) (err error) {
+	globalLogger.Warn("started initing YDB PLUGIN")
 	v.SetDefault(db.KeyYdbConnectTimeout, time.Second*10)
 	v.SetDefault(db.KeyYdbWriterBufferSize, 1000)
 	v.SetDefault(db.KeyYdbWriterBatchSize, 100)
@@ -86,7 +89,6 @@ func (p *YdbStorage) InitFromViper(v *viper.Viper) {
 		ReadSvcLimit:        v.GetUint64(db.KeyYdbReadSvcLimit),
 		WriteMaxSpanAge:     v.GetDuration(db.KeyYdbWriterMaxSpanAge),
 	}
-	var err error
 	cfg := zap.NewProductionConfig()
 	if logPath := v.GetString("plugin_log_path"); logPath != "" {
 		cfg.ErrorOutputPaths = []string{logPath}
@@ -94,11 +96,18 @@ func (p *YdbStorage) InitFromViper(v *viper.Viper) {
 	}
 	p.logger, err = cfg.Build()
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("YdbStorage.InitFromViper(): %w", err)
 	}
-	p.initDB(v)
+
+	err = p.initDB(v)
+	if err != nil {
+		return fmt.Errorf("YdbStorage.InitFromViper(): %w", err)
+	}
+
 	p.initWriters()
 	p.initReaders()
+
+	return nil
 }
 
 func (p *YdbStorage) Registry() *prometheus.Registry {
@@ -125,7 +134,24 @@ func (*YdbStorage) DependencyReader() dependencystore.Reader {
 	return ydbDepStore.DependencyStore{}
 }
 
-func (p *YdbStorage) initDB(v *viper.Viper) {
+func testQuery(ctx context.Context, db *ydb.Driver) error {
+	const query = `SELECT 42 as id, "myStr" as myStr;`
+
+	err := db.Table().Do(ctx, func(ctx context.Context, s table.Session) (err error) {
+		_, _, err = s.Execute(ctx, table.DefaultTxControl(), query, nil)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("testQuery: %w", err)
+	}
+
+	return nil
+}
+
+func (p *YdbStorage) initDB(v *viper.Viper) (err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), p.opts.ConnectTimeout)
 	defer cancel()
 
@@ -139,10 +165,18 @@ func (p *YdbStorage) initDB(v *viper.Viper) {
 		ydb.WithTraceTable(tableClientMetrics(p.metricsFactory)),
 	)
 	if err != nil {
-		p.logger.Fatal("db init failed", zap.Error(err))
+		return fmt.Errorf("YdbStorage.InitDB() %w", err)
+	}
+
+	// todo: replace with ping
+	err = testQuery(context.Background(), conn)
+	if err != nil {
+		return fmt.Errorf("YdbStorage.InitDB() %w", err)
 	}
 
 	p.ydbPool = conn.Table()
+
+	return nil
 }
 
 func (p *YdbStorage) initWriters() {
