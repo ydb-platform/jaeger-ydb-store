@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-
 	"github.com/spf13/viper"
 	ydbZap "github.com/ydb-platform/ydb-go-sdk-zap"
 	ydb "github.com/ydb-platform/ydb-go-sdk/v3"
@@ -33,18 +32,25 @@ func options(v *viper.Viper, l *zap.Logger, opts ...ydb.Option) []ydb.Option {
 		)
 	}
 
-	if v.GetString(KeyYdbToken) != "" {
+	// temporary solution before merge with feature/sa-key-json
+	if v.GetBool("YDB_ANONYMOUS") == true {
 		return append(
 			opts,
 			ydb.WithInsecure(),
-			ydb.WithAccessTokenCredentials(v.GetString(KeyYdbToken)),
+			ydb.WithAnonymousCredentials(),
 		)
 	}
 
-	opts = append(opts, ydb.WithSecure(true))
-
 	if caFile := v.GetString(KeyYdbCAFile); caFile != "" {
 		opts = append(opts, ydb.WithCertificatesFromFile(caFile))
+	}
+
+	opts = append(opts, ydb.WithSecure(true))
+	if v.GetString(KeyYdbToken) != "" {
+		return append(
+			opts,
+			ydb.WithAccessTokenCredentials(v.GetString(KeyYdbToken)),
+		)
 	}
 
 	if v.GetBool(KeyYdbSaMetaAuth) {
