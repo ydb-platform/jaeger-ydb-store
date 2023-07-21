@@ -2,6 +2,7 @@ package writer
 
 import (
 	"context"
+	"github.com/hashicorp/go-hclog"
 	"time"
 
 	lru "github.com/hashicorp/golang-lru"
@@ -20,6 +21,7 @@ type SpanWriter struct {
 	opts              SpanWriterOptions
 	pool              table.Client
 	logger            *zap.Logger
+	pluginLogger      hclog.Logger
 	spanBatch         *batch.Queue
 	indexer           *indexer.Indexer
 	nameCache         *lru.Cache
@@ -54,10 +56,16 @@ func NewSpanWriter(pool table.Client, metricsFactory metrics.Factory, logger *za
 		WriteTimeout: opts.WriteTimeout,
 		Batch:        batchOpts,
 	})
+	pluginLogger := hclog.New(&hclog.LoggerOptions{
+		Name:       "span writer",
+		JSONFormat: true,
+		Color:      hclog.AutoColor,
+	})
 	return &SpanWriter{
 		opts:              opts,
 		pool:              pool,
 		logger:            logger,
+		pluginLogger:      pluginLogger,
 		spanBatch:         bq,
 		indexer:           idx,
 		nameCache:         cache,
