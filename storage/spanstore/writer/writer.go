@@ -74,7 +74,7 @@ func NewSpanWriter(pool table.Client, metricsFactory metrics.Factory, logger *za
 }
 
 // WriteSpan saves the span into YDB
-func (s *SpanWriter) WriteSpan(ctx context.Context, span *model.Span) error {
+func (s *SpanWriter) WriteSpan(_ context.Context, span *model.Span) error {
 	if s.opts.MaxSpanAge != time.Duration(0) && time.Now().Sub(span.StartTime) > s.opts.MaxSpanAge {
 		s.invalidateMetrics.Inc(span.Process.ServiceName, span.OperationName)
 		return nil
