@@ -2,9 +2,10 @@ package indexer
 
 import (
 	"context"
-	"github.com/hashicorp/go-hclog"
 	"math/rand"
 	"time"
+
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/uber/jaeger-lib/metrics"

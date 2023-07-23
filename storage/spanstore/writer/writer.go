@@ -2,8 +2,9 @@ package writer
 
 import (
 	"context"
-	"github.com/hashicorp/go-hclog"
 	"time"
+
+	"github.com/hashicorp/go-hclog"
 
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/jaegertracing/jaeger/model"
@@ -101,7 +102,6 @@ func (s *SpanWriter) WriteSpan(_ context.Context, span *model.Span) error {
 }
 
 func (s *SpanWriter) saveServiceNameAndOperationName(span *model.Span) error {
-
 	serviceName := span.GetProcess().GetServiceName()
 	operationName := span.GetOperationName()
 	kind, _ := span.GetSpanKind()
