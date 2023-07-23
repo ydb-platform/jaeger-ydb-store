@@ -132,23 +132,6 @@ func (*YdbStorage) DependencyReader() dependencystore.Reader {
 	return ydbDepStore.DependencyStore{}
 }
 
-func testQuery(ctx context.Context, db *ydb.Driver) error {
-	const query = `SELECT 42 as id, "myStr" as myStr;`
-
-	err := db.Table().Do(ctx, func(ctx context.Context, s table.Session) (err error) {
-		_, _, err = s.Execute(ctx, table.DefaultTxControl(), query, nil)
-		if err != nil {
-			return err
-		}
-		return nil
-	})
-	if err != nil {
-		return fmt.Errorf("testQuery: %w", err)
-	}
-
-	return nil
-}
-
 func (p *YdbStorage) initDB(v *viper.Viper) (err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), p.opts.ConnectTimeout)
 	defer cancel()
@@ -166,8 +149,12 @@ func (p *YdbStorage) initDB(v *viper.Viper) (err error) {
 		return fmt.Errorf("YdbStorage.InitDB() %w", err)
 	}
 
-	// todo: replace with ping
-	err = testQuery(context.Background(), conn)
+	err = conn.Table().Do(
+		context.Background(),
+		func(ctx context.Context, s table.Session) error {
+			return s.KeepAlive(ctx)
+		},
+	)
 	if err != nil {
 		return fmt.Errorf("YdbStorage.InitDB() %w", err)
 	}
