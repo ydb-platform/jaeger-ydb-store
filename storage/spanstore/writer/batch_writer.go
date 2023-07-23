@@ -2,6 +2,7 @@ package writer
 
 import (
 	"context"
+	"github.com/hashicorp/go-hclog"
 	"time"
 
 	"github.com/jaegertracing/jaeger/model"
@@ -20,18 +21,26 @@ const (
 )
 
 type BatchSpanWriter struct {
-	metrics batchWriterMetrics
-	pool    table.Client
-	logger  *zap.Logger
-	opts    BatchWriterOptions
+	metrics      batchWriterMetrics
+	pool         table.Client
+	logger       *zap.Logger
+	pluginLogger hclog.Logger
+	opts         BatchWriterOptions
 }
 
 func NewBatchWriter(pool table.Client, factory metrics.Factory, logger *zap.Logger, opts BatchWriterOptions) *BatchSpanWriter {
+	pluginLogger := hclog.New(&hclog.LoggerOptions{
+		Name:       "BatchSpanWriter",
+		JSONFormat: true,
+		Color:      hclog.AutoColor,
+	})
+
 	return &BatchSpanWriter{
-		pool:    pool,
-		logger:  logger,
-		opts:    opts,
-		metrics: newBatchWriterMetrics(factory),
+		pool:         pool,
+		logger:       logger,
+		pluginLogger: pluginLogger,
+		opts:         opts,
+		metrics:      newBatchWriterMetrics(factory),
 	}
 }
 
@@ -54,20 +63,22 @@ func (w *BatchSpanWriter) writeItemsToPartition(part schema.PartitionKey, items 
 		spanRecords = append(spanRecords, dbSpan.StructValue())
 	}
 
-	ctx, ctxCancel := context.WithTimeout(context.Background(), w.opts.WriteTimeout)
-	defer ctxCancel()
 	tableName := func(table string) string {
 		return part.BuildFullTableName(w.opts.DbPath.String(), table)
 	}
 	var err error
 
-	if err = w.uploadRows(ctx, tableName(tblTraces), spanRecords, w.metrics.traces); err != nil {
+	if err = w.uploadRows(tableName(tblTraces), spanRecords, w.metrics.traces); err != nil {
 		w.logger.Error("insertSpan error", zap.Error(err))
+		w.pluginLogger.Error(
+			"Failed to save spans",
+			"error", err,
+		)
 		return
 	}
 }
 
-func (w *BatchSpanWriter) uploadRows(ctx context.Context, tableName string, rows []types.Value, metrics *wmetrics.WriteMetrics) error {
+func (w *BatchSpanWriter) uploadRows(tableName string, rows []types.Value, metrics *wmetrics.WriteMetrics) error {
 	ts := time.Now()
 	data := types.ListValue(rows...)
 	err := w.pool.Do(

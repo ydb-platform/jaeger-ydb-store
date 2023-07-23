@@ -2,6 +2,7 @@ package indexer
 
 import (
 	"context"
+	"github.com/hashicorp/go-hclog"
 	"math/rand"
 	"time"
 
@@ -19,11 +20,12 @@ import (
 )
 
 type indexWriter struct {
-	pool      table.Client
-	logger    *zap.Logger
-	metrics   indexerMetrics
-	tableName string
-	opts      Options
+	pool         table.Client
+	logger       *zap.Logger
+	pluginLogger hclog.Logger
+	metrics      indexerMetrics
+	tableName    string
+	opts         Options
 
 	idxRand *rand.Rand
 	batch   *batch.Queue
@@ -40,13 +42,19 @@ type indexerMetrics interface {
 }
 
 func startIndexWriter(pool table.Client, mf metrics.Factory, logger *zap.Logger, tableName string, opts Options) *indexWriter {
+	pluginLogger := hclog.New(&hclog.LoggerOptions{
+		Name:       "index writer",
+		JSONFormat: true,
+		Color:      hclog.AutoColor,
+	})
 	w := &indexWriter{
-		pool:      pool,
-		logger:    logger,
-		metrics:   wmetrics.NewWriteMetrics(mf, ""),
-		tableName: tableName,
-		opts:      opts,
-		idxRand:   newLockedRand(time.Now().UnixNano()),
+		pool:         pool,
+		logger:       logger,
+		pluginLogger: pluginLogger,
+		metrics:      wmetrics.NewWriteMetrics(mf, ""),
+		tableName:    tableName,
+		opts:         opts,
+		idxRand:      newLockedRand(time.Now().UnixNano()),
 	}
 	w.indexTTLMap = newIndexMap(w.flush, opts.MaxTraces, opts.MaxTTL)
 	w.batch = batch.NewQueue(opts.Batch, mf, w)
@@ -63,6 +71,11 @@ func (w *indexWriter) flush(idx index.Indexable, traceIds []model.TraceID) {
 	case err == batch.ErrOverflow:
 	case err != nil:
 		w.logger.Error("indexer batch error", zap.String("table", w.tableName), zap.Error(err))
+		w.pluginLogger.Error(
+			"indexer batch error",
+			"table", w.tableName,
+			"error", err,
+		)
 	}
 }
 
@@ -106,6 +119,11 @@ func (w *indexWriter) writePartition(part schema.PartitionKey, items []indexData
 	w.metrics.Emit(err, time.Since(ts), len(rows))
 	if err != nil {
 		w.logger.Error("indexer write fail", zap.String("table", w.tableName), zap.Error(err))
+		w.pluginLogger.Error(
+			"indexer write fail",
+			"table", w.tableName,
+			"error", err,
+		)
 	}
 }
 

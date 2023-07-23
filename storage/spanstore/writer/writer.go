@@ -119,6 +119,12 @@ func (s *SpanWriter) saveServiceNameAndOperationName(span *model.Span) error {
 			table.WithIdempotent(),
 		)
 		if err != nil {
+			s.pluginLogger.Error(
+				"Failed to save service name",
+				"service_name", serviceName,
+				"error", err,
+			)
+
 			return err
 		}
 	}
@@ -141,6 +147,11 @@ func (s *SpanWriter) saveServiceNameAndOperationName(span *model.Span) error {
 			table.WithIdempotent(),
 		)
 		if err != nil {
+			s.pluginLogger.Error(
+				"Failed to save operation name",
+				"operation_name", operationName,
+				"error", err,
+			)
 			return err
 		}
 	}
