@@ -1,5 +1,5 @@
 ARG jaeger_version=1.25.0
-ARG golang_version=1.18
+ARG golang_version=1.17
 ARG alpine_version=3.10
 
 FROM jaegertracing/jaeger-collector:${jaeger_version} as base-collector
@@ -8,6 +8,8 @@ FROM jaegertracing/jaeger-query:${jaeger_version} as base-query
 
 FROM golang:${golang_version} as builder
 WORKDIR /build
+COPY go.mod go.sum ./
+RUN go mod download && go mod verify
 COPY . .
 RUN CGO_ENABLED=0 go build -ldflags='-w -s' -o /ydb-plugin .
 RUN CGO_ENABLED=0 go build -ldflags='-w -s' -o /ydb-schema ./cmd/schema
