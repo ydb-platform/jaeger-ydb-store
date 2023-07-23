@@ -70,9 +70,15 @@ func (w *BatchSpanWriter) writeItemsToPartition(part schema.PartitionKey, items 
 func (w *BatchSpanWriter) uploadRows(ctx context.Context, tableName string, rows []types.Value, metrics *wmetrics.WriteMetrics) error {
 	ts := time.Now()
 	data := types.ListValue(rows...)
-	err := w.pool.Do(ctx, func(ctx context.Context, session table.Session) (err error) {
-		return session.BulkUpsert(ctx, tableName, data)
-	})
+	err := w.pool.Do(
+		context.Background(),
+		func(ctx context.Context, session table.Session) (err error) {
+			ctx, cancel := context.WithTimeout(ctx, w.opts.WriteTimeout)
+			defer cancel()
+			return session.BulkUpsert(ctx, tableName, data)
+		},
+		table.WithIdempotent(),
+	)
 	metrics.Emit(err, time.Since(ts), len(rows))
 	return err
 }

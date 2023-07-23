@@ -93,12 +93,16 @@ func (w *indexWriter) writePartition(part schema.PartitionKey, items []indexData
 		)
 		rows = append(rows, types.StructValue(fields...))
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), w.opts.WriteTimeout)
-	defer cancel()
 	ts := time.Now()
-	err := w.pool.Do(ctx, func(ctx context.Context, session table.Session) (err error) {
-		return session.BulkUpsert(ctx, fullTableName, types.ListValue(rows...))
-	})
+	err := w.pool.Do(
+		context.Background(),
+		func(ctx context.Context, session table.Session) (err error) {
+			ctx, cancel := context.WithTimeout(ctx, w.opts.WriteTimeout)
+			defer cancel()
+			return session.BulkUpsert(ctx, fullTableName, types.ListValue(rows...))
+		},
+		table.WithIdempotent(),
+	)
 	w.metrics.Emit(err, time.Since(ts), len(rows))
 	if err != nil {
 		w.logger.Error("indexer write fail", zap.String("table", w.tableName), zap.Error(err))
