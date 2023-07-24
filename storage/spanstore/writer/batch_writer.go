@@ -27,7 +27,6 @@ type BatchSpanWriter struct {
 }
 
 func NewBatchWriter(pool table.Client, factory metrics.Factory, logger hclog.Logger, opts BatchWriterOptions) *BatchSpanWriter {
-
 	return &BatchSpanWriter{
 		pool:    pool,
 		logger:  logger,

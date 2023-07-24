@@ -31,7 +31,6 @@ func (cw *StderrFileWriter) Write(p []byte) (n int, err error) {
 	if cw.file != nil {
 		_, err = cw.file.Write(p)
 		if err != nil {
-
 			fmt.Println("BAD", err)
 			return 0, err
 		}

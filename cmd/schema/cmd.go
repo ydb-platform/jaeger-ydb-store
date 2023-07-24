@@ -3,13 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/ydb-platform/jaeger-ydb-store/internal/log"
 	stdLog "log"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/ydb-platform/jaeger-ydb-store/internal/log"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

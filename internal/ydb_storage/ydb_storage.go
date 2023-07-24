@@ -3,9 +3,10 @@ package ydb_storage
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/hashicorp/go-hclog"
 	"github.com/ydb-platform/jaeger-ydb-store/schema"
-	"time"
 
 	"github.com/jaegertracing/jaeger/storage/dependencystore"
 	"github.com/jaegertracing/jaeger/storage/spanstore"
@@ -135,7 +136,6 @@ func (p *ydbStorage) newWriter() *writer.SpanWriter {
 	}
 	ns := p.metricsFactory.Namespace(metrics.NSOptions{Name: "writer"})
 	return writer.NewSpanWriter(p.ydbPool, ns, p.logger, opts)
-
 }
 
 func (p *ydbStorage) newArchiveWriter() *writer.SpanWriter {
@@ -199,6 +199,7 @@ func (p *ydbStorage) ArchiveSpanReader() spanstore.Reader {
 func (p *ydbStorage) ArchiveSpanWriter() spanstore.Writer {
 	return p.archiveWriter
 }
+
 func (p *ydbStorage) DependencyReader() dependencystore.Reader {
 	return ydbDepStore.DependencyStore{}
 }

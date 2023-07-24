@@ -3,8 +3,9 @@ package watcher
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/go-hclog"
 	"time"
+
+	"github.com/hashicorp/go-hclog"
 
 	lru "github.com/hashicorp/golang-lru"
 	ydb "github.com/ydb-platform/ydb-go-sdk/v3"

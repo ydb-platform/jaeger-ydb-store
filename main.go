@@ -2,15 +2,17 @@ package main
 
 import (
 	"fmt"
-	"github.com/ydb-platform/jaeger-ydb-store/internal/log"
-	"github.com/ydb-platform/jaeger-ydb-store/internal/ydb_storage"
 	"io"
+	stdLog "log"
 	"net/http"
 	"net/http/pprof"
 	"os"
 	"strings"
 
-	hclog "github.com/hashicorp/go-hclog"
+	"github.com/ydb-platform/jaeger-ydb-store/internal/log"
+	"github.com/ydb-platform/jaeger-ydb-store/internal/ydb_storage"
+
+	"github.com/hashicorp/go-hclog"
 	jaegerGrpc "github.com/jaegertracing/jaeger/plugin/storage/grpc"
 	"github.com/jaegertracing/jaeger/plugin/storage/grpc/shared"
 	"github.com/prometheus/client_golang/prometheus"
@@ -25,7 +27,6 @@ func init() {
 	viper.SetDefault("plugin_http_listen_address", ":15000")
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_", ".", "_"))
 	viper.AutomaticEnv()
-
 }
 
 type storagePluginWithRegistry interface {
@@ -35,10 +36,12 @@ type storagePluginWithRegistry interface {
 }
 
 func main() {
-
 	localViper.ConfigureViperFromFlag(viper.GetViper())
 
 	logger, err := log.NewLogger(viper.GetViper())
+	if err != nil {
+		stdLog.Fatal(err)
+	}
 
 	var ydbPlugin storagePluginWithRegistry
 	ydbPlugin, err = ydb_storage.NewYdbStorage(viper.GetViper(), logger)

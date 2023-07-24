@@ -2,6 +2,7 @@ package indexer
 
 import (
 	"errors"
+
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/jaegertracing/jaeger/model"

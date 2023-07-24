@@ -1,8 +1,9 @@
 package testutil
 
 import (
-	"github.com/hashicorp/go-hclog"
 	"os"
+
+	"github.com/hashicorp/go-hclog"
 )
 
 func Hclog() hclog.Logger {
