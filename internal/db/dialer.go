@@ -2,22 +2,22 @@ package db
 
 import (
 	"context"
-
+	"fmt"
 	"github.com/spf13/viper"
 	ydb "github.com/ydb-platform/ydb-go-sdk/v3"
+	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 	yc "github.com/ydb-platform/ydb-go-yc"
-	"go.uber.org/zap"
 )
 
 const (
 	defaultIAMEndpoint = "iam.api.cloud.yandex.net:443"
 )
 
-func options(v *viper.Viper, _ *zap.Logger, opts ...ydb.Option) []ydb.Option {
+func options(v *viper.Viper, opts ...ydb.Option) []ydb.Option {
 	v.SetDefault(KeyIAMEndpoint, defaultIAMEndpoint)
 
 	// temporary solution before merge with feature/sa-key-json
-	if v.GetBool("YDB_ANONYMOUS") == true {
+	if v.GetBool(KeyYdbAnonymous) == true {
 		return append(
 			opts,
 			ydb.WithInsecure(),
@@ -56,6 +56,21 @@ func options(v *viper.Viper, _ *zap.Logger, opts ...ydb.Option) []ydb.Option {
 	)
 }
 
-func DialFromViper(ctx context.Context, v *viper.Viper, logger *zap.Logger, dsn string, opts ...ydb.Option) (*ydb.Driver, error) {
-	return ydb.Open(ctx, dsn, options(v, logger, opts...)...)
+func ConnectToYDB(ctx context.Context, v *viper.Viper, dsn string, opts ...ydb.Option) (*ydb.Driver, error) {
+	conn, err := ydb.Open(ctx, dsn, options(v, opts...)...)
+	if err != nil {
+		return nil, fmt.Errorf("ConnectToYDB(): %w", err)
+	}
+
+	err = conn.Table().Do(
+		ctx,
+		func(ctx context.Context, s table.Session) error {
+			return s.KeepAlive(ctx)
+		},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("ConnectToYDB(): %w", err)
+	}
+
+	return conn, nil
 }
