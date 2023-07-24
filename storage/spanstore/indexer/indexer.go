@@ -2,13 +2,12 @@ package indexer
 
 import (
 	"errors"
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/uber/jaeger-lib/metrics"
-	"github.com/ydb-platform/ydb-go-sdk/v3/table"
-	"go.uber.org/zap"
-
 	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/indexer/index"
+	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 )
 
 const (
@@ -22,7 +21,7 @@ var ErrOverflow = errors.New("indexer buffer overflow")
 
 type Indexer struct {
 	opts   Options
-	logger *zap.Logger
+	logger hclog.Logger
 
 	inputItems     chan *model.Span
 	tagWriter      *indexWriter
@@ -32,7 +31,7 @@ type Indexer struct {
 	dropCounter    metrics.Counter
 }
 
-func StartIndexer(pool table.Client, mf metrics.Factory, logger *zap.Logger, opts Options) *Indexer {
+func StartIndexer(pool table.Client, mf metrics.Factory, logger hclog.Logger, opts Options) *Indexer {
 	indexer := &Indexer{
 		logger: logger,
 		opts:   opts,

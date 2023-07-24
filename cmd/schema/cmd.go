@@ -3,7 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"github.com/ydb-platform/jaeger-ydb-store/internal/log"
+	stdLog "log"
 	"os"
 	"os/signal"
 	"strings"
@@ -12,16 +13,14 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	ydb "github.com/ydb-platform/ydb-go-sdk/v3"
-	"github.com/ydb-platform/ydb-go-sdk/v3/scheme"
-	"github.com/ydb-platform/ydb-go-sdk/v3/sugar"
-	"github.com/ydb-platform/ydb-go-sdk/v3/table"
-	"go.uber.org/zap"
-
 	"github.com/ydb-platform/jaeger-ydb-store/cmd/schema/watcher"
 	"github.com/ydb-platform/jaeger-ydb-store/internal/db"
 	localViper "github.com/ydb-platform/jaeger-ydb-store/internal/viper"
 	"github.com/ydb-platform/jaeger-ydb-store/schema"
+	"github.com/ydb-platform/ydb-go-sdk/v3"
+	"github.com/ydb-platform/ydb-go-sdk/v3/scheme"
+	"github.com/ydb-platform/ydb-go-sdk/v3/sugar"
+	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 )
 
 func init() {
@@ -56,10 +55,9 @@ func main() {
 	viper.BindPFlag("ydb_folder", command.PersistentFlags().Lookup("folder"))
 	viper.BindPFlag("ydb_token", command.PersistentFlags().Lookup("token"))
 
-	cfg := zap.NewProductionConfig()
-	logger, err := cfg.Build()
+	logger, err := log.NewLogger(viper.GetViper())
 	if err != nil {
-		log.Fatal(err)
+		stdLog.Fatal(err)
 	}
 
 	watcherCmd := &cobra.Command{
@@ -79,7 +77,7 @@ func main() {
 
 			shutdown := make(chan os.Signal, 1)
 			signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM)
-			conn, err := ydbConn(viper.GetViper(), logger)
+			conn, err := ydbConn(viper.GetViper())
 			if err != nil {
 				return fmt.Errorf("failed to create table client: %w", err)
 			}
@@ -102,7 +100,7 @@ func main() {
 				Path:   viper.GetString(db.KeyYdbPath),
 				Folder: viper.GetString(db.KeyYdbFolder),
 			}
-			conn, err := ydbConn(viper.GetViper(), logger)
+			conn, err := ydbConn(viper.GetViper())
 			if err != nil {
 				return fmt.Errorf("failed to create table client: %w", err)
 			}
@@ -114,7 +112,6 @@ func main() {
 				if c.Type == scheme.EntryTable {
 					opCtx, opCancel := context.WithTimeout(context.Background(), time.Second*5)
 					fullName := dbPath.FullTable(c.Name)
-					fmt.Printf("dropping table '%s'\n", fullName)
 					err = conn.Table().Do(opCtx, func(ctx context.Context, session table.Session) error {
 						return session.DropTable(ctx, fullName)
 					})
@@ -122,6 +119,10 @@ func main() {
 					if err != nil {
 						return err
 					}
+					logger.Warn(
+						"dropped table",
+						"table", fullName,
+					)
 				}
 			}
 			return nil
@@ -131,13 +132,17 @@ func main() {
 
 	err = command.Execute()
 	if err != nil {
-		log.Fatal(err)
+		logger.Error(
+			"command execute failed",
+			"error", err,
+		)
+		os.Exit(1)
 	}
 }
 
-func ydbConn(v *viper.Viper, l *zap.Logger) (*ydb.Driver, error) {
+func ydbConn(v *viper.Viper) (*ydb.Driver, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
-	return db.DialFromViper(ctx, v, l, sugar.DSN(v.GetString(db.KeyYdbAddress), v.GetString(db.KeyYdbPath), false))
+	return db.ConnectToYDB(ctx, v, sugar.DSN(v.GetString(db.KeyYdbAddress), v.GetString(db.KeyYdbPath), false))
 }

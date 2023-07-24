@@ -9,24 +9,21 @@ import (
 
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/uber/jaeger-lib/metrics"
-	"github.com/ydb-platform/ydb-go-sdk/v3/table"
-	"github.com/ydb-platform/ydb-go-sdk/v3/table/types"
-	"go.uber.org/zap"
-
 	"github.com/ydb-platform/jaeger-ydb-store/schema"
 	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/batch"
 	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/dbmodel"
 	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/indexer/index"
 	wmetrics "github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/writer/metrics"
+	"github.com/ydb-platform/ydb-go-sdk/v3/table"
+	"github.com/ydb-platform/ydb-go-sdk/v3/table/types"
 )
 
 type indexWriter struct {
-	pool         table.Client
-	logger       *zap.Logger
-	pluginLogger hclog.Logger
-	metrics      indexerMetrics
-	tableName    string
-	opts         Options
+	pool      table.Client
+	logger    hclog.Logger
+	metrics   indexerMetrics
+	tableName string
+	opts      Options
 
 	idxRand *rand.Rand
 	batch   *batch.Queue
@@ -42,20 +39,14 @@ type indexerMetrics interface {
 	Emit(err error, latency time.Duration, count int)
 }
 
-func startIndexWriter(pool table.Client, mf metrics.Factory, logger *zap.Logger, tableName string, opts Options) *indexWriter {
-	pluginLogger := hclog.New(&hclog.LoggerOptions{
-		Name:       "index writer",
-		JSONFormat: true,
-		Color:      hclog.AutoColor,
-	})
+func startIndexWriter(pool table.Client, mf metrics.Factory, logger hclog.Logger, tableName string, opts Options) *indexWriter {
 	w := &indexWriter{
-		pool:         pool,
-		logger:       logger,
-		pluginLogger: pluginLogger,
-		metrics:      wmetrics.NewWriteMetrics(mf, ""),
-		tableName:    tableName,
-		opts:         opts,
-		idxRand:      newLockedRand(time.Now().UnixNano()),
+		pool:      pool,
+		logger:    logger,
+		metrics:   wmetrics.NewWriteMetrics(mf, ""),
+		tableName: tableName,
+		opts:      opts,
+		idxRand:   newLockedRand(time.Now().UnixNano()),
 	}
 	w.indexTTLMap = newIndexMap(w.flush, opts.MaxTraces, opts.MaxTTL)
 	w.batch = batch.NewQueue(opts.Batch, mf, w)
@@ -71,8 +62,7 @@ func (w *indexWriter) flush(idx index.Indexable, traceIds []model.TraceID) {
 	switch {
 	case err == batch.ErrOverflow:
 	case err != nil:
-		w.logger.Error("indexer batch error", zap.String("table", w.tableName), zap.Error(err))
-		w.pluginLogger.Error(
+		w.logger.Error(
 			"indexer batch error",
 			"table", w.tableName,
 			"error", err,
@@ -119,8 +109,7 @@ func (w *indexWriter) writePartition(part schema.PartitionKey, items []indexData
 	)
 	w.metrics.Emit(err, time.Since(ts), len(rows))
 	if err != nil {
-		w.logger.Error("indexer write fail", zap.String("table", w.tableName), zap.Error(err))
-		w.pluginLogger.Error(
+		w.logger.Error(
 			"indexer write fail",
 			"table", w.tableName,
 			"error", err,

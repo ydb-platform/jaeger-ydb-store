@@ -1,8 +1,10 @@
-package plugin
+package ydb_storage
 
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/go-hclog"
+	"github.com/ydb-platform/jaeger-ydb-store/schema"
 	"time"
 
 	"github.com/jaegertracing/jaeger/storage/dependencystore"
@@ -11,42 +13,30 @@ import (
 	"github.com/spf13/viper"
 	"github.com/uber/jaeger-lib/metrics"
 	jgrProm "github.com/uber/jaeger-lib/metrics/prometheus"
-	ydb "github.com/ydb-platform/ydb-go-sdk/v3"
-	"github.com/ydb-platform/ydb-go-sdk/v3/sugar"
-	"github.com/ydb-platform/ydb-go-sdk/v3/table"
-	"go.uber.org/zap"
-
 	"github.com/ydb-platform/jaeger-ydb-store/internal/db"
-	"github.com/ydb-platform/jaeger-ydb-store/schema"
 	"github.com/ydb-platform/jaeger-ydb-store/storage/config"
 	ydbDepStore "github.com/ydb-platform/jaeger-ydb-store/storage/dependencystore"
 	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/reader"
 	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/writer"
+	ydb "github.com/ydb-platform/ydb-go-sdk/v3"
+	"github.com/ydb-platform/ydb-go-sdk/v3/sugar"
+	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 )
 
-type YdbStorage struct {
+type ydbStorage struct {
 	metricsFactory  metrics.Factory
 	metricsRegistry *prometheus.Registry
-	logger          *zap.Logger
+	logger          hclog.Logger
 	ydbPool         table.Client
 	opts            config.Options
 
-	writer        *writer.SpanWriter
-	reader        *reader.SpanReader
-	archiveWriter *writer.SpanWriter
-	archiveReader *reader.SpanReader
+	writer        spanstore.Writer
+	reader        spanstore.Reader
+	archiveWriter spanstore.Writer
+	archiveReader spanstore.Reader
 }
 
-func NewYdbStorage() *YdbStorage {
-	registry := prometheus.NewRegistry()
-	return &YdbStorage{
-		metricsRegistry: registry,
-		metricsFactory:  jgrProm.New(jgrProm.WithRegisterer(registry)).Namespace(metrics.NSOptions{Name: "jaeger_ydb"}),
-	}
-}
-
-// InitFromViper pops settings from flags/env
-func (p *YdbStorage) InitFromViper(v *viper.Viper) (err error) {
+func setDefaultYDBOptions(v *viper.Viper) {
 	v.SetDefault(db.KeyYdbConnectTimeout, time.Second*10)
 	v.SetDefault(db.KeyYdbWriterBufferSize, 1000)
 	v.SetDefault(db.KeyYdbWriterBatchSize, 100)
@@ -64,7 +54,10 @@ func (p *YdbStorage) InitFromViper(v *viper.Viper) (err error) {
 	v.SetDefault(db.KeyYdbReadSvcLimit, 1000)
 	// Zero stands for "unbound" interval so any span age is good.
 	v.SetDefault(db.KeyYdbWriterMaxSpanAge, time.Duration(0))
-	p.opts = config.Options{
+}
+
+func getYDBOptions(v *viper.Viper) config.Options {
+	opts := config.Options{
 		DbAddress: v.GetString(db.KeyYdbAddress),
 		DbPath: schema.DbPath{
 			Path:   v.GetString(db.KeyYdbPath),
@@ -87,84 +80,47 @@ func (p *YdbStorage) InitFromViper(v *viper.Viper) (err error) {
 		ReadSvcLimit:        v.GetUint64(db.KeyYdbReadSvcLimit),
 		WriteMaxSpanAge:     v.GetDuration(db.KeyYdbWriterMaxSpanAge),
 	}
-	cfg := zap.NewProductionConfig()
-	if logPath := v.GetString("plugin_log_path"); logPath != "" {
-		cfg.ErrorOutputPaths = []string{logPath}
-		cfg.OutputPaths = []string{logPath}
-	}
-	p.logger, err = cfg.Build()
-	if err != nil {
-		return fmt.Errorf("YdbStorage.InitFromViper(): %w", err)
-	}
 
-	err = p.initDB(v)
-	if err != nil {
-		return fmt.Errorf("YdbStorage.InitFromViper(): %w", err)
+	return opts
+}
+
+func NewYdbStorage(v *viper.Viper, logger hclog.Logger) (*ydbStorage, error) {
+	registry := prometheus.NewRegistry()
+	p := &ydbStorage{
+		metricsRegistry: registry,
+		metricsFactory:  jgrProm.New(jgrProm.WithRegisterer(registry)).Namespace(metrics.NSOptions{Name: "jaeger_ydb"}),
 	}
 
-	p.initWriters()
-	p.initReaders()
+	setDefaultYDBOptions(v)
+	p.opts = getYDBOptions(v)
 
-	return nil
-}
+	p.logger = logger
 
-func (p *YdbStorage) Registry() *prometheus.Registry {
-	return p.metricsRegistry
-}
-
-func (p *YdbStorage) SpanReader() spanstore.Reader {
-	return p.reader
-}
-
-func (p *YdbStorage) SpanWriter() spanstore.Writer {
-	return p.writer
-}
-
-func (p *YdbStorage) ArchiveSpanReader() spanstore.Reader {
-	return p.archiveReader
-}
-
-func (p *YdbStorage) ArchiveSpanWriter() spanstore.Writer {
-	return p.archiveWriter
-}
-
-func (*YdbStorage) DependencyReader() dependencystore.Reader {
-	return ydbDepStore.DependencyStore{}
-}
-
-func (p *YdbStorage) initDB(v *viper.Viper) (err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), p.opts.ConnectTimeout)
 	defer cancel()
-
-	conn, err := db.DialFromViper(
+	conn, err := db.ConnectToYDB(
 		ctx,
 		v,
-		p.logger,
 		sugar.DSN(p.opts.DbAddress, p.opts.DbPath.Path, true),
 		ydb.WithSessionPoolSizeLimit(p.opts.PoolSize),
 		ydb.WithSessionPoolKeepAliveTimeout(time.Second),
 		ydb.WithTraceTable(tableClientMetrics(p.metricsFactory)),
 	)
 	if err != nil {
-		return fmt.Errorf("YdbStorage.InitDB() %w", err)
+		return nil, fmt.Errorf("NewYdbStorage(): %w", err)
 	}
-
-	err = conn.Table().Do(
-		context.Background(),
-		func(ctx context.Context, s table.Session) error {
-			return s.KeepAlive(ctx)
-		},
-	)
-	if err != nil {
-		return fmt.Errorf("YdbStorage.InitDB() %w", err)
-	}
-
 	p.ydbPool = conn.Table()
 
-	return nil
+	p.writer = p.newWriter()
+	p.archiveWriter = p.newArchiveWriter()
+
+	p.reader = p.newReader()
+	p.archiveReader = p.newArchiveReader()
+
+	return p, nil
 }
 
-func (p *YdbStorage) initWriters() {
+func (p *ydbStorage) newWriter() *writer.SpanWriter {
 	opts := writer.SpanWriterOptions{
 		BufferSize:        p.opts.BufferSize,
 		BatchSize:         p.opts.BatchSize,
@@ -178,13 +134,30 @@ func (p *YdbStorage) initWriters() {
 		MaxSpanAge:        p.opts.WriteMaxSpanAge,
 	}
 	ns := p.metricsFactory.Namespace(metrics.NSOptions{Name: "writer"})
-	p.writer = writer.NewSpanWriter(p.ydbPool, ns, p.logger, opts)
+	return writer.NewSpanWriter(p.ydbPool, ns, p.logger, opts)
 
-	opts.ArchiveWriter = true
-	p.archiveWriter = writer.NewSpanWriter(p.ydbPool, ns, p.logger, opts)
 }
 
-func (p *YdbStorage) initReaders() {
+func (p *ydbStorage) newArchiveWriter() *writer.SpanWriter {
+	opts := writer.SpanWriterOptions{
+		BufferSize:        p.opts.BufferSize,
+		BatchSize:         p.opts.BatchSize,
+		BatchWorkers:      p.opts.BatchWorkers,
+		IndexerBufferSize: p.opts.IndexerBufferSize,
+		IndexerMaxTraces:  p.opts.IndexerMaxTraces,
+		IndexerTTL:        p.opts.IndexerMaxTTL,
+		DbPath:            p.opts.DbPath,
+		WriteTimeout:      p.opts.WriteTimeout,
+		OpCacheSize:       p.opts.WriteSvcOpCacheSize,
+		MaxSpanAge:        p.opts.WriteMaxSpanAge,
+
+		ArchiveWriter: true,
+	}
+	ns := p.metricsFactory.Namespace(metrics.NSOptions{Name: "writer"})
+	return writer.NewSpanWriter(p.ydbPool, ns, p.logger, opts)
+}
+
+func (p *ydbStorage) newReader() *reader.SpanReader {
 	opts := reader.SpanReaderOptions{
 		DbPath:        p.opts.DbPath,
 		ReadTimeout:   p.opts.ReadTimeout,
@@ -192,8 +165,40 @@ func (p *YdbStorage) initReaders() {
 		OpLimit:       p.opts.ReadOpLimit,
 		SvcLimit:      p.opts.ReadSvcLimit,
 	}
-	p.reader = reader.NewSpanReader(p.ydbPool, opts, p.logger)
+	return reader.NewSpanReader(p.ydbPool, opts, p.logger)
+}
 
-	opts.ArchiveReader = true
-	p.archiveReader = reader.NewSpanReader(p.ydbPool, opts, p.logger)
+func (p *ydbStorage) newArchiveReader() *reader.SpanReader {
+	opts := reader.SpanReaderOptions{
+		DbPath:        p.opts.DbPath,
+		ReadTimeout:   p.opts.ReadTimeout,
+		QueryParallel: p.opts.ReadQueryParallel,
+		OpLimit:       p.opts.ReadOpLimit,
+		SvcLimit:      p.opts.ReadSvcLimit,
+		ArchiveReader: true,
+	}
+	return reader.NewSpanReader(p.ydbPool, opts, p.logger)
+}
+
+func (p *ydbStorage) Registry() *prometheus.Registry {
+	return p.metricsRegistry
+}
+
+func (p *ydbStorage) SpanReader() spanstore.Reader {
+	return p.reader
+}
+
+func (p *ydbStorage) SpanWriter() spanstore.Writer {
+	return p.writer
+}
+
+func (p *ydbStorage) ArchiveSpanReader() spanstore.Reader {
+	return p.archiveReader
+}
+
+func (p *ydbStorage) ArchiveSpanWriter() spanstore.Writer {
+	return p.archiveWriter
+}
+func (p *ydbStorage) DependencyReader() dependencystore.Reader {
+	return ydbDepStore.DependencyStore{}
 }

@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/ydb-platform/jaeger-ydb-store/internal/log"
+	"github.com/ydb-platform/jaeger-ydb-store/internal/ydb_storage"
 	"io"
 	"net/http"
 	"net/http/pprof"
@@ -17,32 +19,34 @@ import (
 	jaegerCfg "github.com/uber/jaeger-client-go/config"
 
 	localViper "github.com/ydb-platform/jaeger-ydb-store/internal/viper"
-	"github.com/ydb-platform/jaeger-ydb-store/plugin"
 )
-
-var logger hclog.Logger
 
 func init() {
 	viper.SetDefault("plugin_http_listen_address", ":15000")
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_", ".", "_"))
 	viper.AutomaticEnv()
 
-	logger = hclog.New(&hclog.LoggerOptions{
-		Name:       "ydb-store-plugin",
-		JSONFormat: true,
-	})
+}
+
+type storagePluginWithRegistry interface {
+	shared.StoragePlugin
+	shared.ArchiveStoragePlugin
+	Registry() *prometheus.Registry
 }
 
 func main() {
+
 	localViper.ConfigureViperFromFlag(viper.GetViper())
 
-	ydbPlugin := plugin.NewYdbStorage()
-	err := ydbPlugin.InitFromViper(viper.GetViper())
+	logger, err := log.NewLogger(viper.GetViper())
+
+	var ydbPlugin storagePluginWithRegistry
+	ydbPlugin, err = ydb_storage.NewYdbStorage(viper.GetViper(), logger)
 	if err != nil {
 		logger.Error(err.Error())
 		os.Exit(1)
 	}
-	go serveHttp(ydbPlugin.Registry())
+	go serveHttp(ydbPlugin.Registry(), logger)
 
 	closer, err := initTracer()
 	if err != nil {
@@ -61,7 +65,7 @@ func main() {
 	logger.Warn("stopped")
 }
 
-func serveHttp(gatherer prometheus.Gatherer) {
+func serveHttp(gatherer prometheus.Gatherer, logger hclog.Logger) {
 	mux := http.NewServeMux()
 	logger.Warn("serving metrics", "addr", viper.GetString("plugin_http_listen_address"))
 	mux.Handle("/metrics", promhttp.HandlerFor(gatherer, promhttp.HandlerOpts{}))

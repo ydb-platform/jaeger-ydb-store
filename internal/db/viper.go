@@ -6,6 +6,8 @@ const (
 	KeyYdbFolder  = "ydb.folder"
 	KeyYdbToken   = "ydb.token"
 
+	KeyYdbAnonymous = "ydb.anonymous"
+
 	KeyYdbSaPrivateKeyFile = "ydb.sa.private-key-file"
 	KeyYdbSaMetaAuth       = "ydb.sa.meta-auth"
 	KeyYdbSaId             = "ydb.sa.id"

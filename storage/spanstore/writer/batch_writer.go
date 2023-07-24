@@ -8,13 +8,11 @@ import (
 
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/uber/jaeger-lib/metrics"
-	"github.com/ydb-platform/ydb-go-sdk/v3/table"
-	"github.com/ydb-platform/ydb-go-sdk/v3/table/types"
-	"go.uber.org/zap"
-
 	"github.com/ydb-platform/jaeger-ydb-store/schema"
 	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/dbmodel"
 	wmetrics "github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/writer/metrics"
+	"github.com/ydb-platform/ydb-go-sdk/v3/table"
+	"github.com/ydb-platform/ydb-go-sdk/v3/table/types"
 )
 
 const (
@@ -22,26 +20,19 @@ const (
 )
 
 type BatchSpanWriter struct {
-	metrics      batchWriterMetrics
-	pool         table.Client
-	logger       *zap.Logger
-	pluginLogger hclog.Logger
-	opts         BatchWriterOptions
+	metrics batchWriterMetrics
+	pool    table.Client
+	logger  hclog.Logger
+	opts    BatchWriterOptions
 }
 
-func NewBatchWriter(pool table.Client, factory metrics.Factory, logger *zap.Logger, opts BatchWriterOptions) *BatchSpanWriter {
-	pluginLogger := hclog.New(&hclog.LoggerOptions{
-		Name:       "BatchSpanWriter",
-		JSONFormat: true,
-		Color:      hclog.AutoColor,
-	})
+func NewBatchWriter(pool table.Client, factory metrics.Factory, logger hclog.Logger, opts BatchWriterOptions) *BatchSpanWriter {
 
 	return &BatchSpanWriter{
-		pool:         pool,
-		logger:       logger,
-		pluginLogger: pluginLogger,
-		opts:         opts,
-		metrics:      newBatchWriterMetrics(factory),
+		pool:    pool,
+		logger:  logger,
+		opts:    opts,
+		metrics: newBatchWriterMetrics(factory),
 	}
 }
 
@@ -70,8 +61,7 @@ func (w *BatchSpanWriter) writeItemsToPartition(part schema.PartitionKey, items 
 	var err error
 
 	if err = w.uploadRows(tableName(tblTraces), spanRecords, w.metrics.traces); err != nil {
-		w.logger.Error("insertSpan error", zap.Error(err))
-		w.pluginLogger.Error(
+		w.logger.Error(
 			"Failed to save spans",
 			"error", err,
 		)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/hashicorp/go-hclog"
 	"sync"
 	"time"
 
@@ -74,7 +75,7 @@ var _ spanstore.Reader = (*SpanReader)(nil)
 type SpanReader struct {
 	pool   table.Client
 	opts   SpanReaderOptions
-	logger *zap.Logger
+	logger hclog.Logger
 	cache  *ttlCache
 }
 
@@ -88,7 +89,7 @@ type SpanReaderOptions struct {
 }
 
 // NewSpanReader returns a new SpanReader.
-func NewSpanReader(pool table.Client, opts SpanReaderOptions, logger *zap.Logger) *SpanReader {
+func NewSpanReader(pool table.Client, opts SpanReaderOptions, logger hclog.Logger) *SpanReader {
 	return &SpanReader{
 		pool:   pool,
 		opts:   opts,

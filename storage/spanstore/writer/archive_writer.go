@@ -8,12 +8,10 @@ import (
 
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/uber/jaeger-lib/metrics"
-	"github.com/ydb-platform/ydb-go-sdk/v3/table"
-	"github.com/ydb-platform/ydb-go-sdk/v3/table/types"
-	"go.uber.org/zap"
-
 	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/dbmodel"
 	wmetrics "github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/writer/metrics"
+	"github.com/ydb-platform/ydb-go-sdk/v3/table"
+	"github.com/ydb-platform/ydb-go-sdk/v3/table/types"
 )
 
 const (
@@ -21,27 +19,20 @@ const (
 )
 
 type ArchiveSpanWriter struct {
-	metrics      batchWriterMetrics
-	pool         table.Client
-	logger       *zap.Logger
-	pluginLogger hclog.Logger
-	opts         BatchWriterOptions
+	metrics batchWriterMetrics
+	pool    table.Client
+	logger  hclog.Logger
+	opts    BatchWriterOptions
 }
 
-func NewArchiveWriter(pool table.Client, factory metrics.Factory, logger *zap.Logger, opts BatchWriterOptions) *ArchiveSpanWriter {
+func NewArchiveWriter(pool table.Client, factory metrics.Factory, logger hclog.Logger, opts BatchWriterOptions) *ArchiveSpanWriter {
 	ns := factory.Namespace(metrics.NSOptions{Name: "archive"})
-	pluginLogger := hclog.New(&hclog.LoggerOptions{
-		Name:       "ArchiveWriter",
-		JSONFormat: true,
-		Color:      hclog.AutoColor,
-	})
 
 	return &ArchiveSpanWriter{
-		pool:         pool,
-		logger:       logger,
-		pluginLogger: pluginLogger,
-		opts:         opts,
-		metrics:      newBatchWriterMetrics(ns),
+		pool:    pool,
+		logger:  logger,
+		opts:    opts,
+		metrics: newBatchWriterMetrics(ns),
 	}
 }
 
@@ -65,12 +56,10 @@ func (w *ArchiveSpanWriter) writeItems(items []*model.Span) {
 	var err error
 
 	if err = w.uploadRows(tableName, spanRecords, w.metrics.traces); err != nil {
-		w.logger.Error("insertSpan error", zap.Error(err))
-		w.pluginLogger.Error(
+		w.logger.Error(
 			"Failed to save spans to archive storage",
 			"error", err,
 		)
-
 		return
 	}
 }

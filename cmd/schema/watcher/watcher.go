@@ -3,6 +3,7 @@ package watcher
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/go-hclog"
 	"time"
 
 	lru "github.com/hashicorp/golang-lru"
@@ -29,14 +30,14 @@ type Options struct {
 type Watcher struct {
 	sessionProvider table.Client
 	opts            Options
-	logger          *zap.Logger
+	logger          hclog.Logger
 
 	ticker           *time.Ticker
 	tableDefinitions map[string]partDefinition
 	knownTables      *lru.Cache
 }
 
-func NewWatcher(opts Options, sp table.Client, logger *zap.Logger) *Watcher {
+func NewWatcher(opts Options, sp table.Client, logger hclog.Logger) *Watcher {
 	return &Watcher{
 		sessionProvider: sp,
 		opts:            opts,
@@ -60,8 +61,9 @@ func (w *Watcher) Run(interval time.Duration) {
 func (w *Watcher) once() {
 	err := w.createTables()
 	if err != nil {
-		w.logger.Error("create tables failed",
-			zap.Error(err),
+		w.logger.Error(
+			"create tables failed",
+			"error", err,
 		)
 		return
 	}
@@ -83,8 +85,10 @@ func (w *Watcher) createTables() error {
 			return session.CreateTable(ctx, fullName, definition()...)
 		})
 		if err != nil {
-			w.logger.Error("create table failed",
-				zap.String("name", fullName), zap.Error(err),
+			w.logger.Error(
+				"create table failed",
+				"name", fullName,
+				"error", err,
 			)
 			return err
 		}
@@ -93,7 +97,6 @@ func (w *Watcher) createTables() error {
 	}
 	parts := schema.MakePartitionList(t, t.Add(w.opts.Lookahead))
 	for _, part := range parts {
-		w.logger.Info("creating partition", zap.String("suffix", part.Suffix()))
 		if err := w.createTablesForPartition(ctx, part); err != nil {
 			return err
 		}
@@ -107,6 +110,10 @@ func (w *Watcher) createTables() error {
 			)
 			return err
 		}
+		w.logger.Info(
+			"creating partition",
+			"suffix", part.Suffix(),
+		)
 	}
 	return nil
 }
@@ -135,7 +142,10 @@ func (w *Watcher) createTablesForPartition(ctx context.Context, part schema.Part
 
 func (w *Watcher) dropOldTables() {
 	expireTime := time.Now().Add(-w.opts.Expiration)
-	w.logger.Info("delete old tables", zap.Time("before", expireTime))
+	w.logger.Info(
+		"delete old tables",
+		"before", expireTime.String(),
+	)
 	ctx, cancel := context.WithTimeout(context.Background(), operationTimeout)
 	defer cancel()
 
@@ -143,7 +153,10 @@ func (w *Watcher) dropOldTables() {
 	err := w.sessionProvider.Do(ctx, func(ctx context.Context, session table.Session) error {
 		_, res, err := session.Execute(ctx, txc, query, nil)
 		if err != nil {
-			w.logger.Error("partition list query failed", zap.Error(err))
+			w.logger.Error(
+				"partition list query failed",
+				"error", err,
+			)
 			return err
 		}
 		for res.NextResultSet(ctx) {
@@ -151,7 +164,10 @@ func (w *Watcher) dropOldTables() {
 				part := schema.PartitionKey{}
 				err = res.ScanWithDefaults(&part.Date, &part.Num, &part.IsActive)
 				if err != nil {
-					w.logger.Error("partition scan failed", zap.Error(err))
+					w.logger.Error(
+						"partition scan failed",
+						"error", err,
+					)
 					return fmt.Errorf("part scan err: %w", err)
 				}
 				_, t := part.TimeSpan()
@@ -159,17 +175,27 @@ func (w *Watcher) dropOldTables() {
 					if part.IsActive {
 						err := w.markPartitionForDelete(ctx, session, part)
 						if err != nil {
-							w.logger.Error("update partition failed", zap.String("suffix", part.Suffix()), zap.Error(err))
+							w.logger.Error(
+								"update partition failed",
+								"suffix", part.Suffix(),
+								"error", err,
+							)
 						}
 					} else {
-						w.logger.Info("delete partition", zap.String("suffix", part.Suffix()))
 						if err := w.dropTables(ctx, session, part); err != nil {
 							continue
 						}
 						err = w.deletePartitionInfo(ctx, session, part)
 						if err != nil {
-							w.logger.Error("delete partition failed", zap.String("suffix", part.Suffix()), zap.Error(err))
+							w.logger.Error(
+								"delete partition failed",
+								"error", err,
+							)
 						}
+						w.logger.Info(
+							"deleted partition",
+							"suffix", part.Suffix(),
+						)
 					}
 				}
 			}
@@ -177,7 +203,10 @@ func (w *Watcher) dropOldTables() {
 		return res.Err()
 	})
 	if err != nil {
-		w.logger.Error("delete old tables failed", zap.Error(err))
+		w.logger.Error(
+			"delete old tables failed",
+			"error", err,
+		)
 	}
 }
 
@@ -192,7 +221,11 @@ func (w *Watcher) dropTables(ctx context.Context, session table.Session, k schem
 			case opErr != nil && db.IssueContainsMessage(err, "EPathStateNotExist"):
 			case ydb.IsOperationErrorSchemeError(err) && db.IssueContainsMessage(err, "Path does not exist"):
 			default:
-				w.logger.Error("drop table failed", zap.String("table", fullName), zap.Error(err))
+				w.logger.Error(
+					"drop table failed",
+					"table", fullName,
+					"error", err,
+				)
 				return err
 			}
 		}
