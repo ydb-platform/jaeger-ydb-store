@@ -13,7 +13,7 @@ const (
 	defaultIAMEndpoint = "iam.api.cloud.yandex.net:443"
 )
 
-func options(v *viper.Viper, l *zap.Logger, opts ...ydb.Option) []ydb.Option {
+func options(v *viper.Viper, _ *zap.Logger, opts ...ydb.Option) []ydb.Option {
 	v.SetDefault(KeyIAMEndpoint, defaultIAMEndpoint)
 
 	// temporary solution before merge with feature/sa-key-json
