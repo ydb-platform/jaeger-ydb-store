@@ -140,7 +140,7 @@ func (w *Watcher) dropOldTables() {
 	defer cancel()
 
 	query := schema.BuildQuery(w.opts.DBPath, schema.QueryParts)
-	_ = w.sessionProvider.Do(ctx, func(ctx context.Context, session table.Session) error {
+	err := w.sessionProvider.Do(ctx, func(ctx context.Context, session table.Session) error {
 		_, res, err := session.Execute(ctx, txc, query, nil)
 		if err != nil {
 			w.logger.Error("partition list query failed", zap.Error(err))
@@ -176,6 +176,9 @@ func (w *Watcher) dropOldTables() {
 		}
 		return res.Err()
 	})
+	if err != nil {
+		w.logger.Error("delete old tables failed", zap.Error(err))
+	}
 }
 
 func (w *Watcher) dropTables(ctx context.Context, session table.Session, k schema.PartitionKey) error {
