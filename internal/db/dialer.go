@@ -4,9 +4,7 @@ import (
 	"context"
 
 	"github.com/spf13/viper"
-	ydbZap "github.com/ydb-platform/ydb-go-sdk-zap"
 	ydb "github.com/ydb-platform/ydb-go-sdk/v3"
-	"github.com/ydb-platform/ydb-go-sdk/v3/trace"
 	yc "github.com/ydb-platform/ydb-go-yc"
 	"go.uber.org/zap"
 )
@@ -17,21 +15,6 @@ const (
 
 func options(v *viper.Viper, l *zap.Logger, opts ...ydb.Option) []ydb.Option {
 	v.SetDefault(KeyIAMEndpoint, defaultIAMEndpoint)
-
-	if l != nil {
-		opts = append(
-			opts,
-			ydbZap.WithTraces(
-				l,
-				trace.MatchDetails(
-					viper.GetString(KeyYdbLogScope),
-					trace.WithDefaultDetails(
-						trace.DiscoveryEvents,
-					),
-				),
-			),
-		)
-	}
 
 	// temporary solution before merge with feature/sa-key-json
 	if v.GetBool("YDB_ANONYMOUS") == true {
