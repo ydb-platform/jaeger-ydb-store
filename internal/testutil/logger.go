@@ -1,15 +1,13 @@
 package testutil
 
 import (
+	"github.com/hashicorp/go-hclog"
 	"os"
-
-	"go.uber.org/zap"
 )
 
-func Zap() *zap.Logger {
+func Hclog() hclog.Logger {
 	if os.Getenv("TEST_LOGGING") == "1" {
-		logger, _ := zap.NewDevelopment()
-		return logger
+		return hclog.Default()
 	}
-	return zap.NewNop()
+	return hclog.NewNullLogger()
 }

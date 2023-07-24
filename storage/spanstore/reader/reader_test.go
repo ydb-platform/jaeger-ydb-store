@@ -159,7 +159,7 @@ func addTestDataOnce(t *testing.T) {
 		WriteTimeout:      time.Second,
 		OpCacheSize:       256,
 	}
-	writer := ydbWriter.NewSpanWriter(testutil.YdbSessionPool(t), metrics.NullFactory, testutil.Zap(), opts)
+	writer := ydbWriter.NewSpanWriter(testutil.YdbSessionPool(t), metrics.NullFactory, testutil.Hclog(), opts)
 
 	spans := []*model.Span{
 		{
@@ -229,6 +229,6 @@ func setUpReader(t *testing.T) *SpanReader {
 			OpLimit:       100,
 			SvcLimit:      100,
 		},
-		testutil.Zap(),
+		testutil.Hclog(),
 	)
 }

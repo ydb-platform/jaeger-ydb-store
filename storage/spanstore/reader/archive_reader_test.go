@@ -53,7 +53,7 @@ func addArchiveTestDataOnce(t *testing.T) {
 		ArchiveWriter:     true,
 		OpCacheSize:       256,
 	}
-	writer := ydbWriter.NewSpanWriter(testutil.YdbSessionPool(t), metrics.NullFactory, testutil.Zap(), opts)
+	writer := ydbWriter.NewSpanWriter(testutil.YdbSessionPool(t), metrics.NullFactory, testutil.Hclog(), opts)
 
 	spans := []*model.Span{
 		{
@@ -122,6 +122,6 @@ func setUpArchiveReader(t *testing.T) *SpanReader {
 			QueryParallel: 10,
 			ArchiveReader: true,
 		},
-		testutil.Zap(),
+		testutil.Hclog(),
 	)
 }
