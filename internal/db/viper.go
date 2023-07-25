@@ -50,3 +50,7 @@ const (
 const (
 	KeyIAMEndpoint = "iam.endpoint"
 )
+
+const (
+	KeyPluginLogPath = "plugin-log-path"
+)
