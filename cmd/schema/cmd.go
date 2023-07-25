@@ -14,14 +14,15 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/ydb-platform/jaeger-ydb-store/cmd/schema/watcher"
-	"github.com/ydb-platform/jaeger-ydb-store/internal/db"
-	localViper "github.com/ydb-platform/jaeger-ydb-store/internal/viper"
-	"github.com/ydb-platform/jaeger-ydb-store/schema"
 	"github.com/ydb-platform/ydb-go-sdk/v3"
 	"github.com/ydb-platform/ydb-go-sdk/v3/scheme"
 	"github.com/ydb-platform/ydb-go-sdk/v3/sugar"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
+
+	"github.com/ydb-platform/jaeger-ydb-store/cmd/schema/watcher"
+	"github.com/ydb-platform/jaeger-ydb-store/internal/db"
+	localViper "github.com/ydb-platform/jaeger-ydb-store/internal/viper"
+	"github.com/ydb-platform/jaeger-ydb-store/schema"
 )
 
 func init() {

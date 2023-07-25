@@ -9,10 +9,11 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/uber/jaeger-lib/metrics"
-	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/batch"
-	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/indexer"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table/types"
+
+	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/batch"
+	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/indexer"
 )
 
 // SpanWriter handles all span/indexer writes to YDB

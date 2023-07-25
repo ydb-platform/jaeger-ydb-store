@@ -7,8 +7,9 @@ import (
 
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/uber/jaeger-lib/metrics"
-	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/indexer/index"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
+
+	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/indexer/index"
 )
 
 const (

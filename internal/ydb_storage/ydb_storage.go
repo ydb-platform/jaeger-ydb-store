@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
+
 	"github.com/ydb-platform/jaeger-ydb-store/schema"
 
 	"github.com/jaegertracing/jaeger/storage/dependencystore"
@@ -14,14 +15,15 @@ import (
 	"github.com/spf13/viper"
 	"github.com/uber/jaeger-lib/metrics"
 	jgrProm "github.com/uber/jaeger-lib/metrics/prometheus"
+	ydb "github.com/ydb-platform/ydb-go-sdk/v3"
+	"github.com/ydb-platform/ydb-go-sdk/v3/sugar"
+	"github.com/ydb-platform/ydb-go-sdk/v3/table"
+
 	"github.com/ydb-platform/jaeger-ydb-store/internal/db"
 	"github.com/ydb-platform/jaeger-ydb-store/storage/config"
 	ydbDepStore "github.com/ydb-platform/jaeger-ydb-store/storage/dependencystore"
 	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/reader"
 	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/writer"
-	ydb "github.com/ydb-platform/ydb-go-sdk/v3"
-	"github.com/ydb-platform/ydb-go-sdk/v3/sugar"
-	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 )
 
 type ydbStorage struct {

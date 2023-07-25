@@ -9,13 +9,12 @@ type stderrFileWriter struct {
 	filePath string
 }
 
-func newStderrFileWriter(filePath string) (*stderrFileWriter, error) {
+func newStderrFileWriter(filePath string) *stderrFileWriter {
 	if filePath == "" {
-		return &stderrFileWriter{}, nil
+		return &stderrFileWriter{}
 	}
 	result := &stderrFileWriter{filePath: filePath}
-	return result, nil
-
+	return result
 }
 
 func (cw *stderrFileWriter) Write(p []byte) (n int, err error) {
@@ -24,7 +23,7 @@ func (cw *stderrFileWriter) Write(p []byte) (n int, err error) {
 		return 0, err
 	}
 	if cw.filePath != "" {
-		file, err := os.OpenFile(cw.filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		file, err := os.OpenFile(cw.filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 		if err != nil {
 			fmt.Println("BAD", err)
 			return 0, err
