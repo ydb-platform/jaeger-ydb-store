@@ -99,7 +99,7 @@ func NewYdbStorage(v *viper.Viper) (*YdbStorage, error) {
 		return nil, fmt.Errorf("YdbStorage.InitFromViper(): %w", err)
 	}
 
-	err = p.initDB(v)
+	err = p.connectToYDB(v)
 	if err != nil {
 		return nil, fmt.Errorf("YdbStorage.InitFromViper(): %w", err)
 	}
@@ -134,7 +134,7 @@ func (*YdbStorage) DependencyReader() dependencystore.Reader {
 	return ydbDepStore.DependencyStore{}
 }
 
-func (p *YdbStorage) initDB(v *viper.Viper) (err error) {
+func (p *YdbStorage) connectToYDB(v *viper.Viper) (err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), p.opts.ConnectTimeout)
 	defer cancel()
 
