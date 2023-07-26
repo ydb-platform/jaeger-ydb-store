@@ -51,10 +51,10 @@ func main() {
 	command.PersistentFlags().String("token", "", "ydb oauth token (env: YDB_TOKEN)")
 	command.PersistentFlags().String("config", "", "path to config file to configure Viper from")
 
-	viper.BindPFlag("ydb_address", command.PersistentFlags().Lookup("address"))
-	viper.BindPFlag("ydb_path", command.PersistentFlags().Lookup("path"))
-	viper.BindPFlag("ydb_folder", command.PersistentFlags().Lookup("folder"))
-	viper.BindPFlag("ydb_token", command.PersistentFlags().Lookup("token"))
+	_ = viper.BindPFlag("ydb_address", command.PersistentFlags().Lookup("address"))
+	_ = viper.BindPFlag("ydb_path", command.PersistentFlags().Lookup("path"))
+	_ = viper.BindPFlag("ydb_folder", command.PersistentFlags().Lookup("folder"))
+	_ = viper.BindPFlag("ydb_token", command.PersistentFlags().Lookup("token"))
 
 	cfg := zap.NewProductionConfig()
 	logger, err := cfg.Build()
@@ -79,7 +79,7 @@ func main() {
 
 			shutdown := make(chan os.Signal, 1)
 			signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM)
-			conn, err := ydbConn(viper.GetViper(), logger)
+			conn, err := ydbConn(viper.GetViper(), nil)
 			if err != nil {
 				return fmt.Errorf("failed to create table client: %w", err)
 			}
