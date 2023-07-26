@@ -3,6 +3,7 @@ package plugin
 import (
 	"context"
 	"fmt"
+	jgrProm "github.com/uber/jaeger-lib/metrics/prometheus"
 	"time"
 
 	"github.com/jaegertracing/jaeger/storage/dependencystore"
@@ -10,7 +11,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
 	"github.com/uber/jaeger-lib/metrics"
-	jgrProm "github.com/uber/jaeger-lib/metrics/prometheus"
 	ydb "github.com/ydb-platform/ydb-go-sdk/v3"
 	"github.com/ydb-platform/ydb-go-sdk/v3/sugar"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
@@ -37,16 +37,8 @@ type YdbStorage struct {
 	archiveReader *reader.SpanReader
 }
 
-func NewYdbStorage() *YdbStorage {
-	registry := prometheus.NewRegistry()
-	return &YdbStorage{
-		metricsRegistry: registry,
-		metricsFactory:  jgrProm.New(jgrProm.WithRegisterer(registry)).Namespace(metrics.NSOptions{Name: "jaeger_ydb"}),
-	}
-}
+func NewYdbStorage(v *viper.Viper) (*YdbStorage, error) {
 
-// InitFromViper pops settings from flags/env
-func (p *YdbStorage) InitFromViper(v *viper.Viper) (err error) {
 	v.SetDefault(db.KeyYdbConnectTimeout, time.Second*10)
 	v.SetDefault(db.KeyYdbWriterBufferSize, 1000)
 	v.SetDefault(db.KeyYdbWriterBatchSize, 100)
@@ -64,6 +56,14 @@ func (p *YdbStorage) InitFromViper(v *viper.Viper) (err error) {
 	v.SetDefault(db.KeyYdbReadSvcLimit, 1000)
 	// Zero stands for "unbound" interval so any span age is good.
 	v.SetDefault(db.KeyYdbWriterMaxSpanAge, time.Duration(0))
+
+	registry := prometheus.NewRegistry()
+
+	p := &YdbStorage{
+		metricsRegistry: registry,
+		metricsFactory:  jgrProm.New(jgrProm.WithRegisterer(registry)).Namespace(metrics.NSOptions{Name: "jaeger_ydb"}),
+	}
+
 	p.opts = config.Options{
 		DbAddress: v.GetString(db.KeyYdbAddress),
 		DbPath: schema.DbPath{
@@ -87,25 +87,27 @@ func (p *YdbStorage) InitFromViper(v *viper.Viper) (err error) {
 		ReadSvcLimit:        v.GetUint64(db.KeyYdbReadSvcLimit),
 		WriteMaxSpanAge:     v.GetDuration(db.KeyYdbWriterMaxSpanAge),
 	}
+
 	cfg := zap.NewProductionConfig()
 	if logPath := v.GetString("plugin_log_path"); logPath != "" {
 		cfg.ErrorOutputPaths = []string{logPath}
 		cfg.OutputPaths = []string{logPath}
 	}
+	var err error
 	p.logger, err = cfg.Build()
 	if err != nil {
-		return fmt.Errorf("YdbStorage.InitFromViper(): %w", err)
+		return nil, fmt.Errorf("YdbStorage.InitFromViper(): %w", err)
 	}
 
 	err = p.initDB(v)
 	if err != nil {
-		return fmt.Errorf("YdbStorage.InitFromViper(): %w", err)
+		return nil, fmt.Errorf("YdbStorage.InitFromViper(): %w", err)
 	}
 
 	p.initWriters()
 	p.initReaders()
 
-	return nil
+	return p, nil
 }
 
 func (p *YdbStorage) Registry() *prometheus.Registry {

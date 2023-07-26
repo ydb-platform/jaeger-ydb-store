@@ -36,8 +36,7 @@ func init() {
 func main() {
 	localViper.ConfigureViperFromFlag(viper.GetViper())
 
-	ydbPlugin := plugin.NewYdbStorage()
-	err := ydbPlugin.InitFromViper(viper.GetViper())
+	ydbPlugin, err := plugin.NewYdbStorage(viper.GetViper())
 	if err != nil {
 		logger.Error(err.Error())
 		os.Exit(1)
