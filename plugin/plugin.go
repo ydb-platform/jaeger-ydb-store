@@ -104,8 +104,8 @@ func NewYdbStorage(v *viper.Viper) (*YdbStorage, error) {
 		return nil, fmt.Errorf("YdbStorage.InitFromViper(): %w", err)
 	}
 
-	p.initWriters()
-	p.initReaders()
+	p.createWriters()
+	p.createReaders()
 
 	return p, nil
 }
@@ -166,7 +166,7 @@ func (p *YdbStorage) initDB(v *viper.Viper) (err error) {
 	return nil
 }
 
-func (p *YdbStorage) initWriters() {
+func (p *YdbStorage) createWriters() {
 	opts := writer.SpanWriterOptions{
 		BufferSize:        p.opts.BufferSize,
 		BatchSize:         p.opts.BatchSize,
@@ -186,7 +186,7 @@ func (p *YdbStorage) initWriters() {
 	p.archiveWriter = writer.NewSpanWriter(p.ydbPool, ns, p.logger, opts)
 }
 
-func (p *YdbStorage) initReaders() {
+func (p *YdbStorage) createReaders() {
 	opts := reader.SpanReaderOptions{
 		DbPath:        p.opts.DbPath,
 		ReadTimeout:   p.opts.ReadTimeout,
