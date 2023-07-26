@@ -3,6 +3,7 @@ package plugin
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/go-hclog"
 	jgrProm "github.com/uber/jaeger-lib/metrics/prometheus"
 	"time"
 
@@ -28,6 +29,7 @@ type YdbStorage struct {
 	metricsFactory  metrics.Factory
 	metricsRegistry *prometheus.Registry
 	logger          *zap.Logger
+	pluginLogger    hclog.Logger
 	ydbPool         table.Client
 	opts            config.Options
 
@@ -37,7 +39,7 @@ type YdbStorage struct {
 	archiveReader *reader.SpanReader
 }
 
-func NewYdbStorage(v *viper.Viper) (*YdbStorage, error) {
+func NewYdbStorage(v *viper.Viper, pluginLogger hclog.Logger) (*YdbStorage, error) {
 
 	v.SetDefault(db.KeyYdbConnectTimeout, time.Second*10)
 	v.SetDefault(db.KeyYdbWriterBufferSize, 1000)
@@ -96,12 +98,14 @@ func NewYdbStorage(v *viper.Viper) (*YdbStorage, error) {
 	var err error
 	p.logger, err = cfg.Build()
 	if err != nil {
-		return nil, fmt.Errorf("YdbStorage.InitFromViper(): %w", err)
+		return nil, fmt.Errorf("NewYdbStorage(): %w", err)
 	}
+
+	p.pluginLogger = pluginLogger
 
 	err = p.connectToYDB(v)
 	if err != nil {
-		return nil, fmt.Errorf("YdbStorage.InitFromViper(): %w", err)
+		return nil, fmt.Errorf("NewYdbStorage(): %w", err)
 	}
 
 	p.createWriters()

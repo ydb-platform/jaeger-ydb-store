@@ -20,49 +20,53 @@ import (
 	"github.com/ydb-platform/jaeger-ydb-store/plugin"
 )
 
-var logger hclog.Logger
-
 func init() {
 	viper.SetDefault("plugin_http_listen_address", ":15000")
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_", ".", "_"))
 	viper.AutomaticEnv()
+}
 
-	logger = hclog.New(&hclog.LoggerOptions{
+func newPluginLogger() hclog.Logger {
+	pluginLogger := hclog.New(&hclog.LoggerOptions{
 		Name:       "ydb-store-plugin",
 		JSONFormat: true,
 	})
+
+	return pluginLogger
 }
 
 func main() {
 	localViper.ConfigureViperFromFlag(viper.GetViper())
 
-	ydbPlugin, err := plugin.NewYdbStorage(viper.GetViper())
+	pluginLogger := newPluginLogger()
+
+	ydbPlugin, err := plugin.NewYdbStorage(viper.GetViper(), pluginLogger)
 	if err != nil {
-		logger.Error(err.Error())
+		pluginLogger.Error(err.Error())
 		os.Exit(1)
 	}
-	go serveHttp(ydbPlugin.Registry())
+	go serveHttp(ydbPlugin.Registry(), pluginLogger)
 
 	closer, err := initTracer()
 	if err != nil {
-		logger.Error(err.Error())
+		pluginLogger.Error(err.Error())
 		os.Exit(1)
 	}
 	defer func() {
 		_ = closer.Close()
 	}()
 
-	logger.Warn("starting plugin")
+	pluginLogger.Warn("starting plugin")
 	jaegerGrpc.Serve(&shared.PluginServices{
 		Store:        ydbPlugin,
 		ArchiveStore: ydbPlugin,
 	})
-	logger.Warn("stopped")
+	pluginLogger.Warn("stopped")
 }
 
-func serveHttp(gatherer prometheus.Gatherer) {
+func serveHttp(gatherer prometheus.Gatherer, pluginLogger hclog.Logger) {
 	mux := http.NewServeMux()
-	logger.Warn("serving metrics", "addr", viper.GetString("plugin_http_listen_address"))
+	pluginLogger.Warn("serving metrics", "addr", viper.GetString("plugin_http_listen_address"))
 	mux.Handle("/metrics", promhttp.HandlerFor(gatherer, promhttp.HandlerOpts{}))
 	mux.HandleFunc("/ping", func(writer http.ResponseWriter, request *http.Request) {
 		writer.WriteHeader(http.StatusOK)
@@ -76,7 +80,7 @@ func serveHttp(gatherer prometheus.Gatherer) {
 
 	err := http.ListenAndServe(viper.GetString("plugin_http_listen_address"), mux)
 	if err != nil {
-		logger.Error("failed to start http listener", "err", err)
+		pluginLogger.Error("failed to start http listener", "err", err)
 		os.Exit(1)
 	}
 }
