@@ -22,7 +22,7 @@ type SpanWriter struct {
 	opts              SpanWriterOptions
 	pool              table.Client
 	logger            *zap.Logger
-	pluginLogger      hclog.Logger
+	jaegerLogger      hclog.Logger
 	spanBatch         *batch.Queue
 	indexer           *indexer.Indexer
 	nameCache         *lru.Cache
@@ -30,7 +30,7 @@ type SpanWriter struct {
 }
 
 // NewSpanWriter creates writer interface implementation for YDB
-func NewSpanWriter(pool table.Client, metricsFactory metrics.Factory, logger *zap.Logger, opts SpanWriterOptions) *SpanWriter {
+func NewSpanWriter(pool table.Client, metricsFactory metrics.Factory, logger *zap.Logger, jaegerLogger hclog.Logger, opts SpanWriterOptions) *SpanWriter {
 	cache, _ := lru.New(opts.OpCacheSize) // it's ok to ignore this error for negative size
 	batchOpts := batch.Options{
 		BufferSize:   opts.BufferSize,
@@ -57,16 +57,11 @@ func NewSpanWriter(pool table.Client, metricsFactory metrics.Factory, logger *za
 		WriteTimeout: opts.WriteTimeout,
 		Batch:        batchOpts,
 	})
-	pluginLogger := hclog.New(&hclog.LoggerOptions{
-		Name:       "span writer",
-		JSONFormat: true,
-		Color:      hclog.AutoColor,
-	})
 	return &SpanWriter{
 		opts:              opts,
 		pool:              pool,
 		logger:            logger,
-		pluginLogger:      pluginLogger,
+		jaegerLogger:      jaegerLogger,
 		spanBatch:         bq,
 		indexer:           idx,
 		nameCache:         cache,
@@ -119,7 +114,7 @@ func (s *SpanWriter) saveServiceNameAndOperationName(span *model.Span) error {
 			table.WithIdempotent(),
 		)
 		if err != nil {
-			s.pluginLogger.Error(
+			s.jaegerLogger.Error(
 				"Failed to save service name",
 				"service_name", serviceName,
 				"error", err,
@@ -147,7 +142,7 @@ func (s *SpanWriter) saveServiceNameAndOperationName(span *model.Span) error {
 			table.WithIdempotent(),
 		)
 		if err != nil {
-			s.pluginLogger.Error(
+			s.jaegerLogger.Error(
 				"Failed to save operation name",
 				"operation_name", operationName,
 				"error", err,

@@ -39,7 +39,7 @@ func TestArchiveSpanWriter_WriteSpan(t *testing.T) {
 	require.NoError(t, err)
 
 	testTraceId := model.NewTraceID(1, 47)
-	writer := NewSpanWriter(pool, metrics.NullFactory, testutil.Zap(), opts)
+	writer := NewSpanWriter(pool, metrics.NullFactory, testutil.Zap(), testutil.JaegerLogger(), opts)
 	span := &model.Span{
 		TraceID:       testTraceId,
 		SpanID:        model.NewSpanID(1),
@@ -80,5 +80,6 @@ func setUpArchiveReader(t *testing.T) *reader.SpanReader {
 			ArchiveReader: true,
 		},
 		testutil.Zap(),
+		testutil.JaegerLogger(),
 	)
 }

@@ -184,10 +184,10 @@ func (p *YdbStorage) createWriters() {
 		MaxSpanAge:        p.opts.WriteMaxSpanAge,
 	}
 	ns := p.metricsFactory.Namespace(metrics.NSOptions{Name: "writer"})
-	p.writer = writer.NewSpanWriter(p.ydbPool, ns, p.logger, opts)
+	p.writer = writer.NewSpanWriter(p.ydbPool, ns, p.logger, p.jaegerLogger, opts)
 
 	opts.ArchiveWriter = true
-	p.archiveWriter = writer.NewSpanWriter(p.ydbPool, ns, p.logger, opts)
+	p.archiveWriter = writer.NewSpanWriter(p.ydbPool, ns, p.logger, p.jaegerLogger, opts)
 }
 
 func (p *YdbStorage) createReaders() {
@@ -198,8 +198,8 @@ func (p *YdbStorage) createReaders() {
 		OpLimit:       p.opts.ReadOpLimit,
 		SvcLimit:      p.opts.ReadSvcLimit,
 	}
-	p.reader = reader.NewSpanReader(p.ydbPool, opts, p.logger)
+	p.reader = reader.NewSpanReader(p.ydbPool, opts, p.logger, p.jaegerLogger)
 
 	opts.ArchiveReader = true
-	p.archiveReader = reader.NewSpanReader(p.ydbPool, opts, p.logger)
+	p.archiveReader = reader.NewSpanReader(p.ydbPool, opts, p.logger, p.jaegerLogger)
 }
