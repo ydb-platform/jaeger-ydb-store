@@ -2,6 +2,10 @@ package db
 
 import (
 	"context"
+	"github.com/ydb-platform/ydb-go-sdk/v3/retry"
+	"github.com/ydb-platform/ydb-go-sdk/v3/table"
+	"github.com/ydb-platform/ydb-go-sdk/v3/table/types"
+	"time"
 
 	"github.com/spf13/viper"
 	ydbZap "github.com/ydb-platform/ydb-go-sdk-zap"
@@ -75,4 +79,26 @@ func options(v *viper.Viper, l *zap.Logger, opts ...ydb.Option) []ydb.Option {
 
 func DialFromViper(ctx context.Context, v *viper.Viper, logger *zap.Logger, dsn string, opts ...ydb.Option) (*ydb.Driver, error) {
 	return ydb.Open(ctx, dsn, options(v, logger, opts...)...)
+}
+
+func UpsertData(ctx context.Context, pool table.Client, tableName string, rows types.Value) error {
+	err := retry.Retry(
+		ctx,
+		func(ctx context.Context) (err error) {
+			opCtx, opCancel := context.WithTimeout(context.Background(), time.Second)
+			defer opCancel()
+
+			err = pool.Do(opCtx, func(ctx context.Context, s table.Session) error {
+				return s.BulkUpsert(ctx, tableName, rows)
+			})
+
+			if err != nil {
+				err = retry.RetryableError(err)
+				return err
+			}
+
+			return nil
+		},
+	)
+	return err
 }

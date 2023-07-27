@@ -2,6 +2,7 @@ package writer
 
 import (
 	"context"
+	"github.com/ydb-platform/jaeger-ydb-store/internal/db"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
@@ -104,15 +105,18 @@ func (s *SpanWriter) saveServiceNameAndOperationName(span *model.Span) error {
 		data := types.ListValue(types.StructValue(
 			types.StructFieldValue("service_name", types.UTF8Value(serviceName)),
 		))
-		err := s.pool.Do(
-			context.Background(),
-			func(ctx context.Context, session table.Session) (err error) {
-				ctx, cancel := context.WithTimeout(ctx, s.opts.WriteTimeout)
-				defer cancel()
-				return session.BulkUpsert(ctx, s.opts.DbPath.FullTable("service_names"), data)
-			},
-			table.WithIdempotent(),
-		)
+		ctx, cancel := context.WithTimeout(context.Background(), s.opts.WriteTimeout)
+		defer cancel()
+		err := db.UpsertData(ctx, s.pool, s.opts.DbPath.FullTable("service_names"), data)
+		//err := s.pool.Do(
+		//	ctx,
+		//	func(ctx context.Context, session table.Session) (err error) {
+		//		opCtx, opCancel := context.WithTimeout(ctx, time.Second)
+		//		defer opCancel()
+		//		return session.BulkUpsert(opCtx, s.opts.DbPath.FullTable("service_names"), data)
+		//	},
+		//	table.WithIdempotent(),
+		//)
 		if err != nil {
 			s.jaegerLogger.Error(
 				"Failed to save service name",
@@ -132,15 +136,18 @@ func (s *SpanWriter) saveServiceNameAndOperationName(span *model.Span) error {
 			types.StructFieldValue("operation_name", types.UTF8Value(operationName)),
 			types.StructFieldValue("span_kind", types.UTF8Value(kind)),
 		))
-		err := s.pool.Do(
-			context.Background(),
-			func(ctx context.Context, session table.Session) error {
-				ctx, cancel := context.WithTimeout(ctx, s.opts.WriteTimeout)
-				defer cancel()
-				return session.BulkUpsert(ctx, s.opts.DbPath.FullTable("operation_names_v2"), data)
-			},
-			table.WithIdempotent(),
-		)
+		ctx, cancel := context.WithTimeout(context.Background(), s.opts.WriteTimeout)
+		defer cancel()
+		err := db.UpsertData(ctx, s.pool, s.opts.DbPath.FullTable("operation_names_v2"), data)
+		//err := s.pool.Do(
+		//	ctx,
+		//	func(ctx context.Context, session table.Session) error {
+		//		opCtx, opCancel := context.WithTimeout(ctx, s.opts.WriteTimeout)
+		//		defer opCancel()
+		//		return session.BulkUpsert(opCtx, s.opts.DbPath.FullTable("operation_names_v2"), data)
+		//	},
+		//	table.WithIdempotent(),
+		//)
 		if err != nil {
 			s.jaegerLogger.Error(
 				"Failed to save operation name",

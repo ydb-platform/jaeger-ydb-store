@@ -2,6 +2,7 @@ package writer
 
 import (
 	"context"
+	"github.com/ydb-platform/jaeger-ydb-store/internal/db"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
@@ -78,15 +79,37 @@ func (w *ArchiveSpanWriter) writeItems(items []*model.Span) {
 func (w *ArchiveSpanWriter) uploadRows(tableName string, rows []types.Value, metrics *wmetrics.WriteMetrics) error {
 	ts := time.Now()
 	data := types.ListValue(rows...)
-	err := w.pool.Do(
-		context.Background(),
-		func(ctx context.Context, session table.Session) (err error) {
-			ctx, cancel := context.WithTimeout(ctx, w.opts.WriteTimeout)
-			defer cancel()
-			return session.BulkUpsert(ctx, tableName, data)
-		},
-		table.WithIdempotent(),
-	)
+	ctx, cancel := context.WithTimeout(context.Background(), w.opts.WriteTimeout)
+	defer cancel()
+	err := db.UpsertData(ctx, w.pool, tableName, data)
+	//err := retry.Retry(
+	//	ctx,
+	//	func(ctx context.Context) (err error) {
+	//		opCtx, opCancel := context.WithTimeout(ctx, time.Second)
+	//		defer opCancel()
+	//
+	//		err = w.pool.Do(opCtx, func(ctx context.Context, s table.Session) error {
+	//			return s.BulkUpsert(ctx, tableName, data)
+	//		})
+	//		if err != nil {
+	//			err = retry.RetryableError(err)
+	//			return err
+	//		}
+	//
+	//		return nil
+	//	},
+	//	retry.WithIdempotent(true),
+	//)
+
+	//err := w.pool.Do(
+	//	ctx,
+	//	func(ctx context.Context, session table.Session) (err error) {
+	//		opCtx, opCancel := context.WithTimeout(ctx, time.Second)
+	//		defer opCancel()
+	//		return session.BulkUpsert(opCtx, tableName, data)
+	//	},
+	//	table.WithIdempotent(),
+	//)
 	metrics.Emit(err, time.Since(ts), len(rows))
 	return err
 }
