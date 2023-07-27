@@ -26,7 +26,7 @@ func init() {
 	viper.AutomaticEnv()
 }
 
-func newPluginLogger() hclog.Logger {
+func newJaegerLogger() hclog.Logger {
 	pluginLogger := hclog.New(&hclog.LoggerOptions{
 		Name:       "ydb-store-plugin",
 		JSONFormat: true,
@@ -38,30 +38,30 @@ func newPluginLogger() hclog.Logger {
 func main() {
 	localViper.ConfigureViperFromFlag(viper.GetViper())
 
-	pluginLogger := newPluginLogger()
+	jaegerLogger := newJaegerLogger()
 
-	ydbPlugin, err := plugin.NewYdbStorage(viper.GetViper(), pluginLogger)
+	ydbPlugin, err := plugin.NewYdbStorage(viper.GetViper(), jaegerLogger)
 	if err != nil {
-		pluginLogger.Error(err.Error())
+		jaegerLogger.Error(err.Error())
 		os.Exit(1)
 	}
-	go serveHttp(ydbPlugin.Registry(), pluginLogger)
+	go serveHttp(ydbPlugin.Registry(), jaegerLogger)
 
 	closer, err := initTracer()
 	if err != nil {
-		pluginLogger.Error(err.Error())
+		jaegerLogger.Error(err.Error())
 		os.Exit(1)
 	}
 	defer func() {
 		_ = closer.Close()
 	}()
 
-	pluginLogger.Warn("starting plugin")
+	jaegerLogger.Warn("starting plugin")
 	jaegerGrpc.Serve(&shared.PluginServices{
 		Store:        ydbPlugin,
 		ArchiveStore: ydbPlugin,
 	})
-	pluginLogger.Warn("stopped")
+	jaegerLogger.Warn("stopped")
 }
 
 func serveHttp(gatherer prometheus.Gatherer, pluginLogger hclog.Logger) {

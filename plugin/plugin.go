@@ -29,7 +29,7 @@ type YdbStorage struct {
 	metricsFactory  metrics.Factory
 	metricsRegistry *prometheus.Registry
 	logger          *zap.Logger
-	pluginLogger    hclog.Logger
+	jaegerLogger    hclog.Logger
 	ydbPool         table.Client
 	opts            config.Options
 
@@ -39,7 +39,7 @@ type YdbStorage struct {
 	archiveReader *reader.SpanReader
 }
 
-func NewYdbStorage(v *viper.Viper, pluginLogger hclog.Logger) (*YdbStorage, error) {
+func NewYdbStorage(v *viper.Viper, jaegerLogger hclog.Logger) (*YdbStorage, error) {
 
 	v.SetDefault(db.KeyYdbConnectTimeout, time.Second*10)
 	v.SetDefault(db.KeyYdbWriterBufferSize, 1000)
@@ -101,7 +101,7 @@ func NewYdbStorage(v *viper.Viper, pluginLogger hclog.Logger) (*YdbStorage, erro
 		return nil, fmt.Errorf("NewYdbStorage(): %w", err)
 	}
 
-	p.pluginLogger = pluginLogger
+	p.jaegerLogger = jaegerLogger
 
 	err = p.connectToYDB(v)
 	if err != nil {
