@@ -84,19 +84,14 @@ func (w *BatchSpanWriter) uploadRows(tableName string, rows []types.Value, metri
 	ts := time.Now()
 
 	data := types.ListValue(rows...)
-	ctx, cancel := context.WithTimeout(context.Background(), w.opts.WriteTimeout)
-	defer cancel()
-	err := db.UpsertData(ctx, w.pool, tableName, data)
-	//err := w.pool.Do(
-	//	ctx,
-	//	func(ctx context.Context, session table.Session) (err error) {
-	//		opCtx, opCancel := context.WithTimeout(ctx, time.Second)
-	//		defer opCancel()
-	//		return session.BulkUpsert(opCtx, tableName, data)
-	//	},
-	//	table.WithIdempotent(),
-	//)
 
+	ctx := context.Background()
+	if w.opts.WriteTimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, w.opts.WriteTimeout)
+		defer cancel()
+	}
+	err := db.UpsertData(ctx, w.pool, tableName, data, w.opts.WriteAttemptTimeout)
 	metrics.Emit(err, time.Since(ts), len(rows))
 	return err
 }

@@ -51,7 +51,7 @@ func NewYdbStorage(v *viper.Viper, jaegerLogger hclog.Logger) (*YdbStorage, erro
 	v.SetDefault(db.KeyYdbIndexerMaxTTL, time.Second*5)
 	v.SetDefault(db.KeyYdbPoolSize, 100)
 	v.SetDefault(db.KeyYdbQueryCacheSize, 50)
-	v.SetDefault(db.KeyYdbWriteTimeout, time.Second)
+	v.SetDefault(db.KeyYdbWriteAttemptTimeout, time.Second)
 	v.SetDefault(db.KeyYdbReadTimeout, time.Second*10)
 	v.SetDefault(db.KeyYdbReadQueryParallel, 16)
 	v.SetDefault(db.KeyYdbReadOpLimit, 5000)
@@ -83,6 +83,7 @@ func NewYdbStorage(v *viper.Viper, jaegerLogger hclog.Logger) (*YdbStorage, erro
 		IndexerMaxTraces:    v.GetInt(db.KeyYdbIndexerMaxTraces),
 		IndexerMaxTTL:       v.GetDuration(db.KeyYdbIndexerMaxTTL),
 		WriteTimeout:        v.GetDuration(db.KeyYdbWriteTimeout),
+		WriteAttemptTimeout: v.GetDuration(db.KeyYdbWriteAttemptTimeout),
 		ReadTimeout:         v.GetDuration(db.KeyYdbReadTimeout),
 		ReadQueryParallel:   v.GetInt(db.KeyYdbReadQueryParallel),
 		ReadOpLimit:         v.GetUint64(db.KeyYdbReadOpLimit),
@@ -172,16 +173,17 @@ func (p *YdbStorage) connectToYDB(v *viper.Viper) (err error) {
 
 func (p *YdbStorage) createWriters() {
 	opts := writer.SpanWriterOptions{
-		BufferSize:        p.opts.BufferSize,
-		BatchSize:         p.opts.BatchSize,
-		BatchWorkers:      p.opts.BatchWorkers,
-		IndexerBufferSize: p.opts.IndexerBufferSize,
-		IndexerMaxTraces:  p.opts.IndexerMaxTraces,
-		IndexerTTL:        p.opts.IndexerMaxTTL,
-		DbPath:            p.opts.DbPath,
-		WriteTimeout:      p.opts.WriteTimeout,
-		OpCacheSize:       p.opts.WriteSvcOpCacheSize,
-		MaxSpanAge:        p.opts.WriteMaxSpanAge,
+		BufferSize:          p.opts.BufferSize,
+		BatchSize:           p.opts.BatchSize,
+		BatchWorkers:        p.opts.BatchWorkers,
+		IndexerBufferSize:   p.opts.IndexerBufferSize,
+		IndexerMaxTraces:    p.opts.IndexerMaxTraces,
+		IndexerTTL:          p.opts.IndexerMaxTTL,
+		DbPath:              p.opts.DbPath,
+		WriteTimeout:        p.opts.WriteTimeout,
+		WriteAttemptTimeout: p.opts.WriteAttemptTimeout,
+		OpCacheSize:         p.opts.WriteSvcOpCacheSize,
+		MaxSpanAge:          p.opts.WriteMaxSpanAge,
 	}
 	ns := p.metricsFactory.Namespace(metrics.NSOptions{Name: "writer"})
 	p.writer = writer.NewSpanWriter(p.ydbPool, ns, p.logger, p.jaegerLogger, opts)

@@ -39,8 +39,9 @@ func NewSpanWriter(pool table.Client, metricsFactory metrics.Factory, logger *za
 		BatchWorkers: opts.BatchWorkers,
 	}
 	writerOpts := BatchWriterOptions{
-		WriteTimeout: opts.WriteTimeout,
-		DbPath:       opts.DbPath,
+		WriteTimeout:        opts.WriteTimeout,
+		WriteAttemptTimeout: opts.WriteAttemptTimeout,
+		DbPath:              opts.DbPath,
 	}
 	var batchWriter batch.Writer
 	if opts.ArchiveWriter {
@@ -51,12 +52,13 @@ func NewSpanWriter(pool table.Client, metricsFactory metrics.Factory, logger *za
 	bq := batch.NewQueue(batchOpts, metricsFactory.Namespace(metrics.NSOptions{Name: "spans"}), batchWriter)
 	bq.Init()
 	idx := indexer.StartIndexer(pool, metricsFactory, logger, indexer.Options{
-		DbPath:       opts.DbPath,
-		BufferSize:   opts.IndexerBufferSize,
-		MaxTraces:    opts.IndexerMaxTraces,
-		MaxTTL:       opts.IndexerTTL,
-		WriteTimeout: opts.WriteTimeout,
-		Batch:        batchOpts,
+		DbPath:              opts.DbPath,
+		BufferSize:          opts.IndexerBufferSize,
+		MaxTraces:           opts.IndexerMaxTraces,
+		MaxTTL:              opts.IndexerTTL,
+		WriteTimeout:        opts.WriteTimeout,
+		WriteAttemptTimeout: opts.WriteAttemptTimeout,
+		Batch:               batchOpts,
 	})
 	return &SpanWriter{
 		opts:              opts,
@@ -71,7 +73,7 @@ func NewSpanWriter(pool table.Client, metricsFactory metrics.Factory, logger *za
 }
 
 // WriteSpan saves the span into YDB
-func (s *SpanWriter) WriteSpan(_ context.Context, span *model.Span) error {
+func (s *SpanWriter) WriteSpan(ctx context.Context, span *model.Span) error {
 	if s.opts.MaxSpanAge != time.Duration(0) && time.Now().Sub(span.StartTime) > s.opts.MaxSpanAge {
 		s.invalidateMetrics.Inc(span.Process.ServiceName, span.OperationName)
 		return nil
@@ -94,10 +96,10 @@ func (s *SpanWriter) WriteSpan(_ context.Context, span *model.Span) error {
 		_ = s.indexer.Add(span)
 	}
 
-	return s.saveServiceNameAndOperationName(span)
+	return s.saveServiceNameAndOperationName(ctx, span)
 }
 
-func (s *SpanWriter) saveServiceNameAndOperationName(span *model.Span) error {
+func (s *SpanWriter) saveServiceNameAndOperationName(ctx context.Context, span *model.Span) error {
 	serviceName := span.GetProcess().GetServiceName()
 	operationName := span.GetOperationName()
 	kind, _ := span.GetSpanKind()
@@ -105,18 +107,14 @@ func (s *SpanWriter) saveServiceNameAndOperationName(span *model.Span) error {
 		data := types.ListValue(types.StructValue(
 			types.StructFieldValue("service_name", types.UTF8Value(serviceName)),
 		))
-		ctx, cancel := context.WithTimeout(context.Background(), s.opts.WriteTimeout)
-		defer cancel()
-		err := db.UpsertData(ctx, s.pool, s.opts.DbPath.FullTable("service_names"), data)
-		//err := s.pool.Do(
-		//	ctx,
-		//	func(ctx context.Context, session table.Session) (err error) {
-		//		opCtx, opCancel := context.WithTimeout(ctx, time.Second)
-		//		defer opCancel()
-		//		return session.BulkUpsert(opCtx, s.opts.DbPath.FullTable("service_names"), data)
-		//	},
-		//	table.WithIdempotent(),
-		//)
+
+		if s.opts.WriteTimeout > 0 {
+			var cancel context.CancelFunc
+			ctx, cancel = context.WithTimeout(ctx, s.opts.WriteTimeout)
+			defer cancel()
+		}
+		err := db.UpsertData(ctx, s.pool, s.opts.DbPath.FullTable("service_names"), data, s.opts.WriteAttemptTimeout)
+
 		if err != nil {
 			s.jaegerLogger.Error(
 				"Failed to save service name",
@@ -136,18 +134,12 @@ func (s *SpanWriter) saveServiceNameAndOperationName(span *model.Span) error {
 			types.StructFieldValue("operation_name", types.UTF8Value(operationName)),
 			types.StructFieldValue("span_kind", types.UTF8Value(kind)),
 		))
-		ctx, cancel := context.WithTimeout(context.Background(), s.opts.WriteTimeout)
-		defer cancel()
-		err := db.UpsertData(ctx, s.pool, s.opts.DbPath.FullTable("operation_names_v2"), data)
-		//err := s.pool.Do(
-		//	ctx,
-		//	func(ctx context.Context, session table.Session) error {
-		//		opCtx, opCancel := context.WithTimeout(ctx, s.opts.WriteTimeout)
-		//		defer opCancel()
-		//		return session.BulkUpsert(opCtx, s.opts.DbPath.FullTable("operation_names_v2"), data)
-		//	},
-		//	table.WithIdempotent(),
-		//)
+		if s.opts.WriteTimeout > 0 {
+			var cancel context.CancelFunc
+			ctx, cancel = context.WithTimeout(ctx, s.opts.WriteTimeout)
+			defer cancel()
+		}
+		err := db.UpsertData(ctx, s.pool, s.opts.DbPath.FullTable("operation_names_v2"), data, s.opts.WriteAttemptTimeout)
 		if err != nil {
 			s.jaegerLogger.Error(
 				"Failed to save operation name",

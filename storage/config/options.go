@@ -22,6 +22,7 @@ type Options struct {
 	QueryCacheSize      int
 	ConnectTimeout      time.Duration
 	WriteTimeout        time.Duration
+	WriteAttemptTimeout time.Duration
 	WriteSvcOpCacheSize int // cache size for svc/operation index writer
 	WriteMaxSpanAge     time.Duration
 
