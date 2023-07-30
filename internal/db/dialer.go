@@ -79,10 +79,10 @@ func DialFromViper(ctx context.Context, v *viper.Viper, logger *zap.Logger, dsn 
 	return ydb.Open(ctx, dsn, options(v, logger, opts...)...)
 }
 
-func UpsertData(ctx context.Context, pool table.Client, tableName string, rows types.Value, writeAttemptTimeout time.Duration) error {
+func UpsertData(_ context.Context, pool table.Client, tableName string, rows types.Value, writeAttemptTimeout time.Duration) error {
 
 	err := pool.Do(
-		ctx,
+		context.Background(),
 		func(ctx context.Context, s table.Session) error {
 			opCtx, opCancel := context.WithTimeout(ctx, writeAttemptTimeout)
 			defer opCancel()
