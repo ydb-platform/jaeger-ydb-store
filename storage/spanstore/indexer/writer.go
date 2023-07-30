@@ -116,11 +116,6 @@ func (w *indexWriter) writePartition(part schema.PartitionKey, items []indexData
 		ctx, cancel = context.WithTimeout(ctx, w.opts.WriteTimeout)
 		defer cancel()
 	}
-	w.pluginLogger.Warn(
-		"indexer check timeout",
-		"writeTimeout", w.opts.WriteTimeout.String(),
-		"writeAttemptTimeout", w.opts.WriteAttemptTimeout.String(),
-	)
 	err := db.UpsertData(ctx, w.pool, fullTableName, types.ListValue(rows...), w.opts.WriteAttemptTimeout)
 
 	w.metrics.Emit(err, time.Since(ts), len(rows))
