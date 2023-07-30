@@ -64,9 +64,9 @@ func main() {
 	jaegerLogger.Warn("stopped")
 }
 
-func serveHttp(gatherer prometheus.Gatherer, pluginLogger hclog.Logger) {
+func serveHttp(gatherer prometheus.Gatherer, jaegerLogger hclog.Logger) {
 	mux := http.NewServeMux()
-	pluginLogger.Warn("serving metrics", "addr", viper.GetString("plugin_http_listen_address"))
+	jaegerLogger.Warn("serving metrics", "addr", viper.GetString("plugin_http_listen_address"))
 	mux.Handle("/metrics", promhttp.HandlerFor(gatherer, promhttp.HandlerOpts{}))
 	mux.HandleFunc("/ping", func(writer http.ResponseWriter, request *http.Request) {
 		writer.WriteHeader(http.StatusOK)
@@ -80,7 +80,7 @@ func serveHttp(gatherer prometheus.Gatherer, pluginLogger hclog.Logger) {
 
 	err := http.ListenAndServe(viper.GetString("plugin_http_listen_address"), mux)
 	if err != nil {
-		pluginLogger.Error("failed to start http listener", "err", err)
+		jaegerLogger.Error("failed to start http listener", "err", err)
 		os.Exit(1)
 	}
 }
