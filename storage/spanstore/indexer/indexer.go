@@ -2,6 +2,7 @@ package indexer
 
 import (
 	"errors"
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/uber/jaeger-lib/metrics"
@@ -21,8 +22,9 @@ const (
 var ErrOverflow = errors.New("indexer buffer overflow")
 
 type Indexer struct {
-	opts   Options
-	logger *zap.Logger
+	opts         Options
+	logger       *zap.Logger
+	jaegerLogger hclog.Logger
 
 	inputItems     chan *model.Span
 	tagWriter      *indexWriter
@@ -32,18 +34,19 @@ type Indexer struct {
 	dropCounter    metrics.Counter
 }
 
-func StartIndexer(pool table.Client, mf metrics.Factory, logger *zap.Logger, opts Options) *Indexer {
+func StartIndexer(pool table.Client, mf metrics.Factory, logger *zap.Logger, jaegerLogger hclog.Logger, opts Options) *Indexer {
 	indexer := &Indexer{
-		logger: logger,
-		opts:   opts,
+		logger:       logger,
+		jaegerLogger: jaegerLogger,
+		opts:         opts,
 
 		inputItems:  make(chan *model.Span, opts.BufferSize),
 		dropCounter: mf.Counter(metrics.Options{Name: "indexer_dropped"}),
 	}
-	indexer.tagWriter = startIndexWriter(pool, mf.Namespace(metrics.NSOptions{Name: "tag_index"}), logger, tblTagIndex, opts)
-	indexer.svcWriter = startIndexWriter(pool, mf.Namespace(metrics.NSOptions{Name: "service_name_index"}), logger, tblServiceNameIndex, opts)
-	indexer.opWriter = startIndexWriter(pool, mf.Namespace(metrics.NSOptions{Name: "service_operation_index"}), logger, tblServiceOperationIndex, opts)
-	indexer.durationWriter = startIndexWriter(pool, mf.Namespace(metrics.NSOptions{Name: "duration_index"}), logger, tblDurationIndex, opts)
+	indexer.tagWriter = startIndexWriter(pool, mf.Namespace(metrics.NSOptions{Name: "tag_index"}), logger, jaegerLogger, tblTagIndex, opts)
+	indexer.svcWriter = startIndexWriter(pool, mf.Namespace(metrics.NSOptions{Name: "service_name_index"}), logger, jaegerLogger, tblServiceNameIndex, opts)
+	indexer.opWriter = startIndexWriter(pool, mf.Namespace(metrics.NSOptions{Name: "service_operation_index"}), logger, jaegerLogger, tblServiceOperationIndex, opts)
+	indexer.durationWriter = startIndexWriter(pool, mf.Namespace(metrics.NSOptions{Name: "duration_index"}), logger, jaegerLogger, tblDurationIndex, opts)
 
 	go indexer.spanProcessor()
 

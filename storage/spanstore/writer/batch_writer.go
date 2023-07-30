@@ -26,21 +26,15 @@ type BatchSpanWriter struct {
 	metrics      batchWriterMetrics
 	pool         table.Client
 	logger       *zap.Logger
-	pluginLogger hclog.Logger
+	jaegerLogger hclog.Logger
 	opts         BatchWriterOptions
 }
 
-func NewBatchWriter(pool table.Client, factory metrics.Factory, logger *zap.Logger, opts BatchWriterOptions) *BatchSpanWriter {
-	pluginLogger := hclog.New(&hclog.LoggerOptions{
-		Name:       "BatchSpanWriter",
-		JSONFormat: true,
-		Color:      hclog.AutoColor,
-	})
-
+func NewBatchWriter(pool table.Client, factory metrics.Factory, logger *zap.Logger, jaegerLogger hclog.Logger, opts BatchWriterOptions) *BatchSpanWriter {
 	return &BatchSpanWriter{
 		pool:         pool,
 		logger:       logger,
-		pluginLogger: pluginLogger,
+		jaegerLogger: jaegerLogger,
 		opts:         opts,
 		metrics:      newBatchWriterMetrics(factory),
 	}
@@ -72,7 +66,7 @@ func (w *BatchSpanWriter) writeItemsToPartition(part schema.PartitionKey, items 
 
 	if err = w.uploadRows(tableName(tblTraces), spanRecords, w.metrics.traces); err != nil {
 		w.logger.Error("insertSpan error", zap.Error(err))
-		w.pluginLogger.Error(
+		w.jaegerLogger.Error(
 			"Failed to save spans",
 			"error", err,
 		)

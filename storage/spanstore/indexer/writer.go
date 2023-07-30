@@ -24,7 +24,7 @@ import (
 type indexWriter struct {
 	pool         table.Client
 	logger       *zap.Logger
-	pluginLogger hclog.Logger
+	jaegerLogger hclog.Logger
 	metrics      indexerMetrics
 	tableName    string
 	opts         Options
@@ -43,16 +43,11 @@ type indexerMetrics interface {
 	Emit(err error, latency time.Duration, count int)
 }
 
-func startIndexWriter(pool table.Client, mf metrics.Factory, logger *zap.Logger, tableName string, opts Options) *indexWriter {
-	pluginLogger := hclog.New(&hclog.LoggerOptions{
-		Name:       "index writer",
-		JSONFormat: true,
-		Color:      hclog.AutoColor,
-	})
+func startIndexWriter(pool table.Client, mf metrics.Factory, logger *zap.Logger, jaegerLogger hclog.Logger, tableName string, opts Options) *indexWriter {
 	w := &indexWriter{
 		pool:         pool,
 		logger:       logger,
-		pluginLogger: pluginLogger,
+		jaegerLogger: jaegerLogger,
 		metrics:      wmetrics.NewWriteMetrics(mf, ""),
 		tableName:    tableName,
 		opts:         opts,
@@ -73,7 +68,7 @@ func (w *indexWriter) flush(idx index.Indexable, traceIds []model.TraceID) {
 	case err == batch.ErrOverflow:
 	case err != nil:
 		w.logger.Error("indexer batch error", zap.String("table", w.tableName), zap.Error(err))
-		w.pluginLogger.Error(
+		w.jaegerLogger.Error(
 			"indexer batch error",
 			"table", w.tableName,
 			"error", err,
@@ -121,7 +116,7 @@ func (w *indexWriter) writePartition(part schema.PartitionKey, items []indexData
 	w.metrics.Emit(err, time.Since(ts), len(rows))
 	if err != nil {
 		w.logger.Error("indexer write fail", zap.String("table", w.tableName), zap.Error(err))
-		w.pluginLogger.Error(
+		w.jaegerLogger.Error(
 			"indexer write fail",
 			"table", w.tableName,
 			"error", err,
