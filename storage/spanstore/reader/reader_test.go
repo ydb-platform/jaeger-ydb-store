@@ -150,14 +150,15 @@ func addTestData(t *testing.T) {
 func addTestDataOnce(t *testing.T) {
 	var err error
 	opts := ydbWriter.SpanWriterOptions{
-		BatchWorkers:      1,
-		BatchSize:         1,
-		IndexerBufferSize: 100,
-		IndexerMaxTraces:  10,
-		IndexerTTL:        time.Second,
-		DbPath:            schema.DbPath{Path: os.Getenv("YDB_PATH"), Folder: os.Getenv("YDB_FOLDER")},
-		WriteTimeout:      time.Second,
-		OpCacheSize:       256,
+		BatchWorkers:        1,
+		BatchSize:           1,
+		IndexerBufferSize:   100,
+		IndexerMaxTraces:    10,
+		IndexerTTL:          time.Second,
+		DbPath:              schema.DbPath{Path: os.Getenv("YDB_PATH"), Folder: os.Getenv("YDB_FOLDER")},
+		WriteTimeout:        time.Second,
+		WriteAttemptTimeout: time.Second,
+		OpCacheSize:         256,
 	}
 	writer := ydbWriter.NewSpanWriter(testutil.YdbSessionPool(t), metrics.NullFactory, testutil.Zap(), testutil.JaegerLogger(), opts)
 

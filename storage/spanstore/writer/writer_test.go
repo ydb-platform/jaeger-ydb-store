@@ -20,15 +20,16 @@ func TestSpanWriter_WriteSpan(t *testing.T) {
 	var err error
 	pool := testutil.YdbSessionPool(t)
 	opts := SpanWriterOptions{
-		BufferSize:        10,
-		BatchWorkers:      1,
-		BatchSize:         1,
-		IndexerBufferSize: 10,
-		IndexerMaxTraces:  1,
-		IndexerTTL:        time.Second,
-		DbPath:            schema.DbPath{Path: os.Getenv("YDB_PATH"), Folder: os.Getenv("YDB_FOLDER")},
-		WriteTimeout:      time.Second,
-		OpCacheSize:       256,
+		BufferSize:          10,
+		BatchWorkers:        1,
+		BatchSize:           1,
+		IndexerBufferSize:   10,
+		IndexerMaxTraces:    1,
+		IndexerTTL:          time.Second,
+		DbPath:              schema.DbPath{Path: os.Getenv("YDB_PATH"), Folder: os.Getenv("YDB_FOLDER")},
+		WriteTimeout:        time.Second,
+		WriteAttemptTimeout: time.Second,
+		OpCacheSize:         256,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
