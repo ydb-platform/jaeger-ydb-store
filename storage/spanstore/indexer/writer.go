@@ -2,9 +2,10 @@ package indexer
 
 import (
 	"context"
-	"github.com/ydb-platform/jaeger-ydb-store/internal/db"
 	"math/rand"
 	"time"
+
+	"github.com/ydb-platform/jaeger-ydb-store/internal/db"
 
 	"github.com/hashicorp/go-hclog"
 

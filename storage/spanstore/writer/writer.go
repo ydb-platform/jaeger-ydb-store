@@ -2,8 +2,9 @@ package writer
 
 import (
 	"context"
-	"github.com/ydb-platform/jaeger-ydb-store/internal/db"
 	"time"
+
+	"github.com/ydb-platform/jaeger-ydb-store/internal/db"
 
 	"github.com/hashicorp/go-hclog"
 
@@ -114,7 +115,6 @@ func (s *SpanWriter) saveServiceNameAndOperationName(ctx context.Context, span *
 			defer cancel()
 		}
 		err := db.UpsertData(ctx, s.pool, s.opts.DbPath.FullTable("service_names"), data, s.opts.WriteAttemptTimeout)
-
 		if err != nil {
 			s.jaegerLogger.Error(
 				"Failed to save service name",

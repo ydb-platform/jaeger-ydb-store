@@ -2,8 +2,9 @@ package writer
 
 import (
 	"context"
-	"github.com/ydb-platform/jaeger-ydb-store/internal/db"
 	"time"
+
+	"github.com/ydb-platform/jaeger-ydb-store/internal/db"
 
 	"github.com/hashicorp/go-hclog"
 

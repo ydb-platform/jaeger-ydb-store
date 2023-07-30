@@ -2,6 +2,8 @@ package db
 
 import (
 	"context"
+	"time"
+
 	"github.com/spf13/viper"
 	ydbZap "github.com/ydb-platform/ydb-go-sdk-zap"
 	ydb "github.com/ydb-platform/ydb-go-sdk/v3"
@@ -10,7 +12,6 @@ import (
 	"github.com/ydb-platform/ydb-go-sdk/v3/trace"
 	yc "github.com/ydb-platform/ydb-go-yc"
 	"go.uber.org/zap"
-	"time"
 )
 
 const (
@@ -80,7 +81,6 @@ func DialFromViper(ctx context.Context, v *viper.Viper, logger *zap.Logger, dsn 
 }
 
 func UpsertData(ctx context.Context, pool table.Client, tableName string, rows types.Value, writeAttemptTimeout time.Duration) error {
-
 	err := pool.Do(
 		ctx,
 		func(ctx context.Context, s table.Session) error {

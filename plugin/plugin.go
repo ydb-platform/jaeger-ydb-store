@@ -3,9 +3,10 @@ package plugin
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/hashicorp/go-hclog"
 	jgrProm "github.com/uber/jaeger-lib/metrics/prometheus"
-	"time"
 
 	"github.com/jaegertracing/jaeger/storage/dependencystore"
 	"github.com/jaegertracing/jaeger/storage/spanstore"
@@ -40,7 +41,6 @@ type YdbStorage struct {
 }
 
 func NewYdbStorage(v *viper.Viper, jaegerLogger hclog.Logger) (*YdbStorage, error) {
-
 	v.SetDefault(db.KeyYdbConnectTimeout, time.Second*10)
 	v.SetDefault(db.KeyYdbWriterBufferSize, 1000)
 	v.SetDefault(db.KeyYdbWriterBatchSize, 100)
