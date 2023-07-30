@@ -55,7 +55,7 @@ func (w *Queue) Add(item interface{}) error {
 	}
 }
 
-func (w *Queue) Init() {
+func (w *Queue) Run() {
 	go w.inputProcessor()
 	for i := 0; i < w.opts.BatchWorkers; i++ {
 		go w.batchProcessor()

@@ -55,7 +55,7 @@ func startIndexWriter(pool table.Client, mf metrics.Factory, logger *zap.Logger,
 	}
 	w.indexTTLMap = newIndexMap(w.flush, opts.MaxTraces, opts.MaxTTL)
 	w.batch = batch.NewQueue(opts.Batch, mf, w)
-	w.batch.Init()
+	w.batch.Run()
 	return w
 }
 
