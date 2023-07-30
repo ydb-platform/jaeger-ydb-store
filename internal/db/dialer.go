@@ -84,7 +84,7 @@ func UpsertData(_ context.Context, pool table.Client, tableName string, rows typ
 	err := pool.Do(
 		context.Background(),
 		func(ctx context.Context, s table.Session) error {
-			opCtx, opCancel := context.WithTimeout(ctx, writeAttemptTimeout)
+			opCtx, opCancel := context.WithTimeout(ctx, time.Second)
 			defer opCancel()
 			return s.BulkUpsert(opCtx, tableName, rows)
 		},
