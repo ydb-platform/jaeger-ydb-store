@@ -135,9 +135,21 @@ func main() {
 	}
 }
 
+func checkSecureConnection(v *viper.Viper, isSecureDefault bool) bool {
+	result := isSecureDefault
+	switch v.GetString(db.KeyYdbSecureConnection) {
+	case "enabled":
+		result = true
+	case "disabled":
+		result = false
+	default:
+	}
+	return result
+}
+
 func ydbConn(v *viper.Viper, l *zap.Logger) (*ydb.Driver, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
-	return db.DialFromViper(ctx, v, l, sugar.DSN(v.GetString(db.KeyYdbAddress), v.GetString(db.KeyYdbPath), false))
+	return db.DialFromViper(ctx, v, l, sugar.DSN(v.GetString(db.KeyYdbAddress), v.GetString(db.KeyYdbPath), checkSecureConnection(v, false)))
 }

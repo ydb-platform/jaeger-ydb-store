@@ -1,10 +1,12 @@
 package db
 
 const (
-	KeyYdbAddress = "ydb.address"
-	KeyYdbPath    = "ydb.path"
-	KeyYdbFolder  = "ydb.folder"
-	KeyYdbToken   = "ydb.token"
+	KeyYdbAddress          = "ydb.address"
+	KeyYdbPath             = "ydb.path"
+	KeyYdbFolder           = "ydb.folder"
+	KeyYdbSecureConnection = "Ydb.secure-connection"
+
+	KeyYdbToken = "ydb.token"
 
 	KeyYdbSaPrivateKeyFile = "ydb.sa.private-key-file"
 	KeyYdbSaMetaAuth       = "ydb.sa.meta-auth"
