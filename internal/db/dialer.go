@@ -36,8 +36,7 @@ func options(v *viper.Viper, l *zap.Logger, opts ...ydb.Option) []ydb.Option {
 		)
 	}
 
-	// temporary solution before merge with feature/sa-key-json
-	if v.GetBool("YDB_ANONYMOUS") == true {
+	if v.GetBool(KeyYdbAnonymous) == true {
 		return append(
 			opts,
 			ydb.WithInsecure(),
