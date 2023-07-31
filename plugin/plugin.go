@@ -103,7 +103,7 @@ func NewYdbStorage(v *viper.Viper, jaegerLogger hclog.Logger) (*YdbStorage, erro
 
 	p.jaegerLogger = jaegerLogger
 
-	err = p.connectToYDB(v)
+	p.ydbPool, err = p.connectToYDB(v)
 	if err != nil {
 		return nil, fmt.Errorf("NewYdbStorage(): %w", err)
 	}
@@ -141,7 +141,7 @@ func (*YdbStorage) DependencyReader() dependencystore.Reader {
 	return ydbDepStore.DependencyStore{}
 }
 
-func (p *YdbStorage) connectToYDB(v *viper.Viper) (err error) {
+func (p *YdbStorage) connectToYDB(v *viper.Viper) (table.Client, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), p.opts.ConnectTimeout)
 	defer cancel()
 
@@ -155,7 +155,7 @@ func (p *YdbStorage) connectToYDB(v *viper.Viper) (err error) {
 		ydb.WithTraceTable(tableClientMetrics(p.metricsFactory)),
 	)
 	if err != nil {
-		return fmt.Errorf("YdbStorage.InitDB() %w", err)
+		return nil, fmt.Errorf("YdbStorage.InitDB() %w", err)
 	}
 
 	err = conn.Table().Do(
@@ -165,12 +165,10 @@ func (p *YdbStorage) connectToYDB(v *viper.Viper) (err error) {
 		},
 	)
 	if err != nil {
-		return fmt.Errorf("YdbStorage.InitDB() %w", err)
+		return nil, fmt.Errorf("YdbStorage.InitDB() %w", err)
 	}
 
-	p.ydbPool = conn.Table()
-
-	return nil
+	return conn.Table(), nil
 }
 
 func (p *YdbStorage) createWriter() *writer.SpanWriter {
