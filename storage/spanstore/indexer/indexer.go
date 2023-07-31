@@ -34,7 +34,7 @@ type Indexer struct {
 	dropCounter    metrics.Counter
 }
 
-func StartIndexer(pool table.Client, mf metrics.Factory, logger *zap.Logger, jaegerLogger hclog.Logger, opts Options) *Indexer {
+func NewIndexer(pool table.Client, mf metrics.Factory, logger *zap.Logger, jaegerLogger hclog.Logger, opts Options) *Indexer {
 	indexer := &Indexer{
 		logger:       logger,
 		jaegerLogger: jaegerLogger,
