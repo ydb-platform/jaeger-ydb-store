@@ -79,7 +79,7 @@ func main() {
 
 			shutdown := make(chan os.Signal, 1)
 			signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM)
-			conn, err := ydbConn(viper.GetViper(), nil)
+			conn, err := ydbConn(context.Background(), viper.GetViper(), nil)
 			if err != nil {
 				return fmt.Errorf("failed to create table client: %w", err)
 			}
@@ -102,7 +102,7 @@ func main() {
 				Path:   viper.GetString(db.KeyYdbPath),
 				Folder: viper.GetString(db.KeyYdbFolder),
 			}
-			conn, err := ydbConn(viper.GetViper(), logger)
+			conn, err := ydbConn(ctx, viper.GetViper(), logger)
 			if err != nil {
 				return fmt.Errorf("failed to create table client: %w", err)
 			}
@@ -147,8 +147,8 @@ func checkSecureConnection(v *viper.Viper, isSecureDefault bool) bool {
 	return result
 }
 
-func ydbConn(v *viper.Viper, l *zap.Logger) (*ydb.Driver, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+func ydbConn(ctx context.Context, v *viper.Viper, l *zap.Logger) (*ydb.Driver, error) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
 	defer cancel()
 
 	return db.DialFromViper(ctx, v, l, sugar.DSN(v.GetString(db.KeyYdbAddress), v.GetString(db.KeyYdbPath), checkSecureConnection(v, false)))
