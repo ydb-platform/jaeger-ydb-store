@@ -65,6 +65,8 @@ func main() {
 	watcherCmd := &cobra.Command{
 		Use: "watcher",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
 			opts := watcher.Options{
 				Expiration: viper.GetDuration("watcher_age"),
 				Lookahead:  viper.GetDuration("watcher_lookahead"),
@@ -79,7 +81,7 @@ func main() {
 
 			shutdown := make(chan os.Signal, 1)
 			signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM)
-			conn, err := ydbConn(context.Background(), viper.GetViper(), nil)
+			conn, err := ydbConn(ctx, viper.GetViper(), nil)
 			if err != nil {
 				return fmt.Errorf("failed to create table client: %w", err)
 			}
