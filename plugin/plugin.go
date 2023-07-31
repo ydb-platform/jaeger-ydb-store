@@ -108,8 +108,11 @@ func NewYdbStorage(v *viper.Viper, jaegerLogger hclog.Logger) (*YdbStorage, erro
 		return nil, fmt.Errorf("NewYdbStorage(): %w", err)
 	}
 
-	p.createWriters()
-	p.createReaders()
+	p.writer = p.createWriter()
+	p.archiveWriter = p.createArchiveWriter()
+
+	p.reader = p.createReader()
+	p.archiveReader = p.createArchiveReader()
 
 	return p, nil
 }
@@ -170,7 +173,7 @@ func (p *YdbStorage) connectToYDB(v *viper.Viper) (err error) {
 	return nil
 }
 
-func (p *YdbStorage) createWriters() {
+func (p *YdbStorage) createWriter() *writer.SpanWriter {
 	opts := writer.SpanWriterOptions{
 		BufferSize:          p.opts.BufferSize,
 		BatchSize:           p.opts.BatchSize,
@@ -185,13 +188,31 @@ func (p *YdbStorage) createWriters() {
 		MaxSpanAge:          p.opts.WriteMaxSpanAge,
 	}
 	ns := p.metricsFactory.Namespace(metrics.NSOptions{Name: "writer"})
-	p.writer = writer.NewSpanWriter(p.ydbPool, ns, p.logger, p.jaegerLogger, opts)
-
-	opts.ArchiveWriter = true
-	p.archiveWriter = writer.NewSpanWriter(p.ydbPool, ns, p.logger, p.jaegerLogger, opts)
+	w := writer.NewSpanWriter(p.ydbPool, ns, p.logger, p.jaegerLogger, opts)
+	return w
 }
 
-func (p *YdbStorage) createReaders() {
+func (p *YdbStorage) createArchiveWriter() *writer.SpanWriter {
+	opts := writer.SpanWriterOptions{
+		ArchiveWriter:       true,
+		BufferSize:          p.opts.BufferSize,
+		BatchSize:           p.opts.BatchSize,
+		BatchWorkers:        p.opts.BatchWorkers,
+		IndexerBufferSize:   p.opts.IndexerBufferSize,
+		IndexerMaxTraces:    p.opts.IndexerMaxTraces,
+		IndexerTTL:          p.opts.IndexerMaxTTL,
+		DbPath:              p.opts.DbPath,
+		WriteTimeout:        p.opts.WriteTimeout,
+		WriteAttemptTimeout: p.opts.WriteAttemptTimeout,
+		OpCacheSize:         p.opts.WriteSvcOpCacheSize,
+		MaxSpanAge:          p.opts.WriteMaxSpanAge,
+	}
+	ns := p.metricsFactory.Namespace(metrics.NSOptions{Name: "writer"})
+	w := writer.NewSpanWriter(p.ydbPool, ns, p.logger, p.jaegerLogger, opts)
+	return w
+}
+
+func (p *YdbStorage) createReader() *reader.SpanReader {
 	opts := reader.SpanReaderOptions{
 		DbPath:        p.opts.DbPath,
 		ReadTimeout:   p.opts.ReadTimeout,
@@ -199,8 +220,19 @@ func (p *YdbStorage) createReaders() {
 		OpLimit:       p.opts.ReadOpLimit,
 		SvcLimit:      p.opts.ReadSvcLimit,
 	}
-	p.reader = reader.NewSpanReader(p.ydbPool, opts, p.logger, p.jaegerLogger)
+	r := reader.NewSpanReader(p.ydbPool, opts, p.logger, p.jaegerLogger)
+	return r
+}
 
-	opts.ArchiveReader = true
-	p.archiveReader = reader.NewSpanReader(p.ydbPool, opts, p.logger, p.jaegerLogger)
+func (p *YdbStorage) createArchiveReader() *reader.SpanReader {
+	opts := reader.SpanReaderOptions{
+		ArchiveReader: true,
+		DbPath:        p.opts.DbPath,
+		ReadTimeout:   p.opts.ReadTimeout,
+		QueryParallel: p.opts.ReadQueryParallel,
+		OpLimit:       p.opts.ReadOpLimit,
+		SvcLimit:      p.opts.ReadSvcLimit,
+	}
+	r := reader.NewSpanReader(p.ydbPool, opts, p.logger, p.jaegerLogger)
+	return r
 }
