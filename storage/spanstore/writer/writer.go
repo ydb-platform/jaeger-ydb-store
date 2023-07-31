@@ -4,10 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/ydb-platform/jaeger-ydb-store/internal/db"
-
 	"github.com/hashicorp/go-hclog"
-
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/uber/jaeger-lib/metrics"
@@ -15,6 +12,7 @@ import (
 	"github.com/ydb-platform/ydb-go-sdk/v3/table/types"
 	"go.uber.org/zap"
 
+	"github.com/ydb-platform/jaeger-ydb-store/internal/db"
 	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/batch"
 	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/indexer"
 )

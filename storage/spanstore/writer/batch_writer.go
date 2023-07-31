@@ -4,16 +4,14 @@ import (
 	"context"
 	"time"
 
-	"github.com/ydb-platform/jaeger-ydb-store/internal/db"
-
 	"github.com/hashicorp/go-hclog"
-
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/uber/jaeger-lib/metrics"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table/types"
 	"go.uber.org/zap"
 
+	"github.com/ydb-platform/jaeger-ydb-store/internal/db"
 	"github.com/ydb-platform/jaeger-ydb-store/schema"
 	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/dbmodel"
 	wmetrics "github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/writer/metrics"

@@ -6,13 +6,12 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
-	jgrProm "github.com/uber/jaeger-lib/metrics/prometheus"
-
 	"github.com/jaegertracing/jaeger/storage/dependencystore"
 	"github.com/jaegertracing/jaeger/storage/spanstore"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
 	"github.com/uber/jaeger-lib/metrics"
+	jgrProm "github.com/uber/jaeger-lib/metrics/prometheus"
 	ydb "github.com/ydb-platform/ydb-go-sdk/v3"
 	"github.com/ydb-platform/ydb-go-sdk/v3/sugar"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"

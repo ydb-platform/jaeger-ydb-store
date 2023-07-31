@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/hashicorp/go-hclog"
-
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/uber/jaeger-lib/metrics"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
