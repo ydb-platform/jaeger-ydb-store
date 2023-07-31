@@ -40,16 +40,16 @@ func NewArchiveWriter(pool table.Client, factory metrics.Factory, logger *zap.Lo
 	}
 }
 
-func (w *ArchiveSpanWriter) WriteItems(items []interface{}) {
+func (w *ArchiveSpanWriter) WriteItems(ctx context.Context, items []interface{}) {
 	spans := make([]*model.Span, 0, len(items))
 	for _, item := range items {
 		span := item.(*model.Span)
 		spans = append(spans, span)
 	}
-	w.writeItems(spans)
+	w.writeItems(ctx, spans)
 }
 
-func (w *ArchiveSpanWriter) writeItems(items []*model.Span) {
+func (w *ArchiveSpanWriter) writeItems(ctx context.Context, items []*model.Span) {
 	spanRecords := make([]types.Value, 0, len(items))
 	for _, span := range items {
 		dbSpan, _ := dbmodel.FromDomain(span)
@@ -59,7 +59,7 @@ func (w *ArchiveSpanWriter) writeItems(items []*model.Span) {
 	tableName := w.opts.DbPath.FullTable(tblArchive)
 	var err error
 
-	if err = w.uploadRows(tableName, spanRecords, w.metrics.traces); err != nil {
+	if err = w.uploadRows(ctx, tableName, spanRecords, w.metrics.traces); err != nil {
 		w.logger.Error("insertSpan error", zap.Error(err))
 		w.jaegerLogger.Error(
 			"Failed to save spans to archive storage",
@@ -70,10 +70,9 @@ func (w *ArchiveSpanWriter) writeItems(items []*model.Span) {
 	}
 }
 
-func (w *ArchiveSpanWriter) uploadRows(tableName string, rows []types.Value, metrics *wmetrics.WriteMetrics) error {
+func (w *ArchiveSpanWriter) uploadRows(ctx context.Context, tableName string, rows []types.Value, metrics *wmetrics.WriteMetrics) error {
 	ts := time.Now()
 	data := types.ListValue(rows...)
-	ctx := context.Background()
 
 	if w.opts.WriteTimeout > 0 {
 		var cancel context.CancelFunc

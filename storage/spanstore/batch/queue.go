@@ -1,6 +1,7 @@
 package batch
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -23,7 +24,7 @@ type Queue struct {
 }
 
 type Writer interface {
-	WriteItems([]interface{})
+	WriteItems(ctx context.Context, _ []interface{})
 }
 
 type Options struct {
@@ -32,7 +33,7 @@ type Options struct {
 	BatchWorkers int
 }
 
-func NewQueue(opts Options, mf metrics.Factory, writer Writer) *Queue {
+func NewQueue(ctx context.Context, opts Options, mf metrics.Factory, writer Writer) *Queue {
 	if opts.BufferSize <= 0 {
 		opts.BufferSize = defaultBufferSize
 	}
@@ -45,9 +46,9 @@ func NewQueue(opts Options, mf metrics.Factory, writer Writer) *Queue {
 		dropCounter: mf.Counter(metrics.Options{Name: "dropped"}),
 	}
 
-	go q.inputProcessor()
+	go q.inputProcessor(ctx)
 	for i := 0; i < q.opts.BatchWorkers; i++ {
-		go q.batchProcessor()
+		go q.batchProcessor(ctx)
 	}
 
 	return q
@@ -63,11 +64,13 @@ func (w *Queue) Add(item interface{}) error {
 	}
 }
 
-func (w *Queue) inputProcessor() {
+func (w *Queue) inputProcessor(ctx context.Context) {
 	batch := newBatch(w.opts.BatchSize)
 	flushTimer := time.NewTimer(time.Second)
 	for {
 		select {
+		case <-ctx.Done():
+			return
 		case item := <-w.itemBuffer:
 			batch.Append(item)
 			if batch.Len() >= w.opts.BatchSize {
@@ -84,8 +87,8 @@ func (w *Queue) inputProcessor() {
 	}
 }
 
-func (w *Queue) batchProcessor() {
+func (w *Queue) batchProcessor(ctx context.Context) {
 	for b := range w.inFlight {
-		w.writer.WriteItems(b.items)
+		w.writer.WriteItems(ctx, b.items)
 	}
 }

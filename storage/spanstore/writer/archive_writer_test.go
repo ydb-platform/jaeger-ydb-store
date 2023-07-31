@@ -40,7 +40,7 @@ func TestArchiveSpanWriter_WriteSpan(t *testing.T) {
 	require.NoError(t, err)
 
 	testTraceId := model.NewTraceID(1, 47)
-	writer := NewSpanWriter(pool, metrics.NullFactory, testutil.Zap(), testutil.JaegerLogger(), opts)
+	writer := NewSpanWriter(context.Background(), pool, metrics.NullFactory, testutil.Zap(), testutil.JaegerLogger(), opts)
 	span := &model.Span{
 		TraceID:       testTraceId,
 		SpanID:        model.NewSpanID(1),

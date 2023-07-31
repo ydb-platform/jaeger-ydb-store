@@ -54,7 +54,7 @@ func addArchiveTestDataOnce(t *testing.T) {
 		ArchiveWriter:       true,
 		OpCacheSize:         256,
 	}
-	writer := ydbWriter.NewSpanWriter(testutil.YdbSessionPool(t), metrics.NullFactory, testutil.Zap(), testutil.JaegerLogger(), opts)
+	writer := ydbWriter.NewSpanWriter(context.Background(), testutil.YdbSessionPool(t), metrics.NullFactory, testutil.Zap(), testutil.JaegerLogger(), opts)
 
 	spans := []*model.Span{
 		{

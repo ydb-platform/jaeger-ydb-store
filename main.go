@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -8,7 +9,7 @@ import (
 	"os"
 	"strings"
 
-	hclog "github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-hclog"
 	jaegerGrpc "github.com/jaegertracing/jaeger/plugin/storage/grpc"
 	"github.com/jaegertracing/jaeger/plugin/storage/grpc/shared"
 	"github.com/prometheus/client_golang/prometheus"
@@ -39,8 +40,10 @@ func main() {
 	localViper.ConfigureViperFromFlag(viper.GetViper())
 
 	jaegerLogger := newJaegerLogger()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	ydbPlugin, err := plugin.NewYdbStorage(viper.GetViper(), jaegerLogger)
+	ydbPlugin, err := plugin.NewYdbStorage(ctx, viper.GetViper(), jaegerLogger)
 	if err != nil {
 		jaegerLogger.Error(err.Error())
 		os.Exit(1)

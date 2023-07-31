@@ -44,7 +44,7 @@ type indexerMetrics interface {
 	Emit(err error, latency time.Duration, count int)
 }
 
-func startIndexWriter(pool table.Client, mf metrics.Factory, logger *zap.Logger, jaegerLogger hclog.Logger, tableName string, opts Options) *indexWriter {
+func startIndexWriter(ctx context.Context, pool table.Client, mf metrics.Factory, logger *zap.Logger, jaegerLogger hclog.Logger, tableName string, opts Options) *indexWriter {
 	w := &indexWriter{
 		pool:         pool,
 		logger:       logger,
@@ -55,7 +55,7 @@ func startIndexWriter(pool table.Client, mf metrics.Factory, logger *zap.Logger,
 		idxRand:      newLockedRand(time.Now().UnixNano()),
 	}
 	w.indexTTLMap = newIndexMap(w.flush, opts.MaxTraces, opts.MaxTTL)
-	w.batch = batch.NewQueue(opts.Batch, mf, w)
+	w.batch = batch.NewQueue(ctx, opts.Batch, mf, w)
 	return w
 }
 
@@ -76,7 +76,7 @@ func (w *indexWriter) flush(idx index.Indexable, traceIds []model.TraceID) {
 	}
 }
 
-func (w *indexWriter) WriteItems(items []interface{}) {
+func (w *indexWriter) WriteItems(ctx context.Context, items []interface{}) {
 	parts := map[schema.PartitionKey][]indexData{}
 	for _, item := range items {
 		data := item.(indexData)
@@ -84,11 +84,11 @@ func (w *indexWriter) WriteItems(items []interface{}) {
 		parts[k] = append(parts[k], data)
 	}
 	for k, partial := range parts {
-		w.writePartition(k, partial)
+		w.writePartition(ctx, k, partial)
 	}
 }
 
-func (w *indexWriter) writePartition(part schema.PartitionKey, items []indexData) {
+func (w *indexWriter) writePartition(ctx context.Context, part schema.PartitionKey, items []indexData) {
 	fullTableName := tableName(w.opts.DbPath, part, w.tableName)
 	brr := newBucketRR(dbmodel.NumIndexBuckets)
 	rows := make([]types.Value, 0, len(items))
@@ -105,7 +105,6 @@ func (w *indexWriter) writePartition(part schema.PartitionKey, items []indexData
 	}
 	ts := time.Now()
 
-	ctx := context.Background()
 	if w.opts.WriteTimeout > 0 {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, w.opts.WriteTimeout)

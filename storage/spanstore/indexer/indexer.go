@@ -1,6 +1,7 @@
 package indexer
 
 import (
+	"context"
 	"errors"
 
 	"github.com/hashicorp/go-hclog"
@@ -34,7 +35,7 @@ type Indexer struct {
 	dropCounter    metrics.Counter
 }
 
-func NewIndexer(pool table.Client, mf metrics.Factory, logger *zap.Logger, jaegerLogger hclog.Logger, opts Options) *Indexer {
+func NewIndexer(ctx context.Context, pool table.Client, mf metrics.Factory, logger *zap.Logger, jaegerLogger hclog.Logger, opts Options) *Indexer {
 	indexer := &Indexer{
 		logger:       logger,
 		jaegerLogger: jaegerLogger,
@@ -43,10 +44,10 @@ func NewIndexer(pool table.Client, mf metrics.Factory, logger *zap.Logger, jaege
 		inputItems:  make(chan *model.Span, opts.BufferSize),
 		dropCounter: mf.Counter(metrics.Options{Name: "indexer_dropped"}),
 	}
-	indexer.tagWriter = startIndexWriter(pool, mf.Namespace(metrics.NSOptions{Name: "tag_index"}), logger, jaegerLogger, tblTagIndex, opts)
-	indexer.svcWriter = startIndexWriter(pool, mf.Namespace(metrics.NSOptions{Name: "service_name_index"}), logger, jaegerLogger, tblServiceNameIndex, opts)
-	indexer.opWriter = startIndexWriter(pool, mf.Namespace(metrics.NSOptions{Name: "service_operation_index"}), logger, jaegerLogger, tblServiceOperationIndex, opts)
-	indexer.durationWriter = startIndexWriter(pool, mf.Namespace(metrics.NSOptions{Name: "duration_index"}), logger, jaegerLogger, tblDurationIndex, opts)
+	indexer.tagWriter = startIndexWriter(ctx, pool, mf.Namespace(metrics.NSOptions{Name: "tag_index"}), logger, jaegerLogger, tblTagIndex, opts)
+	indexer.svcWriter = startIndexWriter(ctx, pool, mf.Namespace(metrics.NSOptions{Name: "service_name_index"}), logger, jaegerLogger, tblServiceNameIndex, opts)
+	indexer.opWriter = startIndexWriter(ctx, pool, mf.Namespace(metrics.NSOptions{Name: "service_operation_index"}), logger, jaegerLogger, tblServiceOperationIndex, opts)
+	indexer.durationWriter = startIndexWriter(ctx, pool, mf.Namespace(metrics.NSOptions{Name: "duration_index"}), logger, jaegerLogger, tblDurationIndex, opts)
 
 	go indexer.spanProcessor()
 
