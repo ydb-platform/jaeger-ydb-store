@@ -36,13 +36,21 @@ func NewQueue(opts Options, mf metrics.Factory, writer Writer) *Queue {
 	if opts.BufferSize <= 0 {
 		opts.BufferSize = defaultBufferSize
 	}
-	return &Queue{
+
+	q := &Queue{
 		opts:        opts,
 		inFlight:    make(chan *batch, 10),
 		itemBuffer:  make(chan interface{}, opts.BufferSize),
 		writer:      writer,
 		dropCounter: mf.Counter(metrics.Options{Name: "dropped"}),
 	}
+
+	go q.inputProcessor()
+	for i := 0; i < q.opts.BatchWorkers; i++ {
+		go q.batchProcessor()
+	}
+
+	return q
 }
 
 func (w *Queue) Add(item interface{}) error {
@@ -52,13 +60,6 @@ func (w *Queue) Add(item interface{}) error {
 	default:
 		w.dropCounter.Inc(1)
 		return ErrOverflow
-	}
-}
-
-func (w *Queue) Run() {
-	go w.inputProcessor()
-	for i := 0; i < w.opts.BatchWorkers; i++ {
-		go w.batchProcessor()
 	}
 }
 

@@ -49,7 +49,6 @@ func NewSpanWriter(pool table.Client, metricsFactory metrics.Factory, logger *za
 		batchWriter = NewBatchWriter(pool, metricsFactory, logger, jaegerLogger, writerOpts)
 	}
 	bq := batch.NewQueue(batchOpts, metricsFactory.Namespace(metrics.NSOptions{Name: "spans"}), batchWriter)
-	bq.Run()
 	idx := indexer.NewIndexer(pool, metricsFactory, logger, jaegerLogger, indexer.Options{
 		DbPath:              opts.DbPath,
 		BufferSize:          opts.IndexerBufferSize,
