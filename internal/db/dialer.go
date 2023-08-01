@@ -37,11 +37,9 @@ func options(v *viper.Viper, l *zap.Logger, opts ...ydb.Option) []ydb.Option {
 	}
 
 	if v.GetBool(KeyYdbAnonymous) == true {
-		if v.GetString(KeyYdbSecureConnection) == "" {
-			opts = append(opts, ydb.WithSecure(false))
-		}
 		return append(
 			opts,
+			ydb.WithInsecure(),
 			ydb.WithAnonymousCredentials(),
 		)
 	}
@@ -50,10 +48,8 @@ func options(v *viper.Viper, l *zap.Logger, opts ...ydb.Option) []ydb.Option {
 		opts = append(opts, ydb.WithCertificatesFromFile(caFile))
 	}
 
+	opts = append(opts, ydb.WithSecure(true))
 	if v.GetString(KeyYdbToken) != "" {
-		if v.GetString(KeyYdbSecureConnection) == "" {
-			opts = append(opts, ydb.WithSecure(true))
-		}
 		return append(
 			opts,
 			ydb.WithAccessTokenCredentials(v.GetString(KeyYdbToken)),
@@ -61,18 +57,12 @@ func options(v *viper.Viper, l *zap.Logger, opts ...ydb.Option) []ydb.Option {
 	}
 
 	if v.GetBool(KeyYdbSaMetaAuth) {
-		if v.GetString(KeyYdbSecureConnection) == "" {
-			opts = append(opts, ydb.WithSecure(true))
-		}
 		return append(
 			opts,
 			yc.WithMetadataCredentials(),
 		)
 	}
 
-	if v.GetString(KeyYdbSecureConnection) == "" {
-		opts = append(opts, ydb.WithSecure(true))
-	}
 	return append(
 		opts,
 		yc.WithAuthClientCredentials(
