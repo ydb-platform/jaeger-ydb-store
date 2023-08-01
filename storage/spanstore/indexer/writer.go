@@ -5,16 +5,14 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/ydb-platform/jaeger-ydb-store/internal/db"
-
 	"github.com/hashicorp/go-hclog"
-
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/uber/jaeger-lib/metrics"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table/types"
 	"go.uber.org/zap"
 
+	"github.com/ydb-platform/jaeger-ydb-store/internal/db"
 	"github.com/ydb-platform/jaeger-ydb-store/schema"
 	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/batch"
 	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/dbmodel"
@@ -77,7 +75,6 @@ func (w *indexWriter) flush(idx index.Indexable, traceIds []model.TraceID) {
 }
 
 func (w *indexWriter) WriteItems(items []interface{}) {
-
 	parts := map[schema.PartitionKey][]indexData{}
 	for _, item := range items {
 		data := item.(indexData)

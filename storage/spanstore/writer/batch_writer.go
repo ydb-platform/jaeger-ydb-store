@@ -40,7 +40,6 @@ func NewBatchWriter(pool table.Client, factory metrics.Factory, logger *zap.Logg
 }
 
 func (w *BatchSpanWriter) WriteItems(items []interface{}) {
-
 	parts := map[schema.PartitionKey][]*model.Span{}
 	for _, item := range items {
 		span := item.(*model.Span)
