@@ -48,6 +48,8 @@ func main() {
 		jaegerLogger.Error(err.Error())
 		os.Exit(1)
 	}
+	defer ydbPlugin.Close()
+
 	go serveHttp(ydbPlugin.Registry(), jaegerLogger)
 
 	closer, err := initTracer()

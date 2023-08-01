@@ -108,8 +108,8 @@ func NewYdbStorage(ctx context.Context, v *viper.Viper, jaegerLogger hclog.Logge
 		return nil, fmt.Errorf("NewYdbStorage(): %w", err)
 	}
 
-	p.writer = p.createWriter(ctx)
-	p.archiveWriter = p.createArchiveWriter(ctx)
+	p.writer = p.createWriter()
+	p.archiveWriter = p.createArchiveWriter()
 
 	p.reader = p.createReader()
 	p.archiveReader = p.createArchiveReader()
@@ -159,7 +159,7 @@ func (p *YdbStorage) connectToYDB(ctx context.Context, v *viper.Viper) (table.Cl
 	}
 
 	err = conn.Table().Do(
-		context.Background(),
+		ctx,
 		func(ctx context.Context, s table.Session) error {
 			return s.KeepAlive(ctx)
 		},
@@ -171,7 +171,7 @@ func (p *YdbStorage) connectToYDB(ctx context.Context, v *viper.Viper) (table.Cl
 	return conn.Table(), nil
 }
 
-func (p *YdbStorage) createWriter(ctx context.Context) *writer.SpanWriter {
+func (p *YdbStorage) createWriter() *writer.SpanWriter {
 	opts := writer.SpanWriterOptions{
 		BufferSize:          p.opts.BufferSize,
 		BatchSize:           p.opts.BatchSize,
@@ -186,11 +186,11 @@ func (p *YdbStorage) createWriter(ctx context.Context) *writer.SpanWriter {
 		MaxSpanAge:          p.opts.WriteMaxSpanAge,
 	}
 	ns := p.metricsFactory.Namespace(metrics.NSOptions{Name: "writer"})
-	w := writer.NewSpanWriter(ctx, p.ydbPool, ns, p.logger, p.jaegerLogger, opts)
+	w := writer.NewSpanWriter(p.ydbPool, ns, p.logger, p.jaegerLogger, opts)
 	return w
 }
 
-func (p *YdbStorage) createArchiveWriter(ctx context.Context) *writer.SpanWriter {
+func (p *YdbStorage) createArchiveWriter() *writer.SpanWriter {
 	opts := writer.SpanWriterOptions{
 		ArchiveWriter:       true,
 		BufferSize:          p.opts.BufferSize,
@@ -206,7 +206,7 @@ func (p *YdbStorage) createArchiveWriter(ctx context.Context) *writer.SpanWriter
 		MaxSpanAge:          p.opts.WriteMaxSpanAge,
 	}
 	ns := p.metricsFactory.Namespace(metrics.NSOptions{Name: "writer"})
-	w := writer.NewSpanWriter(ctx, p.ydbPool, ns, p.logger, p.jaegerLogger, opts)
+	w := writer.NewSpanWriter(p.ydbPool, ns, p.logger, p.jaegerLogger, opts)
 	return w
 }
 
@@ -233,4 +233,9 @@ func (p *YdbStorage) createArchiveReader() *reader.SpanReader {
 	}
 	r := reader.NewSpanReader(p.ydbPool, opts, p.logger, p.jaegerLogger)
 	return r
+}
+
+func (p *YdbStorage) Close() {
+	p.writer.Close()
+	p.archiveWriter.Close()
 }

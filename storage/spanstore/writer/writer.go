@@ -30,7 +30,7 @@ type SpanWriter struct {
 }
 
 // NewSpanWriter creates writer interface implementation for YDB
-func NewSpanWriter(ctx context.Context, pool table.Client, metricsFactory metrics.Factory, logger *zap.Logger, jaegerLogger hclog.Logger, opts SpanWriterOptions) *SpanWriter {
+func NewSpanWriter(pool table.Client, metricsFactory metrics.Factory, logger *zap.Logger, jaegerLogger hclog.Logger, opts SpanWriterOptions) *SpanWriter {
 	cache, _ := lru.New(opts.OpCacheSize) // it's ok to ignore this error for negative size
 	batchOpts := batch.Options{
 		BufferSize:   opts.BufferSize,
@@ -48,8 +48,8 @@ func NewSpanWriter(ctx context.Context, pool table.Client, metricsFactory metric
 	} else {
 		batchWriter = NewBatchWriter(pool, metricsFactory, logger, jaegerLogger, writerOpts)
 	}
-	bq := batch.NewQueue(ctx, batchOpts, metricsFactory.Namespace(metrics.NSOptions{Name: "spans"}), batchWriter)
-	idx := indexer.NewIndexer(ctx, pool, metricsFactory, logger, jaegerLogger, indexer.Options{
+	bq := batch.NewQueue(batchOpts, metricsFactory.Namespace(metrics.NSOptions{Name: "spans"}), batchWriter)
+	idx := indexer.NewIndexer(pool, metricsFactory, logger, jaegerLogger, indexer.Options{
 		DbPath:              opts.DbPath,
 		BufferSize:          opts.IndexerBufferSize,
 		MaxTraces:           opts.IndexerMaxTraces,
@@ -147,4 +147,9 @@ func (s *SpanWriter) saveServiceNameAndOperationName(ctx context.Context, span *
 		}
 	}
 	return nil
+}
+
+func (s *SpanWriter) Close() {
+	s.spanBatch.Close()
+	s.indexer.Close()
 }

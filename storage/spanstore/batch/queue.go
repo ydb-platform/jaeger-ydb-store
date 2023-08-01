@@ -1,7 +1,6 @@
 package batch
 
 import (
-	"context"
 	"errors"
 	"time"
 
@@ -21,10 +20,11 @@ type Queue struct {
 	itemBuffer  chan interface{}
 	writer      Writer
 	dropCounter metrics.Counter
+	doneCh      chan struct{}
 }
 
 type Writer interface {
-	WriteItems(ctx context.Context, _ []interface{})
+	WriteItems(_ []interface{})
 }
 
 type Options struct {
@@ -33,22 +33,23 @@ type Options struct {
 	BatchWorkers int
 }
 
-func NewQueue(ctx context.Context, opts Options, mf metrics.Factory, writer Writer) *Queue {
+func NewQueue(opts Options, mf metrics.Factory, writer Writer) *Queue {
 	if opts.BufferSize <= 0 {
 		opts.BufferSize = defaultBufferSize
 	}
-
+	doneCh := make(chan struct{})
 	q := &Queue{
 		opts:        opts,
 		inFlight:    make(chan *batch, 10),
 		itemBuffer:  make(chan interface{}, opts.BufferSize),
 		writer:      writer,
 		dropCounter: mf.Counter(metrics.Options{Name: "dropped"}),
+		doneCh:      doneCh,
 	}
 
-	go q.inputProcessor(ctx)
+	go q.inputProcessor()
 	for i := 0; i < q.opts.BatchWorkers; i++ {
-		go q.batchProcessor(ctx)
+		go q.batchProcessor()
 	}
 
 	return q
@@ -64,12 +65,12 @@ func (w *Queue) Add(item interface{}) error {
 	}
 }
 
-func (w *Queue) inputProcessor(ctx context.Context) {
+func (w *Queue) inputProcessor() {
 	batch := newBatch(w.opts.BatchSize)
 	flushTimer := time.NewTimer(time.Second)
 	for {
 		select {
-		case <-ctx.Done():
+		case <-w.doneCh:
 			return
 		case item := <-w.itemBuffer:
 			batch.Append(item)
@@ -87,8 +88,17 @@ func (w *Queue) inputProcessor(ctx context.Context) {
 	}
 }
 
-func (w *Queue) batchProcessor(ctx context.Context) {
-	for b := range w.inFlight {
-		w.writer.WriteItems(ctx, b.items)
+func (w *Queue) batchProcessor() {
+	for {
+		select {
+		case <-w.doneCh:
+			return
+		case b := <-w.inFlight:
+			w.writer.WriteItems(b.items)
+		}
 	}
+}
+
+func (w *Queue) Close() {
+	w.doneCh <- struct{}{}
 }

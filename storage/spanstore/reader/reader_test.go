@@ -160,7 +160,7 @@ func addTestDataOnce(t *testing.T) {
 		WriteAttemptTimeout: time.Second,
 		OpCacheSize:         256,
 	}
-	writer := ydbWriter.NewSpanWriter(context.Background(), testutil.YdbSessionPool(t), metrics.NullFactory, testutil.Zap(), testutil.JaegerLogger(), opts)
+	writer := ydbWriter.NewSpanWriter(testutil.YdbSessionPool(t), metrics.NullFactory, testutil.Zap(), testutil.JaegerLogger(), opts)
 
 	spans := []*model.Span{
 		{

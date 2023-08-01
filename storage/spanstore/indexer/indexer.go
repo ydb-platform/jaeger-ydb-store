@@ -1,7 +1,6 @@
 package indexer
 
 import (
-	"context"
 	"errors"
 
 	"github.com/hashicorp/go-hclog"
@@ -33,9 +32,11 @@ type Indexer struct {
 	opWriter       *indexWriter
 	durationWriter *indexWriter
 	dropCounter    metrics.Counter
+	doneCh         chan struct{}
 }
 
-func NewIndexer(ctx context.Context, pool table.Client, mf metrics.Factory, logger *zap.Logger, jaegerLogger hclog.Logger, opts Options) *Indexer {
+func NewIndexer(pool table.Client, mf metrics.Factory, logger *zap.Logger, jaegerLogger hclog.Logger, opts Options) *Indexer {
+	doneCh := make(chan struct{})
 	indexer := &Indexer{
 		logger:       logger,
 		jaegerLogger: jaegerLogger,
@@ -43,11 +44,12 @@ func NewIndexer(ctx context.Context, pool table.Client, mf metrics.Factory, logg
 
 		inputItems:  make(chan *model.Span, opts.BufferSize),
 		dropCounter: mf.Counter(metrics.Options{Name: "indexer_dropped"}),
+		doneCh:      doneCh,
 	}
-	indexer.tagWriter = startIndexWriter(ctx, pool, mf.Namespace(metrics.NSOptions{Name: "tag_index"}), logger, jaegerLogger, tblTagIndex, opts)
-	indexer.svcWriter = startIndexWriter(ctx, pool, mf.Namespace(metrics.NSOptions{Name: "service_name_index"}), logger, jaegerLogger, tblServiceNameIndex, opts)
-	indexer.opWriter = startIndexWriter(ctx, pool, mf.Namespace(metrics.NSOptions{Name: "service_operation_index"}), logger, jaegerLogger, tblServiceOperationIndex, opts)
-	indexer.durationWriter = startIndexWriter(ctx, pool, mf.Namespace(metrics.NSOptions{Name: "duration_index"}), logger, jaegerLogger, tblDurationIndex, opts)
+	indexer.tagWriter = newIndexWriter(pool, mf.Namespace(metrics.NSOptions{Name: "tag_index"}), logger, jaegerLogger, tblTagIndex, opts)
+	indexer.svcWriter = newIndexWriter(pool, mf.Namespace(metrics.NSOptions{Name: "service_name_index"}), logger, jaegerLogger, tblServiceNameIndex, opts)
+	indexer.opWriter = newIndexWriter(pool, mf.Namespace(metrics.NSOptions{Name: "service_operation_index"}), logger, jaegerLogger, tblServiceOperationIndex, opts)
+	indexer.durationWriter = newIndexWriter(pool, mf.Namespace(metrics.NSOptions{Name: "duration_index"}), logger, jaegerLogger, tblDurationIndex, opts)
 
 	go indexer.spanProcessor()
 
@@ -65,21 +67,26 @@ func (w *Indexer) Add(span *model.Span) error {
 }
 
 func (w *Indexer) spanProcessor() {
-	for span := range w.inputItems {
-		for _, tag := range span.GetTags() {
-			w.processTag(tag, span)
-		}
-		if spanProcess := span.GetProcess(); spanProcess != nil {
-			for _, tag := range spanProcess.GetTags() {
+	for {
+		select {
+		case <-w.doneCh:
+			return
+		case span := <-w.inputItems:
+			for _, tag := range span.GetTags() {
 				w.processTag(tag, span)
 			}
+			if spanProcess := span.GetProcess(); spanProcess != nil {
+				for _, tag := range spanProcess.GetTags() {
+					w.processTag(tag, span)
+				}
+			}
+			w.svcWriter.Add(index.NewServiceNameIndex(span), span.TraceID)
+			w.opWriter.Add(index.NewServiceOperationIndex(span), span.TraceID)
+			if span.OperationName != "" {
+				w.durationWriter.Add(index.NewDurationIndex(span, span.OperationName), span.TraceID)
+			}
+			w.durationWriter.Add(index.NewDurationIndex(span, ""), span.TraceID)
 		}
-		w.svcWriter.Add(index.NewServiceNameIndex(span), span.TraceID)
-		w.opWriter.Add(index.NewServiceOperationIndex(span), span.TraceID)
-		if span.OperationName != "" {
-			w.durationWriter.Add(index.NewDurationIndex(span, span.OperationName), span.TraceID)
-		}
-		w.durationWriter.Add(index.NewDurationIndex(span, ""), span.TraceID)
 	}
 }
 
@@ -87,4 +94,8 @@ func (w *Indexer) processTag(kv model.KeyValue, span *model.Span) {
 	if shouldIndexTag(kv) {
 		w.tagWriter.Add(index.NewTagIndex(span, kv), span.TraceID)
 	}
+}
+
+func (w *Indexer) Close() {
+	w.doneCh <- struct{}{}
 }
