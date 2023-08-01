@@ -28,7 +28,7 @@ func TestArchiveSpanWriter_WriteSpan(t *testing.T) {
 		IndexerTTL:          time.Second,
 		DbPath:              schema.DbPath{Path: os.Getenv("YDB_PATH"), Folder: os.Getenv("YDB_FOLDER")},
 		WriteTimeout:        time.Second,
-		WriteAttemptTimeout: time.Second,
+		RetryAttemptTimeout: time.Second,
 		ArchiveWriter:       true,
 		OpCacheSize:         256,
 	}

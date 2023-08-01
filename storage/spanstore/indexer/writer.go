@@ -109,7 +109,7 @@ func (w *indexWriter) writePartition(part schema.PartitionKey, items []indexData
 		ctx, cancel = context.WithTimeout(ctx, w.opts.WriteTimeout)
 		defer cancel()
 	}
-	err := db.UpsertData(ctx, w.pool, fullTableName, types.ListValue(rows...), w.opts.WriteAttemptTimeout)
+	err := db.UpsertData(ctx, w.pool, fullTableName, types.ListValue(rows...), w.opts.RetryAttemptTimeout)
 
 	w.metrics.Emit(err, time.Since(ts), len(rows))
 	if err != nil {

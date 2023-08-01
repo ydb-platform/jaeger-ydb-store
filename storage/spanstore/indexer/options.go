@@ -14,5 +14,5 @@ type Options struct {
 	BufferSize          int
 	Batch               batch.Options
 	WriteTimeout        time.Duration
-	WriteAttemptTimeout time.Duration
+	RetryAttemptTimeout time.Duration
 }

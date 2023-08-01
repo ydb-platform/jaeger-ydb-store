@@ -80,7 +80,7 @@ func (w *ArchiveSpanWriter) uploadRows(tableName string, rows []types.Value, met
 		ctx, cancel = context.WithTimeout(ctx, w.opts.WriteTimeout)
 		defer cancel()
 	}
-	err := db.UpsertData(ctx, w.pool, tableName, data, w.opts.WriteAttemptTimeout)
+	err := db.UpsertData(ctx, w.pool, tableName, data, w.opts.RetryAttemptTimeout)
 	metrics.Emit(err, time.Since(ts), len(rows))
 	return err
 }

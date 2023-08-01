@@ -81,7 +81,7 @@ func NewYdbStorage(ctx context.Context, v *viper.Viper, jaegerLogger hclog.Logge
 		IndexerMaxTraces:    v.GetInt(db.KeyYdbIndexerMaxTraces),
 		IndexerMaxTTL:       v.GetDuration(db.KeyYdbIndexerMaxTTL),
 		WriteTimeout:        v.GetDuration(db.KeyYdbWriteTimeout),
-		WriteAttemptTimeout: time.Second,
+		RetryAttemptTimeout: time.Second,
 		ReadTimeout:         v.GetDuration(db.KeyYdbReadTimeout),
 		ReadQueryParallel:   v.GetInt(db.KeyYdbReadQueryParallel),
 		ReadOpLimit:         v.GetUint64(db.KeyYdbReadOpLimit),
@@ -180,7 +180,7 @@ func (p *YdbStorage) createWriter() *writer.SpanWriter {
 		IndexerTTL:          p.opts.IndexerMaxTTL,
 		DbPath:              p.opts.DbPath,
 		WriteTimeout:        p.opts.WriteTimeout,
-		WriteAttemptTimeout: p.opts.WriteAttemptTimeout,
+		RetryAttemptTimeout: p.opts.RetryAttemptTimeout,
 		OpCacheSize:         p.opts.WriteSvcOpCacheSize,
 		MaxSpanAge:          p.opts.WriteMaxSpanAge,
 	}
@@ -200,7 +200,7 @@ func (p *YdbStorage) createArchiveWriter() *writer.SpanWriter {
 		IndexerTTL:          p.opts.IndexerMaxTTL,
 		DbPath:              p.opts.DbPath,
 		WriteTimeout:        p.opts.WriteTimeout,
-		WriteAttemptTimeout: p.opts.WriteAttemptTimeout,
+		RetryAttemptTimeout: p.opts.RetryAttemptTimeout,
 		OpCacheSize:         p.opts.WriteSvcOpCacheSize,
 		MaxSpanAge:          p.opts.WriteMaxSpanAge,
 	}
