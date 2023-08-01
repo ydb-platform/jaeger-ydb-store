@@ -13,8 +13,6 @@ const (
 
 	KeyYdbCAFile = "ydb.ca-file"
 
-	KeyYdbAnonymous = "ydb.anonymous"
-
 	KeyYdbConnectTimeout      = "ydb.connect-timeout"
 	KeyYdbWriteTimeout        = "ydb.write-timeout"
 	KeyYdbWriteAttemptTimeout = "ydb.write-attempt-timeout"
