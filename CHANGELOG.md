@@ -1,11 +1,21 @@
 # Changes by version
 
-1.9.0 (2023-04-12)
+[//]: # (todo: change date before release)
+1.9.0 (2023-08-02)
 ------------------
 
-* added YDB_SA_KEY_JSON environment variable
-* switched package name from github.com/yandex-cloud/jaeger-ydb-store to github.com/ydb-platform/jaeger-ydb-store
-* updated ydb-go-sdk to v3.44.3
+* updated golang/protobuf to v1.5.3
+* updated hashicorp/go-hclog to v1.5.0
+* updated stretchr/testify to v1.8.3
+* updated ydb-platform/ydb-go-sdk-zap to v0.16.1
+* updated ydb-platform/ydb-go-sdk/v3 to v3.48.7
+* updated go.uber.org/zap to v1.24.0
+* updated google.golang.org/grpc to v1.56.2
+* fixed bug with collector (issue [#49](https://github.com/ydb-platform/jaeger-ydb-store/issues/49))
+* added logging that can be seen in the jaeger (issue [#51](https://github.com/ydb-platform/jaeger-ydb-store/issues/51))
+* refactored code
+* removed extra logging from scheme watcher
+* changed the dockerfile for faster builds
 
 1.8.2 (2022-06-10)
 ------------------
