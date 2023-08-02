@@ -15,7 +15,7 @@
 * added logging that can be seen in the jaeger (issue [#51](https://github.com/ydb-platform/jaeger-ydb-store/issues/51))
 * refactored code
 * removed extra logging from scheme watcher
-* changed the dockerfile for faster builds
+* changed the Dockerfile for faster builds
 
 1.8.2 (2022-06-10)
 ------------------
