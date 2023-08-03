@@ -15,10 +15,6 @@
 - name: YDB_SA_META_AUTH
   value: {{ .Values.ydb.useMetaAuth | quote }}
 {{- end }}
-{{- if .Values.ydb.saKeyJson }}
-- name: YDB_SA_KEY_JSON
-  value: {{ .Values.ydb.saKeyJson | quote }}
-{{- end }}
 {{- if .Values.ydb.saId }}
 - name: YDB_SA_ID
   value: {{ .Values.ydb.saId | quote }}

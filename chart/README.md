@@ -13,17 +13,15 @@ endpoint: grpcs://lb.etns9ff54e1j4d7.ydb.mdb.yandexcloud.net:2135/?database=/ru-
 ### Parameters
 This is necessary parameters, all other options described in [YDB storage plugin for Jaeger documentation](https://github.com/ydb-platform/jaeger-ydb-store#environment-variables) and can be overriden using `ydb.env.{ENV_VARIABLE}`
 
-Name | Type | Default | Description
---- | --- | --- | ---
-`ydb.endpoint` | `string` | | db endpoint host:port to connect to
-`ydb.useMetaAuth` | `bool` | `false` | use metadata to authorize requests [documentation](https://cloud.yandex.com/docs/compute/operations/vm-connect/auth-inside-vm#auth-inside-vm)
-`ydb.saKeyJson` | `string` | | service account key for Yandex.Cloud authorization [documentation on service accounts](https://cloud.yandex.com/docs/iam/concepts/users/service-accounts) in `JSON`. This variable replaces `YDB_SA_ID`, `YDB_SA_KEY_ID` and `YDB_SA_PRIVATE_KEY_FILE` 
-`ydb.saId` | `string` | | deprecated - use `YDB_SA_KEY_JSON` variable. service account id for Yandex.Cloud authorization [documentation on service accounts](https://cloud.yandex.com/docs/iam/concepts/users/service-accounts)
-`ydb.saKeyId` | `string` | | deprecated - use `YDB_SA_KEY_JSON` variable. service account key id for Yandex.Cloud authorization
-`saPrivateKey` | `string` | | deprecated - use `YDB_SA_KEY_JSON` variable. service account private key for Yandex.Cloud authorization	
-`ydb.database` | `string` | | database name
-`ydb.folder` | `string` | `jaeger` | folder for tables to store data in
-
+| Name              | Type     | Default  | Description                                                                                                                                              |
+|-------------------|----------|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `ydb.endpoint`    | `string` |          | db endpoint host:port to connect to                                                                                                                      |
+| `ydb.useMetaAuth` | `bool`   | `false`  | use metadata to authorize requests [documentation](https://cloud.yandex.com/docs/compute/operations/vm-connect/auth-inside-vm#auth-inside-vm)            |
+| `ydb.saId`        | `string` |          | service account id for Yandex.Cloud authorization [documentation on service accounts](https://cloud.yandex.com/docs/iam/concepts/users/service-accounts) |
+| `ydb.saKeyId`     | `string` |          | service account key id for Yandex.Cloud authorization                                                                                                    |
+| `saPrivateKey`    | `string` |          | service account private key for Yandex.Cloud authorization	                                                                                              |
+| `ydb.database`    | `string` |          | database name                                                                                                                                            |
+| `ydb.folder`      | `string` | `jaeger` | folder for tables to store data in                                                                                                                       |
 
 ## Installing the Chart
 Add the Jaeger Tracing Helm repository:

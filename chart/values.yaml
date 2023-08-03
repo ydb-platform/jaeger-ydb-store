@@ -10,9 +10,6 @@ ydb:
   # Folder to store data in
   folder:
 
-  # Service account key for Yandex.Cloud authorization in JSON
-  saKeyJson: ""
-
   # Service account id for Yandex.Cloud authorization
   saId: ""
 
@@ -90,15 +87,15 @@ image:
   query:
     pullPolicy: IfNotPresent
     repository: cr.yandex/yc/jaeger-ydb-query
-    tag: v1.9.0
+    tag: v1.8.3
   collector:
     pullPolicy: IfNotPresent
     repository: cr.yandex/yc/jaeger-ydb-collector
-    tag: v1.9.0
+    tag: v1.8.3
   watcher:
     pullPolicy: IfNotPresent
     repository: cr.yandex/yc/jaeger-ydb-watcher
-    tag: v1.9.0
+    tag: v1.8.3
   agent:
     pullPolicy: IfNotPresent
     repository: jaegertracing/jaeger-agent
