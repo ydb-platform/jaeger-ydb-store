@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/uber/jaeger-lib/metrics"
@@ -11,6 +12,7 @@ import (
 	"github.com/ydb-platform/ydb-go-sdk/v3/table/types"
 	"go.uber.org/zap"
 
+	"github.com/ydb-platform/jaeger-ydb-store/internal/db"
 	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/batch"
 	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/indexer"
 )
@@ -20,6 +22,7 @@ type SpanWriter struct {
 	opts              SpanWriterOptions
 	pool              table.Client
 	logger            *zap.Logger
+	jaegerLogger      hclog.Logger
 	spanBatch         *batch.Queue
 	indexer           *indexer.Indexer
 	nameCache         *lru.Cache
@@ -27,7 +30,7 @@ type SpanWriter struct {
 }
 
 // NewSpanWriter creates writer interface implementation for YDB
-func NewSpanWriter(pool table.Client, metricsFactory metrics.Factory, logger *zap.Logger, opts SpanWriterOptions) *SpanWriter {
+func NewSpanWriter(pool table.Client, metricsFactory metrics.Factory, logger *zap.Logger, jaegerLogger hclog.Logger, opts SpanWriterOptions) *SpanWriter {
 	cache, _ := lru.New(opts.OpCacheSize) // it's ok to ignore this error for negative size
 	batchOpts := batch.Options{
 		BufferSize:   opts.BufferSize,
@@ -35,29 +38,31 @@ func NewSpanWriter(pool table.Client, metricsFactory metrics.Factory, logger *za
 		BatchWorkers: opts.BatchWorkers,
 	}
 	writerOpts := BatchWriterOptions{
-		WriteTimeout: opts.WriteTimeout,
-		DbPath:       opts.DbPath,
+		WriteTimeout:        opts.WriteTimeout,
+		RetryAttemptTimeout: opts.RetryAttemptTimeout,
+		DbPath:              opts.DbPath,
 	}
 	var batchWriter batch.Writer
 	if opts.ArchiveWriter {
-		batchWriter = NewArchiveWriter(pool, metricsFactory, logger, writerOpts)
+		batchWriter = NewArchiveWriter(pool, metricsFactory, logger, jaegerLogger, writerOpts)
 	} else {
-		batchWriter = NewBatchWriter(pool, metricsFactory, logger, writerOpts)
+		batchWriter = NewBatchWriter(pool, metricsFactory, logger, jaegerLogger, writerOpts)
 	}
 	bq := batch.NewQueue(batchOpts, metricsFactory.Namespace(metrics.NSOptions{Name: "spans"}), batchWriter)
-	bq.Init()
-	idx := indexer.StartIndexer(pool, metricsFactory, logger, indexer.Options{
-		DbPath:       opts.DbPath,
-		BufferSize:   opts.IndexerBufferSize,
-		MaxTraces:    opts.IndexerMaxTraces,
-		MaxTTL:       opts.IndexerTTL,
-		WriteTimeout: opts.WriteTimeout,
-		Batch:        batchOpts,
+	idx := indexer.NewIndexer(pool, metricsFactory, logger, jaegerLogger, indexer.Options{
+		DbPath:              opts.DbPath,
+		BufferSize:          opts.IndexerBufferSize,
+		MaxTraces:           opts.IndexerMaxTraces,
+		MaxTTL:              opts.IndexerTTL,
+		WriteTimeout:        opts.WriteTimeout,
+		RetryAttemptTimeout: opts.RetryAttemptTimeout,
+		Batch:               batchOpts,
 	})
 	return &SpanWriter{
 		opts:              opts,
 		pool:              pool,
 		logger:            logger,
+		jaegerLogger:      jaegerLogger,
 		spanBatch:         bq,
 		indexer:           idx,
 		nameCache:         cache,
@@ -89,13 +94,10 @@ func (s *SpanWriter) WriteSpan(ctx context.Context, span *model.Span) error {
 		_ = s.indexer.Add(span)
 	}
 
-	return s.saveServiceNameAndOperationName(span)
+	return s.saveServiceNameAndOperationName(ctx, span)
 }
 
-func (s *SpanWriter) saveServiceNameAndOperationName(span *model.Span) error {
-	ctx, cancel := context.WithTimeout(context.Background(), s.opts.WriteTimeout)
-	defer cancel()
-
+func (s *SpanWriter) saveServiceNameAndOperationName(ctx context.Context, span *model.Span) error {
 	serviceName := span.GetProcess().GetServiceName()
 	operationName := span.GetOperationName()
 	kind, _ := span.GetSpanKind()
@@ -103,10 +105,20 @@ func (s *SpanWriter) saveServiceNameAndOperationName(span *model.Span) error {
 		data := types.ListValue(types.StructValue(
 			types.StructFieldValue("service_name", types.UTF8Value(serviceName)),
 		))
-		err := s.pool.Do(ctx, func(ctx context.Context, session table.Session) (err error) {
-			return session.BulkUpsert(ctx, s.opts.DbPath.FullTable("service_names"), data)
-		})
+
+		if s.opts.WriteTimeout > 0 {
+			var cancel context.CancelFunc
+			ctx, cancel = context.WithTimeout(ctx, s.opts.WriteTimeout)
+			defer cancel()
+		}
+		err := db.UpsertData(ctx, s.pool, s.opts.DbPath.FullTable("service_names"), data, s.opts.RetryAttemptTimeout)
 		if err != nil {
+			s.jaegerLogger.Error(
+				"Failed to save service name",
+				"service_name", serviceName,
+				"error", err,
+			)
+
 			return err
 		}
 	}
@@ -119,12 +131,25 @@ func (s *SpanWriter) saveServiceNameAndOperationName(span *model.Span) error {
 			types.StructFieldValue("operation_name", types.UTF8Value(operationName)),
 			types.StructFieldValue("span_kind", types.UTF8Value(kind)),
 		))
-		err := s.pool.Do(ctx, func(ctx context.Context, session table.Session) error {
-			return session.BulkUpsert(ctx, s.opts.DbPath.FullTable("operation_names_v2"), data)
-		})
+		if s.opts.WriteTimeout > 0 {
+			var cancel context.CancelFunc
+			ctx, cancel = context.WithTimeout(ctx, s.opts.WriteTimeout)
+			defer cancel()
+		}
+		err := db.UpsertData(ctx, s.pool, s.opts.DbPath.FullTable("operation_names_v2"), data, s.opts.RetryAttemptTimeout)
 		if err != nil {
+			s.jaegerLogger.Error(
+				"Failed to save operation name",
+				"operation_name", operationName,
+				"error", err,
+			)
 			return err
 		}
 	}
 	return nil
+}
+
+func (s *SpanWriter) Close() {
+	s.spanBatch.Close()
+	s.indexer.Close()
 }

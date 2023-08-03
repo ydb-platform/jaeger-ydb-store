@@ -8,10 +8,11 @@ import (
 )
 
 type Options struct {
-	DbPath       schema.DbPath
-	MaxTraces    int
-	MaxTTL       time.Duration
-	BufferSize   int
-	Batch        batch.Options
-	WriteTimeout time.Duration
+	DbPath              schema.DbPath
+	MaxTraces           int
+	MaxTTL              time.Duration
+	BufferSize          int
+	Batch               batch.Options
+	WriteTimeout        time.Duration
+	RetryAttemptTimeout time.Duration
 }

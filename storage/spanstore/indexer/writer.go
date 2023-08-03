@@ -5,12 +5,14 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/uber/jaeger-lib/metrics"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table/types"
 	"go.uber.org/zap"
 
+	"github.com/ydb-platform/jaeger-ydb-store/internal/db"
 	"github.com/ydb-platform/jaeger-ydb-store/schema"
 	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/batch"
 	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/dbmodel"
@@ -19,11 +21,12 @@ import (
 )
 
 type indexWriter struct {
-	pool      table.Client
-	logger    *zap.Logger
-	metrics   indexerMetrics
-	tableName string
-	opts      Options
+	pool         table.Client
+	logger       *zap.Logger
+	jaegerLogger hclog.Logger
+	metrics      indexerMetrics
+	tableName    string
+	opts         Options
 
 	idxRand *rand.Rand
 	batch   *batch.Queue
@@ -39,18 +42,18 @@ type indexerMetrics interface {
 	Emit(err error, latency time.Duration, count int)
 }
 
-func startIndexWriter(pool table.Client, mf metrics.Factory, logger *zap.Logger, tableName string, opts Options) *indexWriter {
+func newIndexWriter(pool table.Client, mf metrics.Factory, logger *zap.Logger, jaegerLogger hclog.Logger, tableName string, opts Options) *indexWriter {
 	w := &indexWriter{
-		pool:      pool,
-		logger:    logger,
-		metrics:   wmetrics.NewWriteMetrics(mf, ""),
-		tableName: tableName,
-		opts:      opts,
-		idxRand:   newLockedRand(time.Now().UnixNano()),
+		pool:         pool,
+		logger:       logger,
+		jaegerLogger: jaegerLogger,
+		metrics:      wmetrics.NewWriteMetrics(mf, ""),
+		tableName:    tableName,
+		opts:         opts,
+		idxRand:      newLockedRand(time.Now().UnixNano()),
 	}
 	w.indexTTLMap = newIndexMap(w.flush, opts.MaxTraces, opts.MaxTTL)
 	w.batch = batch.NewQueue(opts.Batch, mf, w)
-	w.batch.Init()
 	return w
 }
 
@@ -63,6 +66,11 @@ func (w *indexWriter) flush(idx index.Indexable, traceIds []model.TraceID) {
 	case err == batch.ErrOverflow:
 	case err != nil:
 		w.logger.Error("indexer batch error", zap.String("table", w.tableName), zap.Error(err))
+		w.jaegerLogger.Error(
+			"indexer batch error",
+			"table", w.tableName,
+			"error", err,
+		)
 	}
 }
 
@@ -93,15 +101,24 @@ func (w *indexWriter) writePartition(part schema.PartitionKey, items []indexData
 		)
 		rows = append(rows, types.StructValue(fields...))
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), w.opts.WriteTimeout)
-	defer cancel()
 	ts := time.Now()
-	err := w.pool.Do(ctx, func(ctx context.Context, session table.Session) (err error) {
-		return session.BulkUpsert(ctx, fullTableName, types.ListValue(rows...))
-	})
+
+	ctx := context.Background()
+	if w.opts.WriteTimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, w.opts.WriteTimeout)
+		defer cancel()
+	}
+	err := db.UpsertData(ctx, w.pool, fullTableName, types.ListValue(rows...), w.opts.RetryAttemptTimeout)
+
 	w.metrics.Emit(err, time.Since(ts), len(rows))
 	if err != nil {
 		w.logger.Error("indexer write fail", zap.String("table", w.tableName), zap.Error(err))
+		w.jaegerLogger.Error(
+			"indexer write fail",
+			"table", w.tableName,
+			"error", err,
+		)
 	}
 }
 

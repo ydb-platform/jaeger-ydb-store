@@ -5,17 +5,20 @@ package dbmodel
 
 import (
 	fmt "fmt"
+	io "io"
+	math "math"
+
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/golang/protobuf/proto"
 	model "github.com/jaegertracing/jaeger/model"
-	io "io"
-	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
-var _ = proto.Marshal
-var _ = fmt.Errorf
-var _ = math.Inf
+var (
+	_ = proto.Marshal
+	_ = fmt.Errorf
+	_ = math.Inf
+)
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the proto package it is being compiled against.
@@ -39,9 +42,11 @@ func (*SpanData) ProtoMessage()    {}
 func (*SpanData) Descriptor() ([]byte, []int) {
 	return fileDescriptor_884077c58a7e9249, []int{0}
 }
+
 func (m *SpanData) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
+
 func (m *SpanData) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
 		return xxx_messageInfo_SpanData.Marshal(b, m, deterministic)
@@ -54,12 +59,15 @@ func (m *SpanData) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return b[:n], nil
 	}
 }
+
 func (m *SpanData) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_SpanData.Merge(m, src)
 }
+
 func (m *SpanData) XXX_Size() int {
 	return m.Size()
 }
+
 func (m *SpanData) XXX_DiscardUnknown() {
 	xxx_messageInfo_SpanData.DiscardUnknown(m)
 }
@@ -195,6 +203,7 @@ func encodeVarintSpandata(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	return offset + 1
 }
+
 func (m *SpanData) Size() (n int) {
 	if m == nil {
 		return 0
@@ -239,9 +248,11 @@ func sovSpandata(x uint64) (n int) {
 	}
 	return n
 }
+
 func sozSpandata(x uint64) (n int) {
 	return sovSpandata(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
+
 func (m *SpanData) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -434,6 +445,7 @@ func (m *SpanData) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
+
 func skipSpandata(dAtA []byte) (n int, err error) {
 	l := len(dAtA)
 	iNdEx := 0

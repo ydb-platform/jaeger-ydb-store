@@ -3,7 +3,7 @@ package dbmodel
 import (
 	"bytes"
 
-	farm "github.com/dgryski/go-farm"
+	"github.com/dgryski/go-farm"
 )
 
 func HashTagIndex(service, key, value string, bucket uint8) uint64 {

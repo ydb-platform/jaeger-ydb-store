@@ -4,12 +4,14 @@ import (
 	"context"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/uber/jaeger-lib/metrics"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table/types"
 	"go.uber.org/zap"
 
+	"github.com/ydb-platform/jaeger-ydb-store/internal/db"
 	"github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/dbmodel"
 	wmetrics "github.com/ydb-platform/jaeger-ydb-store/storage/spanstore/writer/metrics"
 )
@@ -19,20 +21,22 @@ const (
 )
 
 type ArchiveSpanWriter struct {
-	metrics batchWriterMetrics
-	pool    table.Client
-	logger  *zap.Logger
-	opts    BatchWriterOptions
+	metrics      batchWriterMetrics
+	pool         table.Client
+	logger       *zap.Logger
+	jaegerLogger hclog.Logger
+	opts         BatchWriterOptions
 }
 
-func NewArchiveWriter(pool table.Client, factory metrics.Factory, logger *zap.Logger, opts BatchWriterOptions) *ArchiveSpanWriter {
+func NewArchiveWriter(pool table.Client, factory metrics.Factory, logger *zap.Logger, jaegerLogger hclog.Logger, opts BatchWriterOptions) *ArchiveSpanWriter {
 	ns := factory.Namespace(metrics.NSOptions{Name: "archive"})
 
 	return &ArchiveSpanWriter{
-		pool:    pool,
-		logger:  logger,
-		opts:    opts,
-		metrics: newBatchWriterMetrics(ns),
+		pool:         pool,
+		logger:       logger,
+		jaegerLogger: jaegerLogger,
+		opts:         opts,
+		metrics:      newBatchWriterMetrics(ns),
 	}
 }
 
@@ -52,23 +56,31 @@ func (w *ArchiveSpanWriter) writeItems(items []*model.Span) {
 		spanRecords = append(spanRecords, dbSpan.StructValue())
 	}
 
-	ctx, ctxCancel := context.WithTimeout(context.Background(), w.opts.WriteTimeout)
-	defer ctxCancel()
 	tableName := w.opts.DbPath.FullTable(tblArchive)
 	var err error
 
-	if err = w.uploadRows(ctx, tableName, spanRecords, w.metrics.traces); err != nil {
+	if err = w.uploadRows(tableName, spanRecords, w.metrics.traces); err != nil {
 		w.logger.Error("insertSpan error", zap.Error(err))
+		w.jaegerLogger.Error(
+			"Failed to save spans to archive storage",
+			"error", err,
+		)
+
 		return
 	}
 }
 
-func (w *ArchiveSpanWriter) uploadRows(ctx context.Context, tableName string, rows []types.Value, metrics *wmetrics.WriteMetrics) error {
+func (w *ArchiveSpanWriter) uploadRows(tableName string, rows []types.Value, metrics *wmetrics.WriteMetrics) error {
 	ts := time.Now()
 	data := types.ListValue(rows...)
-	err := w.pool.Do(ctx, func(ctx context.Context, session table.Session) (err error) {
-		return session.BulkUpsert(ctx, tableName, data)
-	})
+
+	ctx := context.Background()
+	if w.opts.WriteTimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, w.opts.WriteTimeout)
+		defer cancel()
+	}
+	err := db.UpsertData(ctx, w.pool, tableName, data, w.opts.RetryAttemptTimeout)
 	metrics.Emit(err, time.Since(ts), len(rows))
 	return err
 }

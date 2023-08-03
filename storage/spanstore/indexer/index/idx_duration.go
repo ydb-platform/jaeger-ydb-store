@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 	"time"
 
-	farm "github.com/dgryski/go-farm"
+	"github.com/dgryski/go-farm"
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table/types"
 

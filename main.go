@@ -1,13 +1,15 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/pprof"
 	"os"
 	"strings"
 
-	hclog "github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-hclog"
 	jaegerGrpc "github.com/jaegertracing/jaeger/plugin/storage/grpc"
 	"github.com/jaegertracing/jaeger/plugin/storage/grpc/shared"
 	"github.com/prometheus/client_golang/prometheus"
@@ -19,40 +21,57 @@ import (
 	"github.com/ydb-platform/jaeger-ydb-store/plugin"
 )
 
-var logger hclog.Logger
-
 func init() {
 	viper.SetDefault("plugin_http_listen_address", ":15000")
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_", ".", "_"))
 	viper.AutomaticEnv()
+}
 
-	logger = hclog.New(&hclog.LoggerOptions{
-		Name:       "ydb",
+func newJaegerLogger() hclog.Logger {
+	pluginLogger := hclog.New(&hclog.LoggerOptions{
+		Name:       "ydb-store-plugin",
 		JSONFormat: true,
 	})
+
+	return pluginLogger
 }
 
 func main() {
 	localViper.ConfigureViperFromFlag(viper.GetViper())
 
-	ydbPlugin := plugin.NewYdbStorage()
-	ydbPlugin.InitFromViper(viper.GetViper())
-	go serveHttp(ydbPlugin.Registry())
+	jaegerLogger := newJaegerLogger()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	closer := initTracer()
-	defer closer.Close()
+	ydbPlugin, err := plugin.NewYdbStorage(ctx, viper.GetViper(), jaegerLogger)
+	if err != nil {
+		jaegerLogger.Error(err.Error())
+		os.Exit(1)
+	}
+	defer ydbPlugin.Close()
 
-	logger.Warn("starting plugin")
+	go serveHttp(ydbPlugin.Registry(), jaegerLogger)
+
+	closer, err := initTracer()
+	if err != nil {
+		jaegerLogger.Error(err.Error())
+		os.Exit(1)
+	}
+	defer func() {
+		_ = closer.Close()
+	}()
+
+	jaegerLogger.Warn("starting plugin")
 	jaegerGrpc.Serve(&shared.PluginServices{
 		Store:        ydbPlugin,
 		ArchiveStore: ydbPlugin,
 	})
-	logger.Warn("stopped")
+	jaegerLogger.Warn("stopped")
 }
 
-func serveHttp(gatherer prometheus.Gatherer) {
+func serveHttp(gatherer prometheus.Gatherer, jaegerLogger hclog.Logger) {
 	mux := http.NewServeMux()
-	logger.Warn("serving metrics", "addr", viper.GetString("plugin_http_listen_address"))
+	jaegerLogger.Warn("serving metrics", "addr", viper.GetString("plugin_http_listen_address"))
 	mux.Handle("/metrics", promhttp.HandlerFor(gatherer, promhttp.HandlerOpts{}))
 	mux.HandleFunc("/ping", func(writer http.ResponseWriter, request *http.Request) {
 		writer.WriteHeader(http.StatusOK)
@@ -66,21 +85,20 @@ func serveHttp(gatherer prometheus.Gatherer) {
 
 	err := http.ListenAndServe(viper.GetString("plugin_http_listen_address"), mux)
 	if err != nil {
-		logger.Error("failed to start http listener", "err", err)
+		jaegerLogger.Error("failed to start http listener", "err", err)
 		os.Exit(1)
 	}
 }
 
-func initTracer() io.Closer {
+func initTracer() (_ io.Closer, err error) {
 	cfg, err := jaegerCfg.FromEnv()
 	if err != nil {
-		logger.Error("cfg from env fail", "err", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("initTracer: %w", err)
 	}
+
 	closer, err := cfg.InitGlobalTracer("jaeger-ydb-query")
 	if err != nil {
-		logger.Error("tracer create failed", "err", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("initTracer: %w", err)
 	}
-	return closer
+	return closer, nil
 }

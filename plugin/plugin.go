@@ -2,15 +2,17 @@ package plugin
 
 import (
 	"context"
+	"fmt"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/jaegertracing/jaeger/storage/dependencystore"
 	"github.com/jaegertracing/jaeger/storage/spanstore"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
 	"github.com/uber/jaeger-lib/metrics"
 	jgrProm "github.com/uber/jaeger-lib/metrics/prometheus"
-	ydb "github.com/ydb-platform/ydb-go-sdk/v3"
+	"github.com/ydb-platform/ydb-go-sdk/v3"
 	"github.com/ydb-platform/ydb-go-sdk/v3/sugar"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 	"go.uber.org/zap"
@@ -27,6 +29,7 @@ type YdbStorage struct {
 	metricsFactory  metrics.Factory
 	metricsRegistry *prometheus.Registry
 	logger          *zap.Logger
+	jaegerLogger    hclog.Logger
 	ydbPool         table.Client
 	opts            config.Options
 
@@ -36,16 +39,7 @@ type YdbStorage struct {
 	archiveReader *reader.SpanReader
 }
 
-func NewYdbStorage() *YdbStorage {
-	registry := prometheus.NewRegistry()
-	return &YdbStorage{
-		metricsRegistry: registry,
-		metricsFactory:  jgrProm.New(jgrProm.WithRegisterer(registry)).Namespace(metrics.NSOptions{Name: "jaeger_ydb"}),
-	}
-}
-
-// InitFromViper pops settings from flags/env
-func (p *YdbStorage) InitFromViper(v *viper.Viper) {
+func NewYdbStorage(ctx context.Context, v *viper.Viper, jaegerLogger hclog.Logger) (*YdbStorage, error) {
 	v.SetDefault(db.KeyYdbConnectTimeout, time.Second*10)
 	v.SetDefault(db.KeyYdbWriterBufferSize, 1000)
 	v.SetDefault(db.KeyYdbWriterBatchSize, 100)
@@ -56,13 +50,20 @@ func (p *YdbStorage) InitFromViper(v *viper.Viper) {
 	v.SetDefault(db.KeyYdbIndexerMaxTTL, time.Second*5)
 	v.SetDefault(db.KeyYdbPoolSize, 100)
 	v.SetDefault(db.KeyYdbQueryCacheSize, 50)
-	v.SetDefault(db.KeyYdbWriteTimeout, time.Second)
 	v.SetDefault(db.KeyYdbReadTimeout, time.Second*10)
 	v.SetDefault(db.KeyYdbReadQueryParallel, 16)
 	v.SetDefault(db.KeyYdbReadOpLimit, 5000)
 	v.SetDefault(db.KeyYdbReadSvcLimit, 1000)
 	// Zero stands for "unbound" interval so any span age is good.
 	v.SetDefault(db.KeyYdbWriterMaxSpanAge, time.Duration(0))
+
+	registry := prometheus.NewRegistry()
+
+	p := &YdbStorage{
+		metricsRegistry: registry,
+		metricsFactory:  jgrProm.New(jgrProm.WithRegisterer(registry)).Namespace(metrics.NSOptions{Name: "jaeger_ydb"}),
+	}
+
 	p.opts = config.Options{
 		DbAddress: v.GetString(db.KeyYdbAddress),
 		DbPath: schema.DbPath{
@@ -80,25 +81,39 @@ func (p *YdbStorage) InitFromViper(v *viper.Viper) {
 		IndexerMaxTraces:    v.GetInt(db.KeyYdbIndexerMaxTraces),
 		IndexerMaxTTL:       v.GetDuration(db.KeyYdbIndexerMaxTTL),
 		WriteTimeout:        v.GetDuration(db.KeyYdbWriteTimeout),
+		RetryAttemptTimeout: time.Second,
 		ReadTimeout:         v.GetDuration(db.KeyYdbReadTimeout),
 		ReadQueryParallel:   v.GetInt(db.KeyYdbReadQueryParallel),
 		ReadOpLimit:         v.GetUint64(db.KeyYdbReadOpLimit),
 		ReadSvcLimit:        v.GetUint64(db.KeyYdbReadSvcLimit),
 		WriteMaxSpanAge:     v.GetDuration(db.KeyYdbWriterMaxSpanAge),
 	}
-	var err error
+
 	cfg := zap.NewProductionConfig()
 	if logPath := v.GetString("plugin_log_path"); logPath != "" {
 		cfg.ErrorOutputPaths = []string{logPath}
 		cfg.OutputPaths = []string{logPath}
 	}
+	var err error
 	p.logger, err = cfg.Build()
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("NewYdbStorage(): %w", err)
 	}
-	p.initDB(v)
-	p.initWriters()
-	p.initReaders()
+
+	p.jaegerLogger = jaegerLogger
+
+	p.ydbPool, err = p.connectToYDB(ctx, v)
+	if err != nil {
+		return nil, fmt.Errorf("NewYdbStorage(): %w", err)
+	}
+
+	p.writer = p.createWriter()
+	p.archiveWriter = p.createArchiveWriter()
+
+	p.reader = p.createReader()
+	p.archiveReader = p.createArchiveReader()
+
+	return p, nil
 }
 
 func (p *YdbStorage) Registry() *prometheus.Registry {
@@ -125,8 +140,8 @@ func (*YdbStorage) DependencyReader() dependencystore.Reader {
 	return ydbDepStore.DependencyStore{}
 }
 
-func (p *YdbStorage) initDB(v *viper.Viper) {
-	ctx, cancel := context.WithTimeout(context.Background(), p.opts.ConnectTimeout)
+func (p *YdbStorage) connectToYDB(ctx context.Context, v *viper.Viper) (table.Client, error) {
+	ctx, cancel := context.WithTimeout(ctx, p.opts.ConnectTimeout)
 	defer cancel()
 
 	conn, err := db.DialFromViper(
@@ -139,33 +154,62 @@ func (p *YdbStorage) initDB(v *viper.Viper) {
 		ydb.WithTraceTable(tableClientMetrics(p.metricsFactory)),
 	)
 	if err != nil {
-		p.logger.Fatal("db init failed", zap.Error(err))
+		return nil, fmt.Errorf("YdbStorage.InitDB() %w", err)
 	}
 
-	p.ydbPool = conn.Table()
+	err = conn.Table().Do(
+		ctx,
+		func(ctx context.Context, s table.Session) error {
+			return s.KeepAlive(ctx)
+		},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("YdbStorage.InitDB() %w", err)
+	}
+
+	return conn.Table(), nil
 }
 
-func (p *YdbStorage) initWriters() {
+func (p *YdbStorage) createWriter() *writer.SpanWriter {
 	opts := writer.SpanWriterOptions{
-		BufferSize:        p.opts.BufferSize,
-		BatchSize:         p.opts.BatchSize,
-		BatchWorkers:      p.opts.BatchWorkers,
-		IndexerBufferSize: p.opts.IndexerBufferSize,
-		IndexerMaxTraces:  p.opts.IndexerMaxTraces,
-		IndexerTTL:        p.opts.IndexerMaxTTL,
-		DbPath:            p.opts.DbPath,
-		WriteTimeout:      p.opts.WriteTimeout,
-		OpCacheSize:       p.opts.WriteSvcOpCacheSize,
-		MaxSpanAge:        p.opts.WriteMaxSpanAge,
+		BufferSize:          p.opts.BufferSize,
+		BatchSize:           p.opts.BatchSize,
+		BatchWorkers:        p.opts.BatchWorkers,
+		IndexerBufferSize:   p.opts.IndexerBufferSize,
+		IndexerMaxTraces:    p.opts.IndexerMaxTraces,
+		IndexerTTL:          p.opts.IndexerMaxTTL,
+		DbPath:              p.opts.DbPath,
+		WriteTimeout:        p.opts.WriteTimeout,
+		RetryAttemptTimeout: p.opts.RetryAttemptTimeout,
+		OpCacheSize:         p.opts.WriteSvcOpCacheSize,
+		MaxSpanAge:          p.opts.WriteMaxSpanAge,
 	}
 	ns := p.metricsFactory.Namespace(metrics.NSOptions{Name: "writer"})
-	p.writer = writer.NewSpanWriter(p.ydbPool, ns, p.logger, opts)
-
-	opts.ArchiveWriter = true
-	p.archiveWriter = writer.NewSpanWriter(p.ydbPool, ns, p.logger, opts)
+	w := writer.NewSpanWriter(p.ydbPool, ns, p.logger, p.jaegerLogger, opts)
+	return w
 }
 
-func (p *YdbStorage) initReaders() {
+func (p *YdbStorage) createArchiveWriter() *writer.SpanWriter {
+	opts := writer.SpanWriterOptions{
+		ArchiveWriter:       true,
+		BufferSize:          p.opts.BufferSize,
+		BatchSize:           p.opts.BatchSize,
+		BatchWorkers:        p.opts.BatchWorkers,
+		IndexerBufferSize:   p.opts.IndexerBufferSize,
+		IndexerMaxTraces:    p.opts.IndexerMaxTraces,
+		IndexerTTL:          p.opts.IndexerMaxTTL,
+		DbPath:              p.opts.DbPath,
+		WriteTimeout:        p.opts.WriteTimeout,
+		RetryAttemptTimeout: p.opts.RetryAttemptTimeout,
+		OpCacheSize:         p.opts.WriteSvcOpCacheSize,
+		MaxSpanAge:          p.opts.WriteMaxSpanAge,
+	}
+	ns := p.metricsFactory.Namespace(metrics.NSOptions{Name: "writer"})
+	w := writer.NewSpanWriter(p.ydbPool, ns, p.logger, p.jaegerLogger, opts)
+	return w
+}
+
+func (p *YdbStorage) createReader() *reader.SpanReader {
 	opts := reader.SpanReaderOptions{
 		DbPath:        p.opts.DbPath,
 		ReadTimeout:   p.opts.ReadTimeout,
@@ -173,8 +217,24 @@ func (p *YdbStorage) initReaders() {
 		OpLimit:       p.opts.ReadOpLimit,
 		SvcLimit:      p.opts.ReadSvcLimit,
 	}
-	p.reader = reader.NewSpanReader(p.ydbPool, opts, p.logger)
+	r := reader.NewSpanReader(p.ydbPool, opts, p.logger, p.jaegerLogger)
+	return r
+}
 
-	opts.ArchiveReader = true
-	p.archiveReader = reader.NewSpanReader(p.ydbPool, opts, p.logger)
+func (p *YdbStorage) createArchiveReader() *reader.SpanReader {
+	opts := reader.SpanReaderOptions{
+		ArchiveReader: true,
+		DbPath:        p.opts.DbPath,
+		ReadTimeout:   p.opts.ReadTimeout,
+		QueryParallel: p.opts.ReadQueryParallel,
+		OpLimit:       p.opts.ReadOpLimit,
+		SvcLimit:      p.opts.ReadSvcLimit,
+	}
+	r := reader.NewSpanReader(p.ydbPool, opts, p.logger, p.jaegerLogger)
+	return r
+}
+
+func (p *YdbStorage) Close() {
+	p.writer.Close()
+	p.archiveWriter.Close()
 }

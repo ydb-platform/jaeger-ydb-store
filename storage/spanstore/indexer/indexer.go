@@ -3,6 +3,7 @@ package indexer
 import (
 	"errors"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/uber/jaeger-lib/metrics"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
@@ -21,8 +22,9 @@ const (
 var ErrOverflow = errors.New("indexer buffer overflow")
 
 type Indexer struct {
-	opts   Options
-	logger *zap.Logger
+	opts         Options
+	logger       *zap.Logger
+	jaegerLogger hclog.Logger
 
 	inputItems     chan *model.Span
 	tagWriter      *indexWriter
@@ -30,20 +32,24 @@ type Indexer struct {
 	opWriter       *indexWriter
 	durationWriter *indexWriter
 	dropCounter    metrics.Counter
+	doneCh         chan struct{}
 }
 
-func StartIndexer(pool table.Client, mf metrics.Factory, logger *zap.Logger, opts Options) *Indexer {
+func NewIndexer(pool table.Client, mf metrics.Factory, logger *zap.Logger, jaegerLogger hclog.Logger, opts Options) *Indexer {
+	doneCh := make(chan struct{})
 	indexer := &Indexer{
-		logger: logger,
-		opts:   opts,
+		logger:       logger,
+		jaegerLogger: jaegerLogger,
+		opts:         opts,
 
 		inputItems:  make(chan *model.Span, opts.BufferSize),
 		dropCounter: mf.Counter(metrics.Options{Name: "indexer_dropped"}),
+		doneCh:      doneCh,
 	}
-	indexer.tagWriter = startIndexWriter(pool, mf.Namespace(metrics.NSOptions{Name: "tag_index"}), logger, tblTagIndex, opts)
-	indexer.svcWriter = startIndexWriter(pool, mf.Namespace(metrics.NSOptions{Name: "service_name_index"}), logger, tblServiceNameIndex, opts)
-	indexer.opWriter = startIndexWriter(pool, mf.Namespace(metrics.NSOptions{Name: "service_operation_index"}), logger, tblServiceOperationIndex, opts)
-	indexer.durationWriter = startIndexWriter(pool, mf.Namespace(metrics.NSOptions{Name: "duration_index"}), logger, tblDurationIndex, opts)
+	indexer.tagWriter = newIndexWriter(pool, mf.Namespace(metrics.NSOptions{Name: "tag_index"}), logger, jaegerLogger, tblTagIndex, opts)
+	indexer.svcWriter = newIndexWriter(pool, mf.Namespace(metrics.NSOptions{Name: "service_name_index"}), logger, jaegerLogger, tblServiceNameIndex, opts)
+	indexer.opWriter = newIndexWriter(pool, mf.Namespace(metrics.NSOptions{Name: "service_operation_index"}), logger, jaegerLogger, tblServiceOperationIndex, opts)
+	indexer.durationWriter = newIndexWriter(pool, mf.Namespace(metrics.NSOptions{Name: "duration_index"}), logger, jaegerLogger, tblDurationIndex, opts)
 
 	go indexer.spanProcessor()
 
@@ -61,21 +67,26 @@ func (w *Indexer) Add(span *model.Span) error {
 }
 
 func (w *Indexer) spanProcessor() {
-	for span := range w.inputItems {
-		for _, tag := range span.GetTags() {
-			w.processTag(tag, span)
-		}
-		if spanProcess := span.GetProcess(); spanProcess != nil {
-			for _, tag := range spanProcess.GetTags() {
+	for {
+		select {
+		case <-w.doneCh:
+			return
+		case span := <-w.inputItems:
+			for _, tag := range span.GetTags() {
 				w.processTag(tag, span)
 			}
+			if spanProcess := span.GetProcess(); spanProcess != nil {
+				for _, tag := range spanProcess.GetTags() {
+					w.processTag(tag, span)
+				}
+			}
+			w.svcWriter.Add(index.NewServiceNameIndex(span), span.TraceID)
+			w.opWriter.Add(index.NewServiceOperationIndex(span), span.TraceID)
+			if span.OperationName != "" {
+				w.durationWriter.Add(index.NewDurationIndex(span, span.OperationName), span.TraceID)
+			}
+			w.durationWriter.Add(index.NewDurationIndex(span, ""), span.TraceID)
 		}
-		w.svcWriter.Add(index.NewServiceNameIndex(span), span.TraceID)
-		w.opWriter.Add(index.NewServiceOperationIndex(span), span.TraceID)
-		if span.OperationName != "" {
-			w.durationWriter.Add(index.NewDurationIndex(span, span.OperationName), span.TraceID)
-		}
-		w.durationWriter.Add(index.NewDurationIndex(span, ""), span.TraceID)
 	}
 }
 
@@ -83,4 +94,8 @@ func (w *Indexer) processTag(kv model.KeyValue, span *model.Span) {
 	if shouldIndexTag(kv) {
 		w.tagWriter.Add(index.NewTagIndex(span, kv), span.TraceID)
 	}
+}
+
+func (w *Indexer) Close() {
+	w.doneCh <- struct{}{}
 }

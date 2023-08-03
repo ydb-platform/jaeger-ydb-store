@@ -20,10 +20,11 @@ type Queue struct {
 	itemBuffer  chan interface{}
 	writer      Writer
 	dropCounter metrics.Counter
+	doneCh      chan struct{}
 }
 
 type Writer interface {
-	WriteItems([]interface{})
+	WriteItems(_ []interface{})
 }
 
 type Options struct {
@@ -36,13 +37,22 @@ func NewQueue(opts Options, mf metrics.Factory, writer Writer) *Queue {
 	if opts.BufferSize <= 0 {
 		opts.BufferSize = defaultBufferSize
 	}
-	return &Queue{
+	doneCh := make(chan struct{})
+	q := &Queue{
 		opts:        opts,
 		inFlight:    make(chan *batch, 10),
 		itemBuffer:  make(chan interface{}, opts.BufferSize),
 		writer:      writer,
 		dropCounter: mf.Counter(metrics.Options{Name: "dropped"}),
+		doneCh:      doneCh,
 	}
+
+	go q.inputProcessor()
+	for i := 0; i < q.opts.BatchWorkers; i++ {
+		go q.batchProcessor()
+	}
+
+	return q
 }
 
 func (w *Queue) Add(item interface{}) error {
@@ -55,18 +65,13 @@ func (w *Queue) Add(item interface{}) error {
 	}
 }
 
-func (w *Queue) Init() {
-	go w.inputProcessor()
-	for i := 0; i < w.opts.BatchWorkers; i++ {
-		go w.batchProcessor()
-	}
-}
-
 func (w *Queue) inputProcessor() {
 	batch := newBatch(w.opts.BatchSize)
 	flushTimer := time.NewTimer(time.Second)
 	for {
 		select {
+		case <-w.doneCh:
+			return
 		case item := <-w.itemBuffer:
 			batch.Append(item)
 			if batch.Len() >= w.opts.BatchSize {
@@ -84,7 +89,16 @@ func (w *Queue) inputProcessor() {
 }
 
 func (w *Queue) batchProcessor() {
-	for b := range w.inFlight {
-		w.writer.WriteItems(b.items)
+	for {
+		select {
+		case <-w.doneCh:
+			return
+		case b := <-w.inFlight:
+			w.writer.WriteItems(b.items)
+		}
 	}
+}
+
+func (w *Queue) Close() {
+	w.doneCh <- struct{}{}
 }
