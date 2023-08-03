@@ -40,7 +40,7 @@ docker-compose up -d
 | `YDB_PATH`                  | `string`   |         | database path                                                                                                                                   |
 | `YDB_FOLDER`                | `string`   |         | folder to store data in)                                                                                                                        |
 | `YDB_CONNECT_TIMEOUT`       | `duration` | `10s`   | db connect timeout                                                                                                                              |
-| `YDB_WRITE_TIMEOUT`         | `duration` | `1s`    | write queries timeout                                                                                                                           |
+| `YDB_WRITE_TIMEOUT`         | `duration` |         | write queries timeout                                                                                                                           |
 | `YDB_READ_TIMEOUT`          | `duration` | `10s`   | read queries timeout                                                                                                                            |
 | `YDB_READ_QUERY_PARALLEL`   | `integer`  | `16`    | controls number of parallel read subqueries                                                                                                     |
 | `YDB_READ_OP_LIMIT`         | `integer`  | `5000`  | max operation names to fetch for service                                                                                                        |
@@ -51,8 +51,8 @@ docker-compose up -d
 | `YDB_WRITER_BATCH_SIZE`     | `integer`  | `100`   | number of spans in batch write calls                                                                                                            |
 | `YDB_WRITER_BATCH_WORKERS`  | `integer`  | `10`    | number of workers processing batch writes                                                                                                       |
 | `YDB_INDEXER_BUFFER_SIZE`   | `integer`  | `1000`  | span buffer size for indexer                                                                                                                    |
-| `YDB_INDEXER_MAX_TRACES`    | `integer`  | `100`   | maximum trace_id count in a sinigle index record                                                                                                |
-| `YDB_INDEXER_MAX_TTL`       | `duration` | `5s`    | maximum amount of time for indexer to batch trace_idы for index records                                                                         |
+| `YDB_INDEXER_MAX_TRACES`    | `integer`  | `100`   | maximum trace_id count in a single index record                                                                                                 |
+| `YDB_INDEXER_MAX_TTL`       | `duration` | `5s`    | maximum amount of time for indexer to batch trace_ids for index records                                                                         |
 | `YDB_SCHEMA_NUM_PARTITIONS` | `integer`  | `10`    | number of partitioned tables per day. Changing it requires recreating full data set                                                             |
 | `YDB_TOKEN`                 | `string`   |         | auth token for internal purposes                                                                                                                |
 
