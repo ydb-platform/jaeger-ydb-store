@@ -1,7 +1,6 @@
 # Changes by version
 
-[//]: # (todo: change date before release)
-1.9.0 (2023-08-02)
+1.8.3 (2023-08-03)
 ------------------
 
 * updated golang/protobuf to v1.5.3
