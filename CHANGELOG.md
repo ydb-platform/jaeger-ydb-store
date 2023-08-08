@@ -1,6 +1,6 @@
 # Changes by version
 
-1.8.3 (2023-08-07)
+1.8.3 (2023-08-08)
 ------------------
 
 * updated golang/protobuf to v1.5.3
