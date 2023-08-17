@@ -27,7 +27,10 @@ ydb:
     # YDB_CONNECT_TIMEOUT: 10s
 
     # Write queries timeout
-    # YDB_WRITE_TIMEOUT: 1s
+    # YDB_WRITE_TIMEOUT: 10s
+
+    # attempt to write queries timeout
+    # YDB_RETRY_ATTEMPT_TIMEOUT: 1s
 
     # Read queries timeout
     # YDB_READ_TIMEOUT: 10s
