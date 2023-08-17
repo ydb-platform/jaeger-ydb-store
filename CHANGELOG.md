@@ -1,5 +1,7 @@
 # Changes by version
 
+* added graceful shutdown
+
 1.8.3 (2023-08-09)
 ------------------
 
