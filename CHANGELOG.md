@@ -1,5 +1,6 @@
 # Changes by version
 
+* added the ability to configure write attempt time
 * added graceful shutdown
 
 1.8.3 (2023-08-09)
