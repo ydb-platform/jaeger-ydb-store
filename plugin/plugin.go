@@ -81,7 +81,7 @@ func NewYdbStorage(ctx context.Context, v *viper.Viper, jaegerLogger hclog.Logge
 		IndexerMaxTraces:    v.GetInt(db.KeyYdbIndexerMaxTraces),
 		IndexerMaxTTL:       v.GetDuration(db.KeyYdbIndexerMaxTTL),
 		WriteTimeout:        v.GetDuration(db.KeyYdbWriteTimeout),
-		RetryAttemptTimeout: time.Second,
+		RetryAttemptTimeout: v.GetDuration(db.KeyYdbRetryAttemptTimeout),
 		ReadTimeout:         v.GetDuration(db.KeyYdbReadTimeout),
 		ReadQueryParallel:   v.GetInt(db.KeyYdbReadQueryParallel),
 		ReadOpLimit:         v.GetUint64(db.KeyYdbReadOpLimit),

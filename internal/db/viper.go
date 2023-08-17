@@ -13,8 +13,9 @@ const (
 
 	KeyYdbCAFile = "ydb.ca-file"
 
-	KeyYdbConnectTimeout = "ydb.connect-timeout"
-	KeyYdbWriteTimeout   = "ydb.write-timeout"
+	KeyYdbConnectTimeout      = "ydb.connect-timeout"
+	KeyYdbWriteTimeout        = "ydb.write-timeout"
+	KeyYdbRetryAttemptTimeout = "ydb.retry-attempt-timeout"
 
 	KeyYdbReadTimeout       = "ydb.read-timeout"
 	KeyYdbReadQueryParallel = "ydb.read-query-parallel"
