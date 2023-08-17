@@ -13,6 +13,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/viper"
+
 	localViper "github.com/ydb-platform/jaeger-ydb-store/internal/viper"
 	"github.com/ydb-platform/jaeger-ydb-store/plugin"
 )

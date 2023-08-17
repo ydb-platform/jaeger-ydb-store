@@ -41,6 +41,7 @@ docker-compose up -d
 | `YDB_FOLDER`                | `string`   |         | folder to store data in)                                                                                                                        |
 | `YDB_CONNECT_TIMEOUT`       | `duration` | `10s`   | db connect timeout                                                                                                                              |
 | `YDB_WRITE_TIMEOUT`         | `duration` |         | write queries timeout                                                                                                                           |
+| `YDB_RETRY_ATTEMPT_TIMEOUT` | `duration` |         | attempt to write queries timeout                                                                                                                |
 | `YDB_READ_TIMEOUT`          | `duration` | `10s`   | read queries timeout                                                                                                                            |
 | `YDB_READ_QUERY_PARALLEL`   | `integer`  | `16`    | controls number of parallel read subqueries                                                                                                     |
 | `YDB_READ_OP_LIMIT`         | `integer`  | `5000`  | max operation names to fetch for service                                                                                                        |
