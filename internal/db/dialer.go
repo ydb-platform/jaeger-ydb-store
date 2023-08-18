@@ -99,7 +99,7 @@ func getCredentialsAndSecureType(v *viper.Viper) (creds credentials.Credentials,
 	}
 
 	if v.GetString(keyYdbSaKeyJson) != "" {
-		gotCreds = append(gotCreds, SaKeyJsonCredentials)
+		gotCreds = append(gotCreds, saKeyJsonCredentials)
 		creds, err = yc.NewClient(
 			yc.WithServiceKey(v.GetString(keyYdbSaKeyJson)),
 			yc.WithEndpoint(v.GetString(KeyIAMEndpoint)),

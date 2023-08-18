@@ -7,7 +7,7 @@ const (
 	accessTokenCredentials
 	metadataCredentials
 	saKeyDeprecatedCredentials
-	SaKeyJsonCredentials
+	saKeyJsonCredentials
 )
 
 func (c credentialsType) String() string {
@@ -20,7 +20,7 @@ func (c credentialsType) String() string {
 		return "MetadataCredentials"
 	case saKeyDeprecatedCredentials:
 		return "SaKeyDeprecatedCredentials"
-	case SaKeyJsonCredentials:
+	case saKeyJsonCredentials:
 		return "SaKeyJsonCredentials"
 	default:
 		return "unspecified"
