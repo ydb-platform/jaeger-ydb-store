@@ -13,13 +13,13 @@ const (
 func (c credentialsType) String() string {
 	switch c {
 	case anonymousCredentials:
-		return "anonymousCredentials"
+		return "AnonymousCredentials"
 	case accessTokenCredentials:
-		return "accessTokenCredentials"
+		return "AccessTokenCredentials"
 	case metadataCredentials:
-		return "metadataCredentials"
+		return "MetadataCredentials"
 	case saKeyDeprecatedCredentials:
-		return "saKeyDeprecatedCredentials"
+		return "SaKeyDeprecatedCredentials"
 	case SaKeyJsonCredentials:
 		return "SaKeyJsonCredentials"
 	default:
