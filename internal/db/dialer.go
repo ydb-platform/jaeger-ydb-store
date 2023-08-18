@@ -79,13 +79,11 @@ func getCredentialsAndSecureType(v *viper.Viper) (creds credentials.Credentials,
 	if v.GetString(KeyYdbSaKeyID) != "" ||
 		v.GetString(KeyYdbSaId) != "" ||
 		v.GetString(KeyYdbSaPrivateKeyFile) != "" {
-
 		if !(v.GetString(KeyYdbSaKeyID) != "" &&
 			v.GetString(KeyYdbSaId) != "" &&
 			v.GetString(KeyYdbSaPrivateKeyFile) != "") {
 			return nil, false, errNotAllSaKeyCredentialsFieldsSpecified
 		}
-
 		gotCreds = append(gotCreds, saKeyDeprecatedCredentials)
 		creds, err = yc.NewClient(
 			yc.WithKeyID(v.GetString(KeyYdbSaKeyID)),
