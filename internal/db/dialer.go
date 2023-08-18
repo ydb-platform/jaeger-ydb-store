@@ -50,10 +50,8 @@ func (c *conflictError) Error() string {
 	return fmt.Sprintf(template, len(c.gotCreds), gotCredsStrBuilder.String())
 }
 
-var (
-	errNotAllSaKeyCredentialsFieldsSpecified = errors.New("not all sa key credentials fields are specified, " +
-		"need saId, saKeyId, saPrivateKeyFile")
-)
+var errNotAllSaKeyCredentialsFieldsSpecified = errors.New("not all sa key credentials fields are specified, " +
+	"need saId, saKeyId, saPrivateKeyFile")
 
 // isSecureDefault was created to support backward compatibility,
 // because previously the type of secure connection was depended on credentials type
