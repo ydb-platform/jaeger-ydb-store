@@ -10,13 +10,25 @@ ydb:
   # Folder to store data in
   folder:
 
+  # true if anonymous authorization
+  anonymous: ""
+
+  # access token for authorization
+  token: ""
+
+  # Service account key in json format for  Yandex.Cloud authorization
+  saKeyJson: ""
+
   # Service account id for Yandex.Cloud authorization
+  # Deprecated: now part of keyYdbSaKeyJson
   saId: ""
 
   # Service account key id for Yandex.Cloud authorization
+  # Deprecated: now part of keyYdbSaKeyJson
   saKeyId: ""
 
   # Service account private key for Yandex.Cloud authorization
+  # Deprecated: now part of keyYdbSaKeyJson
   saPrivateKey: ""
 
   # Use metadata to authorize requests
@@ -102,7 +114,7 @@ image:
   agent:
     pullPolicy: IfNotPresent
     repository: jaegertracing/jaeger-agent
-    tag: 1.27
+    tag: 1.47
 
 imagePullSecrets: []
 nameOverride: ""

@@ -4,12 +4,18 @@ const (
 	KeyYdbAddress = "ydb.address"
 	KeyYdbPath    = "ydb.path"
 	KeyYdbFolder  = "ydb.folder"
-	KeyYdbToken   = "ydb.token"
 
+	keyYdbAnonymous  = "ydb.anonymous"
+	KeyYdbToken      = "ydb.token"
+	KeyYdbSaMetaAuth = "ydb.sa.meta-auth"
+	keyYdbSaKeyJson  = "ydb.Sa.Key-json"
+
+	// Deprecated: now part of keyYdbSaKeyJson
 	KeyYdbSaPrivateKeyFile = "ydb.sa.private-key-file"
-	KeyYdbSaMetaAuth       = "ydb.sa.meta-auth"
-	KeyYdbSaId             = "ydb.sa.id"
-	KeyYdbSaKeyID          = "ydb.sa.key-id"
+	// Deprecated: now part of keyYdbSaKeyJson
+	KeyYdbSaId = "ydb.sa.id"
+	// Deprecated: now part of keyYdbSaKeyJson
+	KeyYdbSaKeyID = "ydb.sa.key-id"
 
 	KeyYdbCAFile = "ydb.ca-file"
 
