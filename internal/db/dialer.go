@@ -118,6 +118,23 @@ func getCredentialsAndSecureType(v *viper.Viper) (creds credentials.Credentials,
 	return creds, isSecureDefault, nil
 }
 
+var ErrBadSecureConnectionValue = errors.New("incorrect secure-connection value: must be one of: [enabled, disabled]")
+
+func GetIsSecureWithDefault(v *viper.Viper, isSecureDefault bool) (isSecure bool, err error) {
+	switch v.GetString(KeyYdbSecureConnection) {
+	case "enabled":
+		isSecure = true
+	case "disabled":
+		isSecure = false
+	case "":
+		isSecure = isSecureDefault
+	default:
+		return false, ErrBadSecureConnectionValue
+	}
+
+	return isSecure, nil
+}
+
 func options(v *viper.Viper, l *zap.Logger, opts ...ydb.Option) ([]ydb.Option, error) {
 	v.SetDefault(KeyIAMEndpoint, defaultIAMEndpoint)
 	if l != nil {
@@ -138,8 +155,12 @@ func options(v *viper.Viper, l *zap.Logger, opts ...ydb.Option) ([]ydb.Option, e
 	if caFile := v.GetString(KeyYdbCAFile); caFile != "" {
 		opts = append(opts, ydb.WithCertificatesFromFile(caFile))
 	}
-
 	creds, isSecureDefault, err := getCredentialsAndSecureType(v)
+	if err != nil {
+		return nil, err
+	}
+
+	isSecure, err := GetIsSecureWithDefault(v, isSecureDefault)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +168,7 @@ func options(v *viper.Viper, l *zap.Logger, opts ...ydb.Option) ([]ydb.Option, e
 	opts = append(
 		opts,
 		ydb.WithCredentials(creds),
-		ydb.WithSecure(isSecureDefault),
+		ydb.WithSecure(isSecure),
 	)
 
 	return opts, nil

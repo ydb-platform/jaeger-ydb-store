@@ -141,5 +141,9 @@ func ydbConn(ctx context.Context, v *viper.Viper, l *zap.Logger) (*ydb.Driver, e
 	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
 	defer cancel()
 
-	return db.DialFromViper(ctx, v, l, sugar.DSN(v.GetString(db.KeyYdbAddress), v.GetString(db.KeyYdbPath), false))
+	isSecure, err := db.GetIsSecureWithDefault(v, false)
+	if err != nil {
+		return nil, err
+	}
+	return db.DialFromViper(ctx, v, l, sugar.DSN(v.GetString(db.KeyYdbAddress), v.GetString(db.KeyYdbPath), isSecure))
 }

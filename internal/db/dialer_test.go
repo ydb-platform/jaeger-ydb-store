@@ -190,3 +190,86 @@ func Test_getCredentialsAndSecureType(t *testing.T) {
 		})
 	}
 }
+
+func TestGetIsSecureWithDefault(t *testing.T) {
+	type input struct {
+		KeySecureConnection string
+		IsSecureDefault     bool
+	}
+	type expect struct {
+		IsSecure  bool
+		HaveError bool
+		Err       error
+	}
+
+	tests := []struct {
+		Name       string
+		inputData  input
+		expectData expect
+	}{
+		{
+			Name: "Enabled",
+			inputData: input{
+				KeySecureConnection: "enabled",
+				IsSecureDefault:     false,
+			},
+			expectData: expect{
+				IsSecure:  true,
+				HaveError: false,
+				Err:       nil,
+			},
+		},
+		{
+			Name: "Disabled",
+			inputData: input{
+				KeySecureConnection: "disabled",
+				IsSecureDefault:     false,
+			},
+			expectData: expect{
+				IsSecure:  false,
+				HaveError: false,
+				Err:       nil,
+			},
+		},
+		{
+			Name: "Default",
+			inputData: input{
+				KeySecureConnection: "",
+				IsSecureDefault:     true,
+			},
+			expectData: expect{
+				IsSecure:  true,
+				HaveError: false,
+				Err:       nil,
+			},
+		},
+		{
+			Name: "ErrorBadValue",
+			inputData: input{
+				KeySecureConnection: "bad value",
+				IsSecureDefault:     false,
+			},
+			expectData: expect{
+				IsSecure:  false,
+				HaveError: true,
+				Err:       ErrBadSecureConnectionValue,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.Name, func(t *testing.T) {
+			v := viper.New()
+			v.Set(KeyYdbSecureConnection, tt.inputData.KeySecureConnection)
+			isSecure, err := GetIsSecureWithDefault(v, tt.inputData.IsSecureDefault)
+			if tt.expectData.HaveError {
+				require.ErrorIs(t, err, tt.expectData.Err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.expectData.IsSecure, isSecure)
+		})
+	}
+
+}

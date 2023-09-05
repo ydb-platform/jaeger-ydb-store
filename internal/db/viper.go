@@ -4,6 +4,8 @@ const (
 	KeyYdbAddress = "ydb.address"
 	KeyYdbPath    = "ydb.path"
 	KeyYdbFolder  = "ydb.folder"
+	// enabled or disabled
+	KeyYdbSecureConnection = "ydb.secure-connection"
 
 	keyYdbAnonymous  = "ydb.anonymous"
 	KeyYdbToken      = "ydb.token"
