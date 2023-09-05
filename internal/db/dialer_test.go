@@ -271,5 +271,4 @@ func TestGetIsSecureWithDefault(t *testing.T) {
 			require.Equal(t, tt.expectData.IsSecure, isSecure)
 		})
 	}
-
 }
