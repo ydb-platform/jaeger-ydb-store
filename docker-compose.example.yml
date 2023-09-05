@@ -11,6 +11,7 @@ services:
           "service_account_id": "aje65tbjpm9c2l7kecnl",
           "private_key": "-----BEGIN PRIVATE KEY-----...-----END PRIVATE KEY-----\n"
         }
+      YDB_SECURE_CONNECTION: enabled
     command: watcher
   collector:
     image: cr.yandex/yc/jaeger-ydb-collector
@@ -24,6 +25,7 @@ services:
           "service_account_id": "aje65tbjpm9c2l7kecnl",
           "private_key": "-----BEGIN PRIVATE KEY-----...-----END PRIVATE KEY-----\n"
         }
+      YDB_SECURE_CONNECTION: enabled
   query:
     image: cr.yandex/yc/jaeger-ydb-query
     ports:
@@ -37,4 +39,5 @@ services:
           "service_account_id": "aje65tbjpm9c2l7kecnl",
           "private_key": "-----BEGIN PRIVATE KEY-----...-----END PRIVATE KEY-----\n"
         }
+      YDB_SECURE_CONNECTION: enabled
       PLUGIN_LOG_PATH: /tmp/plugin.log
