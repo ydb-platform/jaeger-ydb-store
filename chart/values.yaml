@@ -10,6 +10,9 @@ ydb:
   # Folder to store data in
   folder:
 
+  # one of ["enabled", "disabled"]
+  secureConnection: ""
+
   # true if anonymous authorization
   anonymous: ""
 

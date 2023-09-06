@@ -1,5 +1,6 @@
 # Changes by version
 
+* added ability to configure connection secure type `ydb.secure-connection`
 * added new credentials types: `SaKeyJson` and `Anonymous`
 * now `SaId`, `SaKeyId` and `SaPrivateKeyFile` have become deprecated - use `SaKeyJson` insted
 * added the ability to configure write attempt time

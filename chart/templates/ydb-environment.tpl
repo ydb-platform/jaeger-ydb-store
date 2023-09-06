@@ -39,6 +39,10 @@
 - name: YDB_SA_PRIVATE_KEY_FILE
   value: /opt/secrets/ydb-sa-key.pem
 {{- end }}
+{{- if .Values.ydb.secureConnection }}
+- name: YDB_SECURE_CONNECTION
+  value: {{ .Values.ydb.secureConnection | quote }}
+{{- end }}
 - name: YDB_FOLDER
   value: {{ default "jaeger" .Values.ydb.folder | quote }}
 {{- end -}}
