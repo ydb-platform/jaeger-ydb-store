@@ -44,7 +44,13 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	ydbPlugin, err := plugin.NewYdbStorage(ctx, viper.GetViper(), jaegerLogger)
+	jaegerTraceProvider, err := jtracer.New("jaeger-ydb-store")
+	if err != nil {
+		jaegerLogger.Error(err.Error())
+		os.Exit(1)
+	}
+
+	ydbPlugin, err := plugin.NewYdbStorage(ctx, viper.GetViper(), jaegerLogger, jaegerTraceProvider)
 	if err != nil {
 		jaegerLogger.Error(err.Error())
 		os.Exit(1)
@@ -52,15 +58,6 @@ func main() {
 	defer ydbPlugin.Close()
 
 	go serveHttp(ydbPlugin.Registry(), jaegerLogger)
-
-	tracer, err := jtracer.New("jaeger-ydb-store")
-	if err != nil {
-		jaegerLogger.Error(err.Error())
-		os.Exit(1)
-	}
-	defer func() {
-		_ = tracer.Close(context.Background())
-	}()
 
 	jaegerLogger.Warn("starting plugin")
 
@@ -71,8 +68,8 @@ func main() {
 
 	jaegerGrpc.ServeWithGRPCServer(service, func(options []grpc.ServerOption) *grpc.Server {
 		return hcplugin.DefaultGRPCServer([]grpc.ServerOption{
-			grpc.UnaryInterceptor(otelgrpc.UnaryServerInterceptor(otelgrpc.WithTracerProvider(tracer.OTEL))),
-			grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor(otelgrpc.WithTracerProvider(tracer.OTEL))),
+			grpc.UnaryInterceptor(otelgrpc.UnaryServerInterceptor(otelgrpc.WithTracerProvider(jaegerTraceProvider.OTEL))),
+			grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor(otelgrpc.WithTracerProvider(jaegerTraceProvider.OTEL))),
 		})
 	})
 	jaegerLogger.Warn("stopped")
