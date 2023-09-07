@@ -41,3 +41,4 @@ services:
         }
       YDB_SECURE_CONNECTION: enabled
       PLUGIN_LOG_PATH: /tmp/plugin.log
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://collector:4317

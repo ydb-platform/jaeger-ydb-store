@@ -15,7 +15,9 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/viper"
+	"github.com/ydb-platform/jaeger-ydb-store/internal/db"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 
 	localViper "github.com/ydb-platform/jaeger-ydb-store/internal/viper"
@@ -44,10 +46,19 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	jaegerTraceProvider, err := jtracer.New("jaeger-ydb-store")
-	if err != nil {
-		jaegerLogger.Error(err.Error())
-		os.Exit(1)
+	var jaegerTraceProvider *jtracer.JTracer
+	if !viper.GetBool(db.KeyYdbUseTracing) {
+		jaegerLogger.Error("------------------NOOP")
+		jaegerTraceProvider = jtracer.NoOp()
+		trace.NewNoopTracerProvider()
+	} else {
+		jaegerLogger.Error("---------------------OP")
+		var err error
+		jaegerTraceProvider, err = jtracer.New("jaeger-ydb-store")
+		if err != nil {
+			jaegerLogger.Error(err.Error())
+			os.Exit(1)
+		}
 	}
 
 	ydbPlugin, err := plugin.NewYdbStorage(ctx, viper.GetViper(), jaegerLogger, jaegerTraceProvider)
@@ -66,12 +77,17 @@ func main() {
 		ArchiveStore: ydbPlugin,
 	}
 
-	jaegerGrpc.ServeWithGRPCServer(service, func(options []grpc.ServerOption) *grpc.Server {
-		return hcplugin.DefaultGRPCServer([]grpc.ServerOption{
-			grpc.UnaryInterceptor(otelgrpc.UnaryServerInterceptor(otelgrpc.WithTracerProvider(jaegerTraceProvider.OTEL))),
-			grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor(otelgrpc.WithTracerProvider(jaegerTraceProvider.OTEL))),
+	if viper.GetBool(db.KeyYdbUseTracing) {
+		jaegerGrpc.ServeWithGRPCServer(service, func(options []grpc.ServerOption) *grpc.Server {
+			return hcplugin.DefaultGRPCServer([]grpc.ServerOption{
+				grpc.UnaryInterceptor(otelgrpc.UnaryServerInterceptor(otelgrpc.WithTracerProvider(jaegerTraceProvider.OTEL))),
+				grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor(otelgrpc.WithTracerProvider(jaegerTraceProvider.OTEL))),
+			})
 		})
-	})
+	} else {
+		jaegerGrpc.Serve(service)
+	}
+
 	jaegerLogger.Warn("stopped")
 }
 
