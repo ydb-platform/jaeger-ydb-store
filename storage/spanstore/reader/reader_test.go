@@ -232,5 +232,6 @@ func setUpReader(t *testing.T) *SpanReader {
 		},
 		testutil.Zap(),
 		testutil.JaegerLogger(),
+		testutil.Tracer(),
 	)
 }

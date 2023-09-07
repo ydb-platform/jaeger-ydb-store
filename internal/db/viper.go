@@ -52,8 +52,6 @@ const (
 	KeyYDBFeatureCompression = "ydb.feature.compression"
 
 	KeyYdbLogScope = "ydb.log.scope"
-
-	KeyYdbUseTracing = "ydb.use-tracing"
 )
 
 const (

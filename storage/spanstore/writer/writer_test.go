@@ -80,5 +80,6 @@ func setUpReader(t *testing.T) *reader.SpanReader {
 		},
 		testutil.Zap(),
 		testutil.JaegerLogger(),
+		testutil.Tracer(),
 	)
 }
