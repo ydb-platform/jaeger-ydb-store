@@ -8,11 +8,15 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-hclog"
+	hcplugin "github.com/hashicorp/go-plugin"
+	"github.com/jaegertracing/jaeger/pkg/jtracer"
 	jaegerGrpc "github.com/jaegertracing/jaeger/plugin/storage/grpc"
 	"github.com/jaegertracing/jaeger/plugin/storage/grpc/shared"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/viper"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"google.golang.org/grpc"
 
 	localViper "github.com/ydb-platform/jaeger-ydb-store/internal/viper"
 	"github.com/ydb-platform/jaeger-ydb-store/plugin"
@@ -40,7 +44,13 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	ydbPlugin, err := plugin.NewYdbStorage(ctx, viper.GetViper(), jaegerLogger)
+	jaegerTraceProvider, err := jtracer.New("jaeger-ydb-store")
+	if err != nil {
+		jaegerLogger.Error(err.Error())
+		os.Exit(1)
+	}
+
+	ydbPlugin, err := plugin.NewYdbStorage(ctx, viper.GetViper(), jaegerLogger, jaegerTraceProvider)
 	if err != nil {
 		jaegerLogger.Error(err.Error())
 		os.Exit(1)
@@ -50,10 +60,19 @@ func main() {
 	go serveHttp(ydbPlugin.Registry(), jaegerLogger)
 
 	jaegerLogger.Warn("starting plugin")
-	jaegerGrpc.Serve(&shared.PluginServices{
+
+	service := &shared.PluginServices{
 		Store:        ydbPlugin,
 		ArchiveStore: ydbPlugin,
+	}
+
+	jaegerGrpc.ServeWithGRPCServer(service, func(options []grpc.ServerOption) *grpc.Server {
+		return hcplugin.DefaultGRPCServer([]grpc.ServerOption{
+			grpc.UnaryInterceptor(otelgrpc.UnaryServerInterceptor(otelgrpc.WithTracerProvider(jaegerTraceProvider.OTEL))),
+			grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor(otelgrpc.WithTracerProvider(jaegerTraceProvider.OTEL))),
+		})
 	})
+
 	jaegerLogger.Warn("stopped")
 }
 

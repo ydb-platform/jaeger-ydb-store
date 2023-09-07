@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/jaegertracing/jaeger/pkg/jtracer"
 	"github.com/jaegertracing/jaeger/storage/dependencystore"
 	"github.com/jaegertracing/jaeger/storage/spanstore"
 	"github.com/prometheus/client_golang/prometheus"
@@ -26,12 +27,13 @@ import (
 )
 
 type YdbStorage struct {
-	metricsFactory  metrics.Factory
-	metricsRegistry *prometheus.Registry
-	logger          *zap.Logger
-	jaegerLogger    hclog.Logger
-	ydbPool         table.Client
-	opts            config.Options
+	metricsFactory      metrics.Factory
+	metricsRegistry     *prometheus.Registry
+	logger              *zap.Logger
+	jaegerLogger        hclog.Logger
+	jaegerTraceProvider *jtracer.JTracer
+	ydbPool             table.Client
+	opts                config.Options
 
 	writer        *writer.SpanWriter
 	reader        *reader.SpanReader
@@ -39,7 +41,7 @@ type YdbStorage struct {
 	archiveReader *reader.SpanReader
 }
 
-func NewYdbStorage(ctx context.Context, v *viper.Viper, jaegerLogger hclog.Logger) (*YdbStorage, error) {
+func NewYdbStorage(ctx context.Context, v *viper.Viper, jaegerLogger hclog.Logger, jaegerTraceProvider *jtracer.JTracer) (*YdbStorage, error) {
 	v.SetDefault(db.KeyYdbConnectTimeout, time.Second*10)
 	v.SetDefault(db.KeyYdbWriterBufferSize, 1000)
 	v.SetDefault(db.KeyYdbWriterBatchSize, 100)
@@ -101,6 +103,7 @@ func NewYdbStorage(ctx context.Context, v *viper.Viper, jaegerLogger hclog.Logge
 	}
 
 	p.jaegerLogger = jaegerLogger
+	p.jaegerTraceProvider = jaegerTraceProvider
 
 	p.ydbPool, err = p.connectToYDB(ctx, v)
 	if err != nil {
@@ -217,7 +220,7 @@ func (p *YdbStorage) createReader() *reader.SpanReader {
 		OpLimit:       p.opts.ReadOpLimit,
 		SvcLimit:      p.opts.ReadSvcLimit,
 	}
-	r := reader.NewSpanReader(p.ydbPool, opts, p.logger, p.jaegerLogger)
+	r := reader.NewSpanReader(p.ydbPool, opts, p.logger, p.jaegerLogger, p.jaegerTraceProvider.OTEL.Tracer("SpanReader"))
 	return r
 }
 
@@ -230,11 +233,12 @@ func (p *YdbStorage) createArchiveReader() *reader.SpanReader {
 		OpLimit:       p.opts.ReadOpLimit,
 		SvcLimit:      p.opts.ReadSvcLimit,
 	}
-	r := reader.NewSpanReader(p.ydbPool, opts, p.logger, p.jaegerLogger)
+	r := reader.NewSpanReader(p.ydbPool, opts, p.logger, p.jaegerLogger, p.jaegerTraceProvider.OTEL.Tracer("ArchiveSpanReader"))
 	return r
 }
 
 func (p *YdbStorage) Close() {
 	p.writer.Close()
 	p.archiveWriter.Close()
+	_ = p.jaegerTraceProvider.Close(context.Background())
 }

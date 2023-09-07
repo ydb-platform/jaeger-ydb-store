@@ -1,5 +1,7 @@
 # Changes by version
 
+* updated jaeger to v1.48
+* added otel tracing to spanReader, it can be used with `ydb.use-tracing`
 * added ability to configure connection secure type `ydb.secure-connection`
 * added new credentials types: `SaKeyJson` and `Anonymous`
 * now `SaId`, `SaKeyId` and `SaPrivateKeyFile` have become deprecated - use `SaKeyJson` insted

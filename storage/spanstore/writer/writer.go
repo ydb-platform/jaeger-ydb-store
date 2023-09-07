@@ -125,11 +125,11 @@ func (s *SpanWriter) saveServiceNameAndOperationName(ctx context.Context, span *
 	if operationName == "" {
 		return nil
 	}
-	if exists, _ := s.nameCache.ContainsOrAdd(serviceName+"-"+operationName+"-"+kind, true); !exists {
+	if exists, _ := s.nameCache.ContainsOrAdd(serviceName+"-"+operationName+"-"+kind.String(), true); !exists {
 		data := types.ListValue(types.StructValue(
 			types.StructFieldValue("service_name", types.UTF8Value(serviceName)),
 			types.StructFieldValue("operation_name", types.UTF8Value(operationName)),
-			types.StructFieldValue("span_kind", types.UTF8Value(kind)),
+			types.StructFieldValue("span_kind", types.UTF8Value(kind.String())),
 		))
 		if s.opts.WriteTimeout > 0 {
 			var cancel context.CancelFunc

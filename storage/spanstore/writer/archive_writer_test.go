@@ -82,5 +82,6 @@ func setUpArchiveReader(t *testing.T) *reader.SpanReader {
 		},
 		testutil.Zap(),
 		testutil.JaegerLogger(),
+		testutil.Tracer(),
 	)
 }

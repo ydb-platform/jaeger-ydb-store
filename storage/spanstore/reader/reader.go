@@ -4,17 +4,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/jaegertracing/jaeger/storage/spanstore"
-	opentracing "github.com/opentracing/opentracing-go"
-	ottag "github.com/opentracing/opentracing-go/ext"
-	otlog "github.com/opentracing/opentracing-go/log"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table/types"
+	"go.opentelemetry.io/otel/attribute"
+	otelCodes "go.opentelemetry.io/otel/codes"
+	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -77,6 +79,7 @@ type SpanReader struct {
 	opts         SpanReaderOptions
 	logger       *zap.Logger
 	jaegerLogger hclog.Logger
+	tracer       trace.Tracer
 	cache        *ttlCache
 }
 
@@ -90,12 +93,13 @@ type SpanReaderOptions struct {
 }
 
 // NewSpanReader returns a new SpanReader.
-func NewSpanReader(pool table.Client, opts SpanReaderOptions, logger *zap.Logger, jaegerLogger hclog.Logger) *SpanReader {
+func NewSpanReader(pool table.Client, opts SpanReaderOptions, logger *zap.Logger, jaegerLogger hclog.Logger, tracer trace.Tracer) *SpanReader {
 	return &SpanReader{
 		pool:         pool,
 		opts:         opts,
 		logger:       logger,
 		jaegerLogger: jaegerLogger,
+		tracer:       tracer,
 		cache:        newTtlCache(),
 	}
 }
@@ -189,8 +193,8 @@ func (s *SpanReader) GetOperations(ctx context.Context, query spanstore.Operatio
 
 // FindTraces retrieves traces that match the traceQuery
 func (s *SpanReader) FindTraces(ctx context.Context, query *spanstore.TraceQueryParameters) ([]*model.Trace, error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "FindTraces")
-	defer span.Finish()
+	ctx, span := s.tracer.Start(ctx, "FindTraces")
+	defer span.End()
 
 	uniqueTraceIDs, err := s.FindTraceIDs(ctx, query)
 	if err != nil {
@@ -212,8 +216,9 @@ func (s *SpanReader) FindTraces(ctx context.Context, query *spanstore.TraceQuery
 	mx := new(sync.Mutex)
 	wg := new(sync.WaitGroup)
 	wg.Add(s.opts.QueryParallel)
-	childSpan, ctx := opentracing.StartSpanFromContext(ctx, "readTraces")
-	defer childSpan.Finish()
+	ctx, childSpan := s.tracer.Start(ctx, "readTraces")
+	defer childSpan.End()
+
 	for i := 0; i < s.opts.QueryParallel; i++ {
 		go func() {
 			defer wg.Done()
@@ -239,8 +244,9 @@ func (s *SpanReader) FindTraces(ctx context.Context, query *spanstore.TraceQuery
 
 // FindTraceIDs retrieve traceIDs that match the traceQuery
 func (s *SpanReader) FindTraceIDs(ctx context.Context, query *spanstore.TraceQueryParameters) ([]model.TraceID, error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "FindTraceIDs")
-	defer span.Finish()
+	ctx, span := s.tracer.Start(ctx, "FindTraceIDs")
+	defer span.End()
+
 	ctx, cancel := context.WithTimeout(ctx, s.opts.ReadTimeout)
 	defer cancel()
 
@@ -274,21 +280,32 @@ func (s *SpanReader) GetTrace(ctx context.Context, traceID model.TraceID) (*mode
 	if s.opts.ArchiveReader {
 		operationName = "GetArchiveTrace"
 	}
-	span, ctx := opentracing.StartSpanFromContext(ctx, operationName)
-	defer span.Finish()
-	span.LogFields(otlog.String("event", "searching"), otlog.Object("trace_id", traceID))
+	ctx, span := s.tracer.Start(ctx, operationName)
+	defer span.End()
+	span.AddEvent(
+		"searching",
+		trace.WithAttributes(
+			attribute.Stringer("trace_id", traceID),
+		),
+	)
+
 	return s.readTrace(ctx, traceID)
 }
 
 func (s *SpanReader) readTrace(ctx context.Context, traceID model.TraceID) (*model.Trace, error) {
-	span, ctx := startSpanForQuery(ctx, "readTrace")
-	defer span.Finish()
-	span.LogFields(otlog.String("event", "searching"), otlog.Object("trace_id", traceID))
+	ctx, span := s.startSpanForQuery(ctx, "readTrace")
+	defer span.End()
+	span.AddEvent(
+		"searching",
+		trace.WithAttributes(
+			attribute.Stringer("trace_id", traceID),
+		),
+	)
 
 	if s.opts.ArchiveReader {
-		trace, err := s.readArchiveTrace(ctx, traceID)
+		receivedArchiveTrace, err := s.readArchiveTrace(ctx, traceID)
 		logErrorToSpan(span, err)
-		return trace, err
+		return receivedArchiveTrace, err
 	}
 
 	parts, err := s.getPartitionList(ctx)
@@ -296,14 +313,14 @@ func (s *SpanReader) readTrace(ctx context.Context, traceID model.TraceID) (*mod
 		return nil, fmt.Errorf("failed to fetch partitions list: %w", err)
 	}
 
-	trace, err := s.readTraceFromPartitions(ctx, parts, traceID)
+	receivedTrace, err := s.readTraceFromPartitions(ctx, parts, traceID)
 	logErrorToSpan(span, err)
-	return trace, err
+	return receivedTrace, err
 }
 
 func (s *SpanReader) queryPartitionList(ctx context.Context) ([]schema.PartitionKey, error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "queryPartitions")
-	defer span.Finish()
+	ctx, span := s.tracer.Start(ctx, "queryPartitions")
+	defer span.End()
 	var result []schema.PartitionKey
 	err := s.pool.Do(ctx, func(ctx context.Context, session table.Session) error {
 		_, res, err := session.Execute(
@@ -393,8 +410,7 @@ func (s *SpanReader) readArchiveTrace(ctx context.Context, traceID model.TraceID
 }
 
 func (s *SpanReader) spansFromPartition(ctx context.Context, traceID model.TraceID, part schema.PartitionKey) ([]*model.Span, error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "spansFromPartition")
-
+	ctx, span := s.tracer.Start(ctx, "spansFromPartition")
 	var numSpans uint64
 	var query string
 	if s.opts.ArchiveReader {
@@ -518,8 +534,8 @@ func (s *SpanReader) findTraceIDs(ctx context.Context, traceQuery *spanstore.Tra
 }
 
 func (s *SpanReader) queryByTagsAndLogs(ctx context.Context, tq *spanstore.TraceQueryParameters) (*dbmodel.UniqueTraceIDs, error) {
-	span, ctx := startSpanForQuery(ctx, "queryByTagsAndLogs")
-	defer span.Finish()
+	ctx, span := s.startSpanForQuery(ctx, "queryByTagsAndLogs")
+	defer span.End()
 
 	results := make([]*dbmodel.UniqueTraceIDs, 0, len(tq.Tags))
 	parts := schema.MakePartitionList(tq.StartTimeMin, tq.StartTimeMax)
@@ -527,14 +543,19 @@ func (s *SpanReader) queryByTagsAndLogs(ctx context.Context, tq *spanstore.Trace
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	for k, v := range tq.Tags {
-		childSpan, ctx := opentracing.StartSpanFromContext(ctx, "queryByTag")
-		childSpan.LogFields(otlog.String("tag.key", k), otlog.String("tag.value", v))
+		ctx, childSpan := s.tracer.Start(ctx, "queryByTag")
+		childSpan.SetAttributes(attribute.String(k, v))
 
 		result := newSharedResult(cancel)
 		runBucketOperation(ctx, dbmodel.NumIndexBuckets, func(ctx context.Context, bucket uint8) {
 			hash := dbmodel.HashTagIndex(tq.ServiceName, k, v, bucket)
-			span, ctx := opentracing.StartSpanFromContext(ctx, "queryBucket", opentracing.Tags{"bucket": bucket, "hash": hash})
-			defer span.Finish()
+			ctx, span := s.tracer.Start(ctx, "queryBucker",
+				trace.WithAttributes(
+					attribute.Int("bucket", int(bucket)),
+					attribute.String("hash", strconv.FormatUint(hash, 10)),
+				),
+			)
+			defer span.End()
 			values := []table.ParameterOption{
 				table.ValueParam("$hash", types.Uint64Value(hash)),
 			}
@@ -551,14 +572,14 @@ func (s *SpanReader) queryByTagsAndLogs(ctx context.Context, tq *spanstore.Trace
 		} else {
 			return nil, err
 		}
-		childSpan.Finish()
+		childSpan.End()
 	}
 	return dbmodel.IntersectTraceIDs(results), nil
 }
 
 func (s *SpanReader) queryByDuration(ctx context.Context, tq *spanstore.TraceQueryParameters) (*dbmodel.UniqueTraceIDs, error) {
-	span, ctx := startSpanForQuery(ctx, "queryByDuration")
-	defer span.Finish()
+	ctx, span := s.startSpanForQuery(ctx, "queryByDuration")
+	defer span.End()
 
 	minDurationNano := tq.DurationMin.Nanoseconds()
 	maxDurationNano := (time.Hour * 24).Nanoseconds()
@@ -588,8 +609,9 @@ func (s *SpanReader) queryByDuration(ctx context.Context, tq *spanstore.TraceQue
 }
 
 func (s *SpanReader) queryByServiceNameAndOperation(ctx context.Context, tq *spanstore.TraceQueryParameters) (*dbmodel.UniqueTraceIDs, error) {
-	span, ctx := startSpanForQuery(ctx, "queryByServiceNameAndOperation")
-	defer span.Finish()
+	ctx, span := s.startSpanForQuery(ctx, "queryByServiceNameAndOperation")
+	defer span.End()
+
 	values := []table.ParameterOption{
 		table.ValueParam("$hash", types.Uint64Value(dbmodel.HashData(tq.ServiceName, tq.OperationName))),
 	}
@@ -601,8 +623,8 @@ func (s *SpanReader) queryByServiceNameAndOperation(ctx context.Context, tq *spa
 }
 
 func (s *SpanReader) queryByService(ctx context.Context, tq *spanstore.TraceQueryParameters) (*dbmodel.UniqueTraceIDs, error) {
-	span, ctx := startSpanForQuery(ctx, "queryByService")
-	defer span.Finish()
+	ctx, span := s.startSpanForQuery(ctx, "queryByService")
+	defer span.End()
 
 	parts := schema.MakePartitionList(tq.StartTimeMin, tq.StartTimeMax)
 	ctx, cancel := context.WithCancel(ctx)
@@ -634,8 +656,11 @@ func (s *SpanReader) queryParallel(ctx context.Context, parts []schema.Partition
 }
 
 func (s *SpanReader) queryInPartition(ctx context.Context, queryName string, part schema.PartitionKey, tq *spanstore.TraceQueryParameters, values ...table.ParameterOption) ([]dbmodel.IndexResult, error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "queryPartition", opentracing.Tag{Key: "partition", Value: part.Suffix()})
-	defer span.Finish()
+	ctx, span := s.tracer.Start(ctx, "queryPartition",
+		trace.WithAttributes(
+			attribute.String("partition", part.Suffix()),
+		),
+	)
 
 	limit := tq.NumTraces * limitMultiple
 	query := queries.BuildPartitionQuery(queryName, s.opts.DbPath, part)
@@ -655,7 +680,7 @@ func (s *SpanReader) queryInPartition(ctx context.Context, queryName string, par
 	return s.execQuery(ctx, span, query, values...)
 }
 
-func (s *SpanReader) execQuery(ctx context.Context, span opentracing.Span, query string, values ...table.ParameterOption) ([]dbmodel.IndexResult, error) {
+func (s *SpanReader) execQuery(ctx context.Context, span trace.Span, query string, values ...table.ParameterOption) ([]dbmodel.IndexResult, error) {
 	var result []dbmodel.IndexResult
 	err := s.pool.Do(ctx, func(ctx context.Context, session table.Session) error {
 		_, res, err := session.Execute(
@@ -684,11 +709,25 @@ func (s *SpanReader) execQuery(ctx context.Context, span opentracing.Span, query
 		return res.Err()
 	})
 	if err != nil {
-		span.LogFields(otlog.String("query", query))
+		span.AddEvent(
+			"errorExecQuery",
+			trace.WithAttributes(
+				attribute.String("query", query),
+			),
+		)
 		s.logger.Error("Failed to exec query", zap.Error(err), zap.String("query", query))
 		return nil, err
 	}
 	return result, nil
+}
+
+func (s *SpanReader) startSpanForQuery(ctx context.Context, name string) (context.Context, trace.Span) {
+	ctx, span := s.tracer.Start(ctx, name)
+	span.SetAttributes(
+		semconv.DBSystemKey.String("ydb"),
+		attribute.Key("component").String("yql"),
+	)
+	return ctx, span
 }
 
 func validateQuery(p *spanstore.TraceQueryParameters) error {
@@ -713,19 +752,12 @@ func validateQuery(p *spanstore.TraceQueryParameters) error {
 	return nil
 }
 
-func startSpanForQuery(ctx context.Context, name string) (opentracing.Span, context.Context) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, name)
-	ottag.DBType.Set(span, "ydb")
-	ottag.Component.Set(span, "yql")
-	return span, ctx
-}
-
-func logErrorToSpan(span opentracing.Span, err error) {
+func logErrorToSpan(span trace.Span, err error) {
 	if err == nil {
 		return
 	}
-	ottag.Error.Set(span, true)
-	span.LogFields(otlog.Error(err))
+	span.RecordError(err)
+	span.SetStatus(otelCodes.Error, err.Error())
 }
 
 func trimResults(ids *dbmodel.UniqueTraceIDs, limit int) *dbmodel.UniqueTraceIDs {
