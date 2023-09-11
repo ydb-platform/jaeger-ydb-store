@@ -10,13 +10,28 @@ ydb:
   # Folder to store data in
   folder:
 
+  # one of ["enabled", "disabled"]
+  secureConnection: ""
+
+  # true if anonymous authorization
+  anonymous: ""
+
+  # access token for authorization
+  token: ""
+
+  # Service account key in json format for  Yandex.Cloud authorization
+  saKeyJson: ""
+
   # Service account id for Yandex.Cloud authorization
+  # Deprecated: now part of keyYdbSaKeyJson
   saId: ""
 
   # Service account key id for Yandex.Cloud authorization
+  # Deprecated: now part of keyYdbSaKeyJson
   saKeyId: ""
 
   # Service account private key for Yandex.Cloud authorization
+  # Deprecated: now part of keyYdbSaKeyJson
   saPrivateKey: ""
 
   # Use metadata to authorize requests
@@ -27,7 +42,10 @@ ydb:
     # YDB_CONNECT_TIMEOUT: 10s
 
     # Write queries timeout
-    # YDB_WRITE_TIMEOUT: 1s
+    # YDB_WRITE_TIMEOUT: 10s
+
+    # attempt to write queries timeout
+    # YDB_RETRY_ATTEMPT_TIMEOUT: 1s
 
     # Read queries timeout
     # YDB_READ_TIMEOUT: 10s
@@ -87,19 +105,19 @@ image:
   query:
     pullPolicy: IfNotPresent
     repository: cr.yandex/yc/jaeger-ydb-query
-    tag: v1.8.3
+    tag: v1.9.0
   collector:
     pullPolicy: IfNotPresent
     repository: cr.yandex/yc/jaeger-ydb-collector
-    tag: v1.8.3
+    tag: v1.9.0
   watcher:
     pullPolicy: IfNotPresent
     repository: cr.yandex/yc/jaeger-ydb-watcher
-    tag: v1.8.3
+    tag: v1.9.0
   agent:
     pullPolicy: IfNotPresent
     repository: jaegertracing/jaeger-agent
-    tag: 1.27
+    tag: 1.47
 
 imagePullSecrets: []
 nameOverride: ""

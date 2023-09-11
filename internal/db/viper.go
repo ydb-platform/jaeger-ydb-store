@@ -4,17 +4,26 @@ const (
 	KeyYdbAddress = "ydb.address"
 	KeyYdbPath    = "ydb.path"
 	KeyYdbFolder  = "ydb.folder"
-	KeyYdbToken   = "ydb.token"
+	// enabled or disabled
+	KeyYdbSecureConnection = "ydb.secure-connection"
 
+	keyYdbAnonymous  = "ydb.anonymous"
+	KeyYdbToken      = "ydb.token"
+	KeyYdbSaMetaAuth = "ydb.sa.meta-auth"
+	keyYdbSaKeyJson  = "ydb.Sa.Key-json"
+
+	// Deprecated: now part of keyYdbSaKeyJson
 	KeyYdbSaPrivateKeyFile = "ydb.sa.private-key-file"
-	KeyYdbSaMetaAuth       = "ydb.sa.meta-auth"
-	KeyYdbSaId             = "ydb.sa.id"
-	KeyYdbSaKeyID          = "ydb.sa.key-id"
+	// Deprecated: now part of keyYdbSaKeyJson
+	KeyYdbSaId = "ydb.sa.id"
+	// Deprecated: now part of keyYdbSaKeyJson
+	KeyYdbSaKeyID = "ydb.sa.key-id"
 
 	KeyYdbCAFile = "ydb.ca-file"
 
-	KeyYdbConnectTimeout = "ydb.connect-timeout"
-	KeyYdbWriteTimeout   = "ydb.write-timeout"
+	KeyYdbConnectTimeout      = "ydb.connect-timeout"
+	KeyYdbWriteTimeout        = "ydb.write-timeout"
+	KeyYdbRetryAttemptTimeout = "ydb.retry-attempt-timeout"
 
 	KeyYdbReadTimeout       = "ydb.read-timeout"
 	KeyYdbReadQueryParallel = "ydb.read-query-parallel"

@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
-	"io"
 	"net/http"
 	"net/http/pprof"
 	"os"
@@ -15,7 +13,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/viper"
-	jaegerCfg "github.com/uber/jaeger-client-go/config"
 
 	localViper "github.com/ydb-platform/jaeger-ydb-store/internal/viper"
 	"github.com/ydb-platform/jaeger-ydb-store/plugin"
@@ -52,15 +49,6 @@ func main() {
 
 	go serveHttp(ydbPlugin.Registry(), jaegerLogger)
 
-	closer, err := initTracer()
-	if err != nil {
-		jaegerLogger.Error(err.Error())
-		os.Exit(1)
-	}
-	defer func() {
-		_ = closer.Close()
-	}()
-
 	jaegerLogger.Warn("starting plugin")
 	jaegerGrpc.Serve(&shared.PluginServices{
 		Store:        ydbPlugin,
@@ -88,17 +76,4 @@ func serveHttp(gatherer prometheus.Gatherer, jaegerLogger hclog.Logger) {
 		jaegerLogger.Error("failed to start http listener", "err", err)
 		os.Exit(1)
 	}
-}
-
-func initTracer() (_ io.Closer, err error) {
-	cfg, err := jaegerCfg.FromEnv()
-	if err != nil {
-		return nil, fmt.Errorf("initTracer: %w", err)
-	}
-
-	closer, err := cfg.InitGlobalTracer("jaeger-ydb-query")
-	if err != nil {
-		return nil, fmt.Errorf("initTracer: %w", err)
-	}
-	return closer, nil
 }

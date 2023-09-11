@@ -1,4 +1,4 @@
-ARG jaeger_version=1.25.0
+ARG jaeger_version=1.47.0
 ARG golang_version=1.20
 ARG alpine_version=3.10
 
@@ -31,12 +31,18 @@ COPY --from=builder /ydb-plugin /
 
 FROM shared AS collector
 COPY --from=base-collector /go/bin/collector-linux /jaeger-collector
-EXPOSE 14267
+EXPOSE 9411
 EXPOSE 14250
+EXPOSE 14268
+EXPOSE 14269
+EXPOSE 4317
+EXPOSE 4318
 ENTRYPOINT ["/jaeger-collector"]
 
 FROM shared AS query
 COPY --from=base-query /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=base-query /go/bin/query-linux /jaeger-query
+EXPOSE 16685
 EXPOSE 16686
+EXPOSE 16687
 ENTRYPOINT ["/jaeger-query"]

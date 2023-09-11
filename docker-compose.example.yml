@@ -2,36 +2,42 @@ version: '3'
 services:
   schema:
     image: cr.yandex/yc/jaeger-ydb-watcher
-    volumes:
-      - ./ydb.key:/ydb.key
     environment:
-      YDB_SA_ID: aje65tbjpm9c2l7kecnl
-      YDB_SA_KEY_ID: ajes5qdgf6osjamjecd7
-      YDB_SA_PRIVATE_KEY_FILE: /ydb.key
       YDB_ADDRESS: lb.etn020jbq151nk3l676n.ydb.mdb.yandexcloud.net:2135
       YDB_PATH: /ru-central1/b1gr01sh5qjihf7elkiv/etn020jbq151nk3l676n
+      YDB_SA_KEY_JSON: >
+        {
+          "id": "ajes5qdgf6osjamjecd7",
+          "service_account_id": "aje65tbjpm9c2l7kecnl",
+          "private_key": "-----BEGIN PRIVATE KEY-----...-----END PRIVATE KEY-----\n"
+        }
+      YDB_SECURE_CONNECTION: enabled
     command: watcher
   collector:
     image: cr.yandex/yc/jaeger-ydb-collector
-    volumes:
-      - ./ydb.key:/ydb.key
     environment:
-      YDB_SA_ID: aje65tbjpm9c2l7kecnl
-      YDB_SA_KEY_ID: ajes5qdgf6osjamjecd7
-      YDB_SA_PRIVATE_KEY_FILE: /ydb.key
       YDB_ADDRESS: lb.etn020jbq151nk3l676n.ydb.mdb.yandexcloud.net:2135
       YDB_PATH: /ru-central1/b1gr01sh5qjihf7elkiv/etn020jbq151nk3l676n
       PLUGIN_LOG_PATH: /tmp/plugin.log
+      YDB_SA_KEY_JSON: >
+        {
+          "id": "ajes5qdgf6osjamjecd7",
+          "service_account_id": "aje65tbjpm9c2l7kecnl",
+          "private_key": "-----BEGIN PRIVATE KEY-----...-----END PRIVATE KEY-----\n"
+        }
+      YDB_SECURE_CONNECTION: enabled
   query:
     image: cr.yandex/yc/jaeger-ydb-query
-    volumes:
-      - ./ydb.key:/ydb.key
     ports:
       - 16686:16686
     environment:
-      YDB_SA_ID: aje65tbjpm9c2l7kecnl
-      YDB_SA_KEY_ID: ajes5qdgf6osjamjecd7
-      YDB_SA_PRIVATE_KEY_FILE: /ydb.key
       YDB_ADDRESS: lb.etn020jbq151nk3l676n.ydb.mdb.yandexcloud.net:2135
       YDB_PATH: /ru-central1/b1gr01sh5qjihf7elkiv/etn020jbq151nk3l676n
+      YDB_SA_KEY_JSON: >
+        {
+          "id": "ajes5qdgf6osjamjecd7",
+          "service_account_id": "aje65tbjpm9c2l7kecnl",
+          "private_key": "-----BEGIN PRIVATE KEY-----...-----END PRIVATE KEY-----\n"
+        }
+      YDB_SECURE_CONNECTION: enabled
       PLUGIN_LOG_PATH: /tmp/plugin.log
