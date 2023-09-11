@@ -1,5 +1,9 @@
 # Changes by version
 
+1.9.0 (2023-09-11)
+------------------
+
+* updated jaeger to v1.47
 * added ability to configure connection secure type `ydb.secure-connection`
 * added new credentials types: `SaKeyJson` and `Anonymous`
 * now `SaId`, `SaKeyId` and `SaPrivateKeyFile` have become deprecated - use `SaKeyJson` insted

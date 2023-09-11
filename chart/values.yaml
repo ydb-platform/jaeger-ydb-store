@@ -105,15 +105,15 @@ image:
   query:
     pullPolicy: IfNotPresent
     repository: cr.yandex/yc/jaeger-ydb-query
-    tag: v1.8.3
+    tag: v1.9.0
   collector:
     pullPolicy: IfNotPresent
     repository: cr.yandex/yc/jaeger-ydb-collector
-    tag: v1.8.3
+    tag: v1.9.0
   watcher:
     pullPolicy: IfNotPresent
     repository: cr.yandex/yc/jaeger-ydb-watcher
-    tag: v1.8.3
+    tag: v1.9.0
   agent:
     pullPolicy: IfNotPresent
     repository: jaegertracing/jaeger-agent
