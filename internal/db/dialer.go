@@ -16,7 +16,6 @@ import (
 	"github.com/ydb-platform/ydb-go-sdk/v3/table/types"
 	"github.com/ydb-platform/ydb-go-sdk/v3/trace"
 	yc "github.com/ydb-platform/ydb-go-yc"
-
 	"go.uber.org/zap"
 )
 
