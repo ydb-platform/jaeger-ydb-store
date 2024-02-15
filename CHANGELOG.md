@@ -1,5 +1,11 @@
 # Changes by version
 
+1.9.1 (2024-02-15)
+------------------
+
+* updated jaeger to v1.54.0
+* updated ydb-go-sdk to v3.56.1
+
 1.9.0 (2023-09-11)
 ------------------
 
