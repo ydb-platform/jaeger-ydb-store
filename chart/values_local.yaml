@@ -17,15 +17,15 @@ image:
   query:
     pullPolicy: IfNotPresent
     repository: kind/jaeger-ydb-query
-    tag: v1.9.0
+    tag: v1.9.1
   collector:
     pullPolicy: IfNotPresent
     repository: kind/jaeger-ydb-collector
-    tag: v1.9.0
+    tag: v1.9.1
   watcher:
     pullPolicy: IfNotPresent
     repository: kind/jaeger-ydb-watcher
-    tag: v1.9.0
+    tag: v1.9.1
   agent:
     pullPolicy: IfNotPresent
     repository: jaegertracing/jaeger-agent
