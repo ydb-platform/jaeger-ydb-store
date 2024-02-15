@@ -44,14 +44,14 @@ func (k PartitionKey) Suffix() string {
 
 func (k PartitionKey) QueryWhereParams() *table.QueryParameters {
 	return table.NewQueryParameters(
-		table.ValueParam("$part_date", types.UTF8Value(k.Date)),
+		table.ValueParam("$part_date", types.TextValue(k.Date)),
 		table.ValueParam("$part_num", types.Uint8Value(uint8(k.Num))),
 	)
 }
 
 func (k PartitionKey) QueryParams() *table.QueryParameters {
 	return table.NewQueryParameters(
-		table.ValueParam("$part_date", types.UTF8Value(k.Date)),
+		table.ValueParam("$part_date", types.TextValue(k.Date)),
 		table.ValueParam("$part_num", types.Uint8Value(uint8(k.Num))),
 		table.ValueParam("$is_active", types.BoolValue(k.IsActive)),
 	)

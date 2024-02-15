@@ -146,14 +146,14 @@ func (s *SpanReader) GetOperations(ctx context.Context, query spanstore.Operatio
 	if len(query.SpanKind) > 0 {
 		prepQuery = queries.BuildQuery("query-operations-with-kind", s.opts.DbPath)
 		queryParameters = table.NewQueryParameters(
-			table.ValueParam("$service_name", types.UTF8Value(query.ServiceName)),
-			table.ValueParam("$span_kind", types.UTF8Value(query.SpanKind)),
+			table.ValueParam("$service_name", types.TextValue(query.ServiceName)),
+			table.ValueParam("$span_kind", types.TextValue(query.SpanKind)),
 			table.ValueParam("$limit", types.Uint64Value(s.opts.OpLimit)),
 		)
 	} else {
 		prepQuery = queries.BuildQuery("query-operations", s.opts.DbPath)
 		queryParameters = table.NewQueryParameters(
-			table.ValueParam("$service_name", types.UTF8Value(query.ServiceName)),
+			table.ValueParam("$service_name", types.TextValue(query.ServiceName)),
 			table.ValueParam("$limit", types.Uint64Value(s.opts.OpLimit)),
 		)
 	}
