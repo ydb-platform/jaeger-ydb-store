@@ -117,7 +117,7 @@ image:
   agent:
     pullPolicy: IfNotPresent
     repository: jaegertracing/jaeger-agent
-    tag: 1.47
+    tag: 1.44
 
 imagePullSecrets: []
 nameOverride: ""
